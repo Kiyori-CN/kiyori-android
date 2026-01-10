@@ -37,13 +37,11 @@
 
 ### 📥 下载安装
 
-- **下载方式**：
-  - [GitHub Releases](https://github.com/azxcvn/FAM4K007/releases) - 下载最新版本APK
-  - 或在 [Releases 页面](https://github.com/azxcvn/FAM4K007/releases) 查看所有历史版本
+- **下载APK**：[GitHub Releases](https://github.com/azxcvn/mpv-android-anime4k/releases)
 
 ### ⚙️ 系统要求
 
-- **Android 版本**：Android 9.0 (API 28) 及以上
+- **Android 版本**：Android 12 (API 31) 及以上
 - **内存**：建议 8GB 以上 RAM（超分功能需要较大内存）
 - **存储空间**：建议至少 64GB
 - **处理器**：建议中高端处理器以获得更好的超分性能
@@ -51,7 +49,7 @@
 ### 🚀 快速使用
 
 1. 下载并安装 APK 文件
-2. 首次启动时授予**存储权限**（必需）和**网络权限**（可选）
+2. 首次启动时授予**存储权限**（必需）和**网络权限**（默认授予）
 3. 在主界面选择本地视频文件夹或添加 WebDAV 服务器
 4. 点击视频即可播放，支持手势控制和实时超分
 
@@ -137,7 +135,7 @@
   - 左侧滑动：调节亮度
   - 右侧滑动：调节音量
   - 左右滑动：快进/快退
-  - 双击：暂停/播放
+  - 双击：暂停/播放（或者前进后退，可在设置里修改）
   - 长按：倍速播放
   - 进度条拖动：精确定位
   
@@ -318,7 +316,7 @@
 
 **本项目全程由 AI 完成代码开发**，本人仅负责测试、反馈和方案设计等工作。
 
-由于 AI 生成代码的特殊性，项目中可能存在**代码冗余、结构不够精简**等问题。虽然项目已经历**两次大版本的代码结构优化**，对大部分代码进行了归类与重构，但仍可能存在以下情况：
+由于 AI 生成代码的特殊性，项目中可能存在**代码冗余、结构不够精简**等问题。虽然项目已经历**三次大版本的代码结构优化**，对大部分代码进行了归类与重构，但仍可能存在以下情况：
 - 部分代码逻辑较为复杂
 - 存在已注释但未删除的废弃代码
 - 某些实现方式不够优雅
@@ -331,9 +329,7 @@
 
 遇到问题或有改进建议？欢迎通过以下方式反馈：
 
-- 🐛 **Bug 反馈**：[提交 Issue](https://github.com/azxcvn/FAM4K007/issues)
-- 💡 **功能建议**：[提交 Issue](https://github.com/azxcvn/FAM4K007/issues)
-- 💬 **讨论交流**：[GitHub Discussions](https://github.com/azxcvn/FAM4K007/discussions)
+- 💡 **功能建议与反馈**：[提交 Issue](https://github.com/azxcvn/mpv-android-anime4k/issues)
 - 📧 **联系作者**：[GitHub Profile](https://github.com/azxcvn)
 
 ---
