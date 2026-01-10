@@ -65,15 +65,34 @@
 
 - **视频播放**：支持主流视频格式（MP4、MKV、AVI 等）
 - **网页嗅探功能**：软件内置 WebView，可以嗅探网页视频并自动选择最佳地址，一键播放
-- **哔哩哔哩番剧支持**：支持登录B站账号、在线播放番剧（详见[登录实现说明](docs/bilibili_login.md)和[番剧解析原理](docs/bilibili_bangumi.md)）
-- **哔哩哔哩视频/番剧下载**：支持下载B站视频和番剧到本地（详见[下载实现原理](docs/bilibili_download_principle.md)）
+- **哔哩哔哩番剧支持**：支持登录B站账号、在线播放番剧
+  <details>
+  <summary>📖 查看详细说明</summary>
+  
+  - [登录实现说明](docs/bilibili_login.md)
+  - [番剧解析原理](docs/bilibili_bangumi.md)
+  
+  </details>
+- **哔哩哔哩视频/番剧下载**：支持下载B站视频和番剧到本地
+  <details>
+  <summary>📖 查看详细说明</summary>
+  
+  - [下载实现原理](docs/bilibili_download_principle.md)
+  
+  </details>
   - 支持完整URL、短链（b23.tv）、带文本的分享链接
   - 自动解析视频信息，支持番剧多集选择下载
   - 音视频自动合并为MP4格式
   - 支持暂停、恢复、取消下载
   - 下载进度实时显示
   - ⚠️ **仅供个人学习使用，严禁商业用途**
-- **WebDAV 网络存储**：支持连接 WebDAV 服务器，直接播放云端视频文件（详见[WebDAV 使用说明](docs/webdav使用说明.md)）
+- **WebDAV 网络存储**：支持连接 WebDAV 服务器，直接播放云端视频文件
+  <details>
+  <summary>📖 查看详细说明</summary>
+  
+  - [WebDAV 使用说明](docs/webdav使用说明.md)
+  
+  </details>
 - **播放列表**：自动扫描文件夹、支持视频排序和分类
 - **字幕管理**：内嵌字幕解析、外部字幕导入、字幕位置和大小调整
 - **字幕自动加载**：同文件夹内，同名字幕可以自动加载
@@ -81,7 +100,13 @@
 - **音量增强**：支持开关增强功能，且可精细到0.1%调整
 - **弹幕功能**：
   - 支持导入本地 XML 格式弹幕文件
-  - **支持从哔哩哔哩下载弹幕**（详见[弹幕下载原理说明](docs/bilibili_danmaku_download.md)）
+  - **支持从哔哩哔哩下载弹幕**
+    <details>
+    <summary>📖 查看详细说明</summary>
+    
+    - [弹幕下载原理说明](docs/bilibili_danmaku_download.md)
+    
+    </details>
     - 使用B站分段弹幕API，获取完整弹幕数据
     - 支持普通视频和番剧整季批量下载
     - 并发下载技术，速度提升10-20倍
