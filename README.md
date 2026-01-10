@@ -31,37 +31,35 @@
 - 使用本项目获取的内容，其版权归原权利人所有，请遵守相关法律法规及平台服务协议。
 - 如有侵权，可随时[联系](https://github.com/azxcvn)处理。
 
-## 素材归属
-- 本项目图标由AI生成
-- 本项目播放器界面的控制组件图标来自FLATICON （ https://www.flaticon.com/ ）
-- 其余图标来自compose架构自带图标:Material Icons；Material Icons 是由 Google 提供的开源图标库，遵循 Apache License 2.0。
 ---
 
-## 功能截图
+## 快速开始
 
-### 应用主界面（竖屏）
+### 📥 下载安装
 
-| 软件首页 | 文件夹列表 | 视频列表 |
-|----------|------------|----------|
-| <img src="docs/screenshots/软件主页2.jpg" width="280"/> | <img src="docs/screenshots/文件夹列表2.jpg" width="280"/> | <img src="docs/screenshots/视频列表2.jpg" width="280"/> |
+- **下载方式**：
+  - [GitHub Releases](https://github.com/azxcvn/FAM4K007/releases) - 下载最新版本APK
+  - 或在 [Releases 页面](https://github.com/azxcvn/FAM4K007/releases) 查看所有历史版本
 
-| webdav支持 | 番剧解析 | 设置页面 |
-|------------|----------|----------|
-| <img src="docs/screenshots/webdav支持.jpg" width="280"/> | <img src="docs/screenshots/番剧解析.jpg" width="280"/> | <img src="docs/screenshots/设置页面.jpg" width="280"/> |
+### ⚙️ 系统要求
+
+- **Android 版本**：Android 9.0 (API 28) 及以上
+- **内存**：建议 8GB 以上 RAM（超分功能需要较大内存）
+- **存储空间**：建议至少 64GB
+- **处理器**：建议中高端处理器以获得更好的超分性能
+
+### 🚀 快速使用
+
+1. 下载并安装 APK 文件
+2. 首次启动时授予**存储权限**（必需）和**网络权限**（可选）
+3. 在主界面选择本地视频文件夹或添加 WebDAV 服务器
+4. 点击视频即可播放，支持手势控制和实时超分
 
 ---
 
-### 播放器界面（横屏）
+## 功能特性
 
-| 播放器主界面 | 弹幕样式设置 | 字幕样式设置 |
-|--------------|--------------|--------------|
-| <img src="docs/screenshots/播放器主界面.jpg" width="280"/> | <img src="docs/screenshots/弹幕样式设置.jpg" width="280"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="280"/> |
-
-| 记忆播放 | 更多菜单 | 超分功能 |
-|----------|----------|----------|
-| <img src="docs/screenshots/记忆播放.jpg" width="280"/> | <img src="docs/screenshots/更多菜单.jpg" width="280"/> | <img src="docs/screenshots/超分功能.jpg" width="280"/> |
-
-## 主要功能
+### 核心功能
 
 - **视频播放**：支持主流视频格式（MP4、MKV、AVI 等）
 - **网页嗅探功能**：软件内置 WebView，可以嗅探网页视频并自动选择最佳地址，一键播放
@@ -80,12 +78,17 @@
   - [下载实现原理](docs/bilibili_download_principle.md)
   
   </details>
+  <details>
+  <summary>⬇️ 展开查看功能特性</summary>
+  
   - 支持完整URL、短链（b23.tv）、带文本的分享链接
   - 自动解析视频信息，支持番剧多集选择下载
   - 音视频自动合并为MP4格式
   - 支持暂停、恢复、取消下载
   - 下载进度实时显示
   - ⚠️ **仅供个人学习使用，严禁商业用途**
+  
+  </details>
 - **WebDAV 网络存储**：支持连接 WebDAV 服务器，直接播放云端视频文件
   <details>
   <summary>📖 查看详细说明</summary>
@@ -107,26 +110,68 @@
     - [弹幕下载原理说明](docs/bilibili_danmaku_download.md)
     
     </details>
+    <details>
+    <summary>✨ 展开查看功能特性</summary>
+    
     - 使用B站分段弹幕API，获取完整弹幕数据
     - 支持普通视频和番剧整季批量下载
     - 并发下载技术，速度提升10-20倍
     - 自动携带登录Cookie，获取会员专属弹幕
-  - 弹幕样式自定义（大小、速度、透明度、描边等）
-  - 弹幕轨道管理，支持显示/隐藏不同类型弹幕
-  - 自动记忆弹幕文件和显示状态
-  - 高刷新率屏幕适配（支持 90Hz/120Hz/144Hz）
-  - 弹幕与视频进度同步，支持章节跳转
+    
+    </details>
+  - 弹幕样式与功能
+    <details>
+    <summary>🎨 展开查看详情</summary>
+    
+    - 弹幕样式自定义（大小、速度、透明度、描边等）
+    - 弹幕轨道管理，支持显示/隐藏不同类型弹幕
+    - 自动记忆弹幕文件和显示状态
+    - 高刷新率屏幕适配（支持 90Hz/120Hz/144Hz）
+    - 弹幕与视频进度同步，支持章节跳转
+    
+    </details>
 - **手势控制**：
+  <details>
+  <summary>👆 展开查看详情</summary>
+  
   - 左侧滑动：调节亮度
   - 右侧滑动：调节音量
   - 左右滑动：快进/快退
   - 双击：暂停/播放
   - 长按：倍速播放
   - 进度条拖动：精确定位
+  
+  </details>
 - **播放控制**：快进/快退、倍速播放、字幕延迟调整
 - **超分辨率**：集成 Anime4K，支持实时视频超分
 - **播放进度恢复**：自动保存播放进度，下次打开自动续播
 - **截图功能**：支持视频截图保存
+
+---
+
+## 功能截图
+
+### 应用主界面（竖屏）
+
+| 软件首页 | 文件夹列表 | 视频列表 |
+|----------|------------|----------|
+| <img src="docs/screenshots/软件主页2.jpg" width="280"/> | <img src="docs/screenshots/文件夹列表2.jpg" width="280"/> | <img src="docs/screenshots/视频列表2.jpg" width="280"/> |
+
+| webdav支持 | 番剧解析 | 设置页面 |
+|------------|----------|----------|
+| <img src="docs/screenshots/webdav支持.jpg" width="280"/> | <img src="docs/screenshots/番剧解析.jpg" width="280"/> | <img src="docs/screenshots/设置页面.jpg" width="280"/> |
+
+### 播放器界面（横屏）
+
+| 播放器主界面 | 弹幕样式设置 | 字幕样式设置 |
+|--------------|--------------|--------------|
+| <img src="docs/screenshots/播放器主界面.jpg" width="280"/> | <img src="docs/screenshots/弹幕样式设置.jpg" width="280"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="280"/> |
+
+| 记忆播放 | 更多菜单 | 超分功能 |
+|----------|----------|----------|
+| <img src="docs/screenshots/记忆播放.jpg" width="280"/> | <img src="docs/screenshots/更多菜单.jpg" width="280"/> | <img src="docs/screenshots/超分功能.jpg" width="280"/> |
+
+---
 
 ## 技术架构
 
@@ -192,74 +237,82 @@
 
 ---
 
+### 素材归属
+
+- **应用图标**：由 AI 生成
+- **播放器控制图标**：来自 [FLATICON](https://www.flaticon.com/)
+- **其他UI图标**：Material Icons（Google 提供，遵循 Apache License 2.0）
+
 感谢以上所有开源项目和开发者的无私贡献，没有你们的努力就没有这个项目的诞生！
 
-## 第三方服务声明
+---
 
-本应用使用了以下第三方服务的公开API：
+## 隐私与第三方服务
 
-- **哔哩哔哩 (Bilibili)** - 用于登录、解析番剧链接并在线播放、下载弹幕、下载视频/番剧
-  - 登录API: `https://passport.bilibili.com/x/passport-login/web/qrcode/*`
-  - 番剧信息API: `https://api.bilibili.com/pgc/view/web/season`
-  - 番剧播放API: `https://api.bilibili.com/pgc/player/web/playurl`
-  - 弹幕下载API: `https://api.bilibili.com/x/v1/dm/list.so`
-  - 视频信息API: `https://api.bilibili.com/x/web-interface/view`
-  - 视频下载API: `https://api.bilibili.com/x/player/playurl`
-  - 番剧下载API: `https://api.bilibili.com/pgc/player/web/playurl`
-  - 使用场景：
-    - 用户主动扫码登录B站账号
-    - 用户输入番剧链接观看在线番剧
-    - 用户主动输入B站视频链接下载弹幕
-  - 数据处理：
-    - 登录凭证使用AES-256加密存储在本地，详见[安全说明](docs/bilibili_security_analysis.md)
-    - 下载的弹幕数据仅保存在用户本地设备
-    - 所有数据不会上传或分享给第三方
-  - 声明：本应用与哔哩哔哩无任何官方关联，仅使用其公开API
+### 📱 隐私承诺
 
-**隐私说明**：
+本应用高度重视用户隐私保护：
 
-本应用高度重视用户隐私保护，特此说明：
-
-### 数据收集
 - ❌ **不收集**用户的任何个人信息
-- ❌ **不上传**任何数据到我们的服务器（我们没有服务器）
+- ❌ **不上传**任何数据到服务器（我们没有服务器）
 - ❌ **不分享**用户数据给任何第三方
 - ✅ 所有功能均在**本地设备**上运行
-
-### 哔哩哔哩登录功能
-- 登录凭证使用 **AES-256 军事级加密** 存储在本地（详见[安全分析](docs/bilibili_security_analysis.md)）
-- 登录密钥由 Android KeyStore 硬件保护，**应用无法导出**
-- 登录信息仅用于调用B站API，**不会上传到任何其他地方**
-- 用户可随时在设置中**一键退出登录**，彻底清除所有登录数据
-- 应用卸载后，所有登录数据将**自动永久销毁**
-
-### 弹幕与番剧数据
-- 弹幕文件和番剧数据保存在**用户指定的本地文件夹**
-- 下载功能完全由**用户主动触发**
-- 数据仅存储在本地，**不会同步或备份到云端**
-
-### 视频/番剧下载功能
-- ⚠️ **重要提醒**：视频下载功能仅供**个人学习与技术交流**使用
-- 下载的视频内容**版权归原作者所有**，请在下载后24小时内删除
-- **严禁用于任何商业用途**，包括但不限于：
-  - 二次传播、倒卖、去水印上传
-  - 商业放映、广告盈利
-  - 侵犯版权方权益的任何行为
-- 使用下载功能产生的**法律责任由用户自行承担**，与本项目无关
-- 本项目不对下载功能的滥用负责，请遵守相关法律法规
-- 建议仅下载自己有版权或创作的内容，尊重UP主和版权方的劳动成果
-
-### 权限说明
-应用仅请求以下必要权限：
-- **存储权限（管理所有文件）**：读取和保存本地视频、字幕、弹幕文件，自动加载同名字幕文件
-- **网络权限**：用于哔哩哔哩番剧在线播放、视频/番剧下载和弹幕下载（用户主动触发）
-
-### 开源透明
 - ✅ 项目**完全开源**，所有代码公开可审查
-- ✅ 欢迎安全专家进行代码审计
-- ✅ 如发现安全问题，请及时反馈
 
 **承诺**：本应用永远不会售卖或共享用户数据，因为我们根本不收集！
+
+### 🔌 使用的第三方API
+
+本应用使用 **哔哩哔哩 (Bilibili)** 的公开API，用于登录、番剧播放、弹幕下载、视频下载等功能。
+
+<details>
+<summary>查看API列表</summary>
+
+- 登录API: `https://passport.bilibili.com/x/passport-login/web/qrcode/*`
+- 番剧信息API: `https://api.bilibili.com/pgc/view/web/season`
+- 番剧播放API: `https://api.bilibili.com/pgc/player/web/playurl`
+- 弹幕下载API: `https://api.bilibili.com/x/v1/dm/list.so`
+- 视频信息API: `https://api.bilibili.com/x/web-interface/view`
+- 视频下载API: `https://api.bilibili.com/x/player/playurl`
+- 番剧下载API: `https://api.bilibili.com/pgc/player/web/playurl`
+
+</details>
+
+**声明**：本应用与哔哩哔哩无任何官方关联，仅使用其公开API。
+
+### 🔐 数据安全说明
+
+<details>
+<summary>B站登录功能</summary>
+
+- 登录凭证使用 **AES-256 加密**存储在本地（详见[安全分析](docs/bilibili_security_analysis.md)）
+- 登录密钥由 Android KeyStore 硬件保护，**应用无法导出**
+- 登录信息仅用于调用B站API，**不会上传到其他地方**
+- 用户可随时在设置中**一键退出登录**，彻底清除所有数据
+- 应用卸载后，所有登录数据将**自动永久销毁**
+
+</details>
+
+<details>
+<summary>弹幕与视频数据</summary>
+
+- 弹幕和视频文件保存在**用户指定的本地文件夹**
+- 下载功能完全由**用户主动触发**
+- 数据仅存储在本地，**不会同步或备份到云端**
+- ⚠️ **重要**：视频下载功能仅供**个人学习使用**，严禁商业用途
+- 下载内容**版权归原作者所有**，使用者需遵守相关法律法规
+- 法律责任由用户自行承担，与本项目无关
+
+</details>
+
+### 🔑 权限说明
+
+应用仅请求以下必要权限：
+
+- **存储权限（管理所有文件）**：读取和保存本地视频、字幕、弹幕文件
+- **网络权限**：用于B站番剧在线播放、弹幕下载、视频下载（用户主动触发）
+
+---
 
 ## 开发说明
 
@@ -272,23 +325,17 @@
 
 对于优化不足之处，还望各位开发者见谅！项目仍在持续改进中，欢迎提出建议和反馈。
 
-## 系统要求
-
-- Android 9.0 及以上
-- 至少 64GB 存储空间
-- 建议 8GB 以上 RAM
-
-## 使用方式
-
-1. 安装应用
-2. 授予文件访问权限
-3. 打开应用，浏览本地视频文件
-4. 点击视频即可播放
+---
 
 ## 反馈与建议
 
-如遇到问题或有建议，欢迎提出！
+遇到问题或有改进建议？欢迎通过以下方式反馈：
+
+- 🐛 **Bug 反馈**：[提交 Issue](https://github.com/azxcvn/FAM4K007/issues)
+- 💡 **功能建议**：[提交 Issue](https://github.com/azxcvn/FAM4K007/issues)
+- 💬 **讨论交流**：[GitHub Discussions](https://github.com/azxcvn/FAM4K007/discussions)
+- 📧 **联系作者**：[GitHub Profile](https://github.com/azxcvn)
 
 ---
 
-**Last Updated:** 2025-12-02
+**Last Updated:** 2026-01-10
