@@ -151,25 +151,25 @@
 
 ## 功能截图
 
-### 应用主界面（竖屏）
+### 📱 应用主界面（竖屏）
 
-| 软件首页 | 文件夹列表 | 视频列表 |
-|----------|------------|----------|
-| <img src="docs/screenshots/软件主页2.jpg" width="280"/> | <img src="docs/screenshots/文件夹列表2.jpg" width="280"/> | <img src="docs/screenshots/视频列表2.jpg" width="280"/> |
+| 软件首页 | 视频列表 | 番剧解析 | 网页嗅探 |
+|----------|----------|----------|----------|
+| <img src="docs/screenshots/软件首页.jpg" width="250"/> | <img src="docs/screenshots/视频列表界面.jpg" width="250"/> | <img src="docs/screenshots/哔哩哔哩番剧解析.jpg" width="250"/> | <img src="docs/screenshots/网页视频嗅探.jpg" width="250"/> |
 
-| webdav支持 | 番剧解析 | 设置页面 |
-|------------|----------|----------|
-| <img src="docs/screenshots/webdav支持.jpg" width="280"/> | <img src="docs/screenshots/番剧解析.jpg" width="280"/> | <img src="docs/screenshots/设置页面.jpg" width="280"/> |
+| WebDAV支持 | WebDAV详情 | 设置页面1 | 设置页面2 |
+|------------|------------|-----------|-----------|
+| <img src="docs/screenshots/webdav支持.jpg" width="250"/> | <img src="docs/screenshots/webdav支持2.jpg" width="250"/> | <img src="docs/screenshots/设置界面1.jpg" width="250"/> | <img src="docs/screenshots/设置界面2.jpg" width="250"/> |
 
-### 播放器界面（横屏）
+### 🎬 播放器界面（横屏）
 
-| 播放器主界面 | 弹幕样式设置 | 字幕样式设置 |
-|--------------|--------------|--------------|
-| <img src="docs/screenshots/播放器主界面.jpg" width="280"/> | <img src="docs/screenshots/弹幕样式设置.jpg" width="280"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="280"/> |
+| 播放器主界面 | 弹幕功能 | 弹幕设置 | 字幕设置 |
+|--------------|----------|----------|----------|
+| <img src="docs/screenshots/播放器主界面.jpg" width="250"/> | <img src="docs/screenshots/弹幕支持.jpg" width="250"/> | <img src="docs/screenshots/弹幕设置.jpg" width="250"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="250"/> |
 
-| 记忆播放 | 更多菜单 | 超分功能 |
-|----------|----------|----------|
-| <img src="docs/screenshots/记忆播放.jpg" width="280"/> | <img src="docs/screenshots/更多菜单.jpg" width="280"/> | <img src="docs/screenshots/超分功能.jpg" width="280"/> |
+| 进度控制 | 记忆播放 | 更多菜单 | 超分功能 |
+|----------|----------|----------|----------|
+| <img src="docs/screenshots/拖动缩略图.jpg" width="250"/> | <img src="docs/screenshots/记忆播放.jpg" width="250"/> | <img src="docs/screenshots/更多菜单.jpg" width="250"/> | <img src="docs/screenshots/超分功能.jpg" width="250"/> |
 
 ---
 
