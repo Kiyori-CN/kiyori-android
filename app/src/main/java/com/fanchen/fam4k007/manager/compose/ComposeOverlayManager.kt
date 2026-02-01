@@ -172,6 +172,20 @@ class ComposeOverlayManager(
     }
     
     /**
+     * 显示DanDanPlay网络弹幕搜索对话框
+     */
+    fun showDanDanPlaySearchDialog(
+        onEpisodeSelected: (episodeId: Int, animeTitle: String, episodeTitle: String) -> Unit
+    ) {
+        setContent {
+            com.fam4k007.videoplayer.compose.DanDanPlaySearchDialog(
+                onDismiss = { clearContent() },
+                onEpisodeSelected = onEpisodeSelected
+            )
+        }
+    }
+    
+    /**
      * 显示字幕延迟对话框（已废弃，保留兼容）
      */
     @Deprecated("使用 showSubtitleSettingsDrawer 替代")

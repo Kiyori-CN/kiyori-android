@@ -1,0 +1,10 @@
+## 本地配置文件示例
+# 复制此文件为 local.properties 并填入你自己的配置
+
+# Android SDK 路径
+sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
+
+# DanDanPlay API 凭证
+# 请前往 https://www.dandanplay.com/ 申请你自己的 AppId 和 AppSecret
+dandanplay.appId=your_app_id_here
+dandanplay.appSecret=your_app_secret_here

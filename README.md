@@ -314,6 +314,35 @@
 
 ## 开发说明
 
+### 🔧 构建项目
+
+1. **克隆仓库**
+   ```bash
+   git clone https://github.com/azxcvn/mpv-android-anime4k.git
+   cd mpv-android-anime4k
+   ```
+
+2. **配置 DanDanPlay API 凭证**
+   ```bash
+   # 复制示例配置文件
+   cp local.properties.example local.properties
+   ```
+   
+   然后编辑 `local.properties`，填入你的 DanDanPlay API 凭证：
+   ```properties
+   dandanplay.appId=your_app_id_here
+   dandanplay.appSecret=your_app_secret_here
+   ```
+   
+   > 💡 **如何获取凭证？**
+   > 1. 前往 [DanDanPlay 开放平台](https://www.dandanplay.com/) 注册账号
+   > 2. 在开发者中心申请 AppId 和 AppSecret
+   > 3. 将凭证填入 `local.properties` 文件
+
+3. **使用 Android Studio 打开项目并构建**
+
+### 💻 AI 辅助开发
+
 **本项目全程由 AI 完成代码开发**，本人仅负责测试、反馈和方案设计等工作。
 
 由于 AI 生成代码的特殊性，项目中可能存在**代码冗余、结构不够精简**等问题。虽然项目已经历**三次大版本的代码结构优化**，对大部分代码进行了归类与重构，但仍可能存在以下情况：
