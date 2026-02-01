@@ -791,6 +791,23 @@ class VideoPlayerActivity : AppCompatActivity(),
             dialogManager.showDanmakuDialog()
         }
         
+        // 弹幕显示/隐藏按钮
+        val btnDanmakuToggle = findViewById<ImageView>(R.id.btnDanmakuToggle)
+        btnDanmakuToggle.setOnClickListener {
+            val hasLoadedDanmaku = danmakuManager.getCurrentDanmakuPath() != null
+            if (!hasLoadedDanmaku) {
+                DialogUtils.showToastShort(this, "请先加载弹幕文件")
+            } else {
+                val isVisible = danmakuManager.isVisible()
+                danmakuManager.setVisibility(!isVisible)
+                com.fam4k007.videoplayer.danmaku.DanmakuConfig.setEnabled(!isVisible)
+                // 更新按钮图标：显示时用alignjustify，隐藏时用alignslash
+                btnDanmakuToggle.setImageResource(
+                    if (!isVisible) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
+                )
+            }
+        }
+        
         controlsManager.initialize()
         
         // 初始化进度条缩略图助手（在controlsManager.initialize()之后）

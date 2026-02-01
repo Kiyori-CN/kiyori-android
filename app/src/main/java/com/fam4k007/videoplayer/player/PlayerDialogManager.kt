@@ -503,7 +503,7 @@ class PlayerDialogManager(
 
         val layoutParams = window?.attributes
         layoutParams?.gravity = android.view.Gravity.START or android.view.Gravity.TOP
-        layoutParams?.x = 20
+        layoutParams?.x = 80
         layoutParams?.y = 100
         layoutParams?.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
         layoutParams?.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
@@ -678,21 +678,9 @@ class PlayerDialogManager(
 
         val btnDanmaku = activity.findViewById<ImageView>(R.id.btnDanmaku)
         
-        // 检查是否已加载弹幕文件
-        val hasLoadedDanmaku = danmakuManager.getCurrentDanmakuPath() != null
-        
-        // 动态确定第一个选项的文本
-        val visibilityOption = if (hasLoadedDanmaku) {
-            if (danmakuManager.isVisible()) "隐藏弹幕" else "显示弹幕"
-        } else {
-            "显示弹幕"
-        }
-        
-        // 常驻菜单项
+        // 简化的菜单项：移除了显示/隐藏选项，合并弹幕来源
         val menuItems = listOf(
-            visibilityOption,
-            "本地弹幕",
-            "网络弹幕",
+            "选择弹幕",
             "弹幕轨道",
             "弹幕设置"
         )
@@ -706,27 +694,37 @@ class PlayerDialogManager(
             showScrollHint = false
         ) { position ->
             when (position) {
-                0 -> {
-                    // 显示/隐藏弹幕
-                    if (!hasLoadedDanmaku) {
-                        DialogUtils.showToastShort(activity, "请先加载弹幕文件")
-                    } else if (danmakuManager.isVisible()) {
-                        danmakuManager.setVisibility(false)
-                        com.fam4k007.videoplayer.danmaku.DanmakuConfig.setEnabled(false)
-                        (activity as? DanmakuDialogCallback)?.onDanmakuVisibilityChanged(false)
-                    } else {
-                        danmakuManager.setVisibility(true)
-                        com.fam4k007.videoplayer.danmaku.DanmakuConfig.setEnabled(true)
-                        (activity as? DanmakuDialogCallback)?.onDanmakuVisibilityChanged(true)
-                    }
-                }
-                1 -> (activity as? DanmakuDialogCallback)?.onImportDanmaku()
-                2 -> (activity as? DanmakuDialogCallback)?.onSearchNetworkDanmaku()
-                3 -> {
-                    // 弹幕轨道
-                    showDanmakuTrackDialog()
-                }
-                4 -> showDanmakuSettingsDialog()
+                0 -> showDanmakuSourceDialog()  // 弹幕来源选择（三级菜单）
+                1 -> showDanmakuTrackDialog()  // 弹幕轨道
+                2 -> showDanmakuSettingsDialog()  // 弹幕设置
+            }
+        }
+    }
+    
+    /**
+     * 显示弹幕来源选择对话框（三级菜单）
+     */
+    private fun showDanmakuSourceDialog() {
+        val activity = activityRef.get() ?: return
+
+        val btnDanmaku = activity.findViewById<ImageView>(R.id.btnDanmaku)
+        
+        val sourceItems = listOf(
+            "本地弹幕",
+            "网络弹幕"
+        )
+
+        showPopupDialog(
+            btnDanmaku,
+            sourceItems,
+            selectedPosition = -1,
+            showAbove = false,
+            useFixedHeight = false,
+            showScrollHint = false
+        ) { position ->
+            when (position) {
+                0 -> (activity as? DanmakuDialogCallback)?.onImportDanmaku()  // 本地弹幕
+                1 -> (activity as? DanmakuDialogCallback)?.onSearchNetworkDanmaku()  // 网络弹幕
             }
         }
     }

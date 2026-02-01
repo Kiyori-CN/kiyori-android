@@ -291,15 +291,117 @@
 
             </LinearLayout>
 
-            <!-- 控制按钮 -->
-            <LinearLayout
+            <!-- 控制按钮 - 使用FrameLayout实现叠加布局 -->
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
                 android:layout_marginTop="8dp">
 
-                <!-- Anime4K按钮（超分辨率）- 固定在左侧 -->
+                <!-- 主控制按钮组 - 相对于整个屏幕居中 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_gravity="center"
+                    android:gravity="center_vertical">
+
+                    <!-- 弹幕显示/隐藏按钮 -->
+                    <ImageView
+                        android:id="@+id/btnDanmakuToggle"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/ic_danmaku_visible"
+                        android:tint="#FFFFFF"
+                        android:padding="10dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+
+                    <!-- 上一集按钮 -->
+                    <ImageView
+                        android:id="@+id/btnPrevious"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/previous_square"
+                        android:tint="#FFFFFF"
+                        android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginStart="12dp"
+                        android:enabled="false"
+                        android:alpha="0.5" />
+
+                    <!-- 后退按钮 -->
+                    <ImageView
+                        android:id="@+id/btnRewind"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/ic_rewind_new"
+                        android:tint="#FFFFFF"
+                        android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginStart="12dp" />
+
+                    <!-- 播放按钮（屏幕正中间的参考点） -->
+                    <ImageView
+                        android:id="@+id/btnPlayPause"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/pause"
+                        android:tint="#FFFFFF"
+                        android:padding="6dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginStart="12dp"
+                        android:layout_marginEnd="12dp" />
+
+                    <!-- 前进按钮 -->
+                    <ImageView
+                        android:id="@+id/btnForward"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/ic_forward_new"
+                        android:tint="#FFFFFF"
+                        android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginEnd="12dp" />
+
+                    <!-- 下一集按钮 -->
+                    <ImageView
+                        android:id="@+id/btnNext"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/next_square"
+                        android:tint="#FFFFFF"
+                        android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:layout_marginEnd="12dp"
+                        android:enabled="false"
+                        android:alpha="0.5" />
+
+                    <!-- 倍速按钮 -->
+                    <ImageView
+                        android:id="@+id/btnSpeed"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:src="@drawable/tachometer_alt_fastest"
+                        android:tint="#FFFFFF"
+                        android:padding="8dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
+
+                </LinearLayout>
+
+                <!-- Anime4K按钮（超分辨率）- 独立定位在左侧 -->
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnAnime4K"
                     android:layout_width="wrap_content"
@@ -312,110 +414,10 @@
                     android:paddingEnd="16dp"
                     android:background="@drawable/btn_anime4k_bg"
                     android:elevation="2dp"
-                    android:layout_marginStart="48dp" />
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="50dp" />
 
-                <!-- 固定宽度间隔 - 减小宽度 -->
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="1dp" />
-
-                <!-- 左侧弹簧 -->
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-                <!-- 上一集按钮 -->
-                <ImageView
-                    android:id="@+id/btnPrevious"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:src="@drawable/previous_square"
-                    android:tint="#FFFFFF"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginEnd="12dp"
-                    android:layout_marginStart="-60dp"
-                    android:enabled="false"
-                    android:alpha="0.5" />
-
-                <!-- 后退按钮 -->
-                <ImageView
-                    android:id="@+id/btnRewind"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:src="@drawable/ic_rewind_new"
-                    android:tint="#FFFFFF"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginEnd="12dp" />
-
-                <!-- 播放按钮（中间） -->
-                <ImageView
-                    android:id="@+id/btnPlayPause"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@drawable/pause"
-                    android:tint="#FFFFFF"
-                    android:padding="6dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="12dp" />
-
-                <!-- 前进按钮 -->
-                <ImageView
-                    android:id="@+id/btnForward"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:src="@drawable/ic_forward_new"
-                    android:tint="#FFFFFF"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginStart="12dp" />
-
-                <!-- 下一集按钮 -->
-                <ImageView
-                    android:id="@+id/btnNext"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:src="@drawable/next_square"
-                    android:tint="#FFFFFF"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginStart="12dp"
-                    android:enabled="false"
-                    android:alpha="0.5" />
-
-                <!-- 倍速按钮 -->
-                <ImageView
-                    android:id="@+id/btnSpeed"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:src="@drawable/tachometer_alt_fastest"
-                    android:tint="#FFFFFF"
-                    android:padding="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginStart="12dp" />
-
-                <!-- 右侧弹簧 -->
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="1" />
-
-            </LinearLayout>
+            </FrameLayout>
         </LinearLayout>
 
     </LinearLayout>
