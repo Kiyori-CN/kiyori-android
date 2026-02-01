@@ -1555,6 +1555,102 @@ class VideoPlayerActivity : AppCompatActivity(),
         filePickerManager.importDanmaku(isPlaying)
     }
     
+    override fun onSearchNetworkDanmaku() {
+        // 显示网络弹幕搜索对话框
+        composeOverlayManager.showDanDanPlaySearchDialog(
+            onEpisodeSelected = { episodeId, animeTitle, episodeTitle ->
+                // 下载并加载弹幕
+                loadNetworkDanmaku(episodeId, animeTitle, episodeTitle)
+            }
+        )
+    }
+    
+    /**
+     * 加载网络弹幕
+     */
+    private fun loadNetworkDanmaku(episodeId: Int, animeTitle: String, episodeTitle: String) {
+        lifecycleScope.launch {
+            try {
+                // 显示加载提示
+                DialogUtils.showToastShort(this@VideoPlayerActivity, "正在加载弹幕...")
+                
+                // 获取弹幕
+                val api = com.fam4k007.videoplayer.dandanplay.DanDanPlayApi()
+                val result = api.getDanmaku(episodeId)
+                
+                result.fold(
+                    onSuccess = { danmakuResponse ->
+                        // 转换为 XML 格式
+                        val xmlContent = api.convertToXml(danmakuResponse)
+                        
+                        // 保存到外部存储的 Android/data/包名/files/danmaku/network 目录
+                        // 用户可以通过文件管理器访问
+                        val danmakuDir = File(getExternalFilesDir(null), "danmaku/network")
+                        if (!danmakuDir.exists()) {
+                            danmakuDir.mkdirs()
+                        }
+                        
+                        // 使用番剧名和剧集名生成文件名
+                        val fileName = "${animeTitle}_${episodeTitle}_${episodeId}.xml"
+                            .replace("[^a-zA-Z0-9_\\u4e00-\\u9fa5]".toRegex(), "_")
+                        val danmakuFile = File(danmakuDir, fileName)
+                        danmakuFile.writeText(xmlContent)
+                        
+                        Logger.d(TAG, "网络弹幕已保存到: ${danmakuFile.absolutePath}")
+                        
+                        // 加载弹幕
+                        val loaded = danmakuManager.loadDanmakuFile(danmakuFile.absolutePath, autoShow = true)
+                        
+                        if (loaded) {
+                            // 同步弹幕到当前播放位置
+                            val currentPosition = (playbackEngine.currentPosition * 1000).toLong()
+                            danmakuManager.seekTo(currentPosition)
+                            
+                            // 如果视频正在播放，立即启动弹幕
+                            if (isPlaying) {
+                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    danmakuManager.resume()
+                                    Logger.d(TAG, "Network danmaku resumed (video playing)")
+                                }, 300)
+                            } else {
+                                Logger.d(TAG, "Network danmaku loaded but not started (video paused)")
+                            }
+                            
+                            Logger.d(TAG, "Network danmaku loaded and synced to position: $currentPosition")
+                            
+                            DialogUtils.showToastShort(
+                                this@VideoPlayerActivity,
+                                "弹幕加载成功: $animeTitle - $episodeTitle"
+                            )
+                            
+                            // 更新历史记录
+                            videoUri?.let { uri ->
+                                historyManager.updateDanmu(
+                                    uri = uri,
+                                    danmuPath = danmakuFile.absolutePath,
+                                    danmuVisible = true,
+                                    danmuOffsetTime = 0L
+                                )
+                                Logger.d(TAG, "Network danmaku updated in history")
+                            }
+                        } else {
+                            DialogUtils.showToastLong(this@VideoPlayerActivity, "弹幕加载失败")
+                        }
+                    },
+                    onFailure = { e ->
+                        DialogUtils.showToastLong(
+                            this@VideoPlayerActivity,
+                            "弹幕加载失败: ${e.message}"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to load network danmaku", e)
+                DialogUtils.showToastLong(this@VideoPlayerActivity, "弹幕加载异常: ${e.message}")
+            }
+        }
+    }
+    
     override fun onDanmakuVisibilityChanged(visible: Boolean) {
         // 更新历史记录中的弹幕可见性状态
         videoUri?.let { uri ->

@@ -692,6 +692,7 @@ class PlayerDialogManager(
         val menuItems = listOf(
             visibilityOption,
             "本地弹幕",
+            "网络弹幕",
             "弹幕轨道",
             "弹幕设置"
         )
@@ -720,11 +721,12 @@ class PlayerDialogManager(
                     }
                 }
                 1 -> (activity as? DanmakuDialogCallback)?.onImportDanmaku()
-                2 -> {
+                2 -> (activity as? DanmakuDialogCallback)?.onSearchNetworkDanmaku()
+                3 -> {
                     // 弹幕轨道
                     showDanmakuTrackDialog()
                 }
-                3 -> showDanmakuSettingsDialog()
+                4 -> showDanmakuSettingsDialog()
             }
         }
     }
@@ -948,6 +950,7 @@ interface SubtitleDialogCallback {
 interface DanmakuDialogCallback {
     fun onImportDanmaku()
     fun onDanmakuVisibilityChanged(visible: Boolean)
+    fun onSearchNetworkDanmaku()
 }
 
 interface MoreOptionsCallback {
