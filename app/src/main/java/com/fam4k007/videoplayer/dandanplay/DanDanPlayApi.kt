@@ -22,9 +22,9 @@ class DanDanPlayApi {
         private const val TAG = "DanDanPlayApi"
         private const val BASE_URL = "https://api.dandanplay.net"
         
-        // API 密钥
-        private const val APP_ID = "xgzybrtxcu"
-        private const val APP_SECRET = "nf4ZtiwTvWdyr4VbcXwMKILAEAkVSSUN"
+        // API 密钥 - 从BuildConfig读取
+        private val APP_ID = com.fam4k007.videoplayer.BuildConfig.DANDANPLAY_APP_ID
+        private val APP_SECRET = com.fam4k007.videoplayer.BuildConfig.DANDANPLAY_APP_SECRET
     }
 
     private val client = OkHttpClient.Builder()
