@@ -59,3 +59,43 @@ data class DanmakuComment(
     @SerializedName("m")
     val m: String   // 弹幕内容
 )
+
+// 文件哈希匹配请求
+data class MatchRequest(
+    @SerializedName("fileName")
+    val fileName: String,
+    @SerializedName("fileHash")
+    val fileHash: String,
+    @SerializedName("fileSize")
+    val fileSize: Long,
+    @SerializedName("videoDuration")
+    val videoDuration: Double? = null,  // 改为可空，不传0.0
+    @SerializedName("matchMode")
+    val matchMode: String? = null  // 改为可空，使用API默认值
+)
+
+// 文件哈希匹配响应
+data class MatchResponse(
+    @SerializedName("isMatched")
+    val isMatched: Boolean,
+    @SerializedName("matches")
+    val matches: List<MatchInfo>?
+)
+
+// 匹配信息
+data class MatchInfo(
+    @SerializedName("episodeId")
+    val episodeId: Int,
+    @SerializedName("animeId")
+    val animeId: Int,
+    @SerializedName("animeTitle")
+    val animeTitle: String,
+    @SerializedName("episodeTitle")
+    val episodeTitle: String,
+    @SerializedName("type")
+    val type: String,
+    @SerializedName("typeDescription")
+    val typeDescription: String,
+    @SerializedName("shift")
+    val shift: Double = 0.0
+)
