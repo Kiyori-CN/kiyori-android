@@ -113,6 +113,7 @@ class VideoPlayerActivity : AppCompatActivity(),
     private var duration = 0.0
     private var isPlaying = false
     private var currentSpeed = 1.0
+    private var speedBeforeLongPress = 1.0  // 记录长按前的速度，用于松开后恢复
     private var isHardwareDecoding = true
     private var pendingSeekPosition: Int? = null  // 待处理的seek位置，用于解决连续双击问题
     
@@ -506,11 +507,19 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onLongPressRelease() {
-                    if (currentSpeed != 1.0) {
-                        currentSpeed = 1.0
-                        playbackEngine?.setSpeed(1.0)
-                        danmakuManager.setSpeed(1.0f)
-                    }
+                    // 恢复到长按前的速度
+                    currentSpeed = speedBeforeLongPress
+                    playbackEngine?.setSpeed(speedBeforeLongPress)
+                    danmakuManager.setSpeed(speedBeforeLongPress.toFloat())
+                    
+                    // 隐藏速度提示
+                    speedHint.animate()
+                        .alpha(0f)
+                        .setDuration(200)
+                        .withEndAction {
+                            speedHint.visibility = View.GONE
+                        }
+                        .start()
                 }
                 
                 override fun onSingleTap() {
@@ -527,21 +536,24 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onLongPress() {
-                    if (currentSpeed == 1.0) {
-                        val longPressSpeed = preferencesManager.getLongPressSpeed()
-                        
-                        currentSpeed = longPressSpeed.toDouble()
-                        playbackEngine?.setSpeed(longPressSpeed.toDouble())
-                        danmakuManager.setSpeed(longPressSpeed)
-                        
-                        speedHintText.text = "正在${String.format("%.1f", longPressSpeed)}倍速播放"
-                        speedHint.visibility = View.VISIBLE
-                        speedHint.alpha = 0f
-                        speedHint.animate()
-                            .alpha(1f)
-                            .setDuration(200)
-                            .start()
-                    }
+                    val longPressSpeed = preferencesManager.getLongPressSpeed()
+                    
+                    // 记录当前速度，用于松开后恢复
+                    speedBeforeLongPress = currentSpeed
+                    
+                    // 设置为长按速度
+                    currentSpeed = longPressSpeed.toDouble()
+                    playbackEngine?.setSpeed(longPressSpeed.toDouble())
+                    danmakuManager.setSpeed(longPressSpeed)
+                    
+                    // 显示速度提示
+                    speedHintText.text = "正在${String.format("%.1f", longPressSpeed)}倍速播放"
+                    speedHint.visibility = View.VISIBLE
+                    speedHint.alpha = 0f
+                    speedHint.animate()
+                        .alpha(1f)
+                        .setDuration(200)
+                        .start()
                 }
                 
                 override fun onSeekGesture(seekSeconds: Int, isRelativeSeek: Boolean) {
