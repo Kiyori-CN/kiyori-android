@@ -1440,7 +1440,29 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     override fun onStop() {
         super.onStop()
+        
+        // 当Activity完全不可见时（Home键、锁屏等），自动暂停视频
+        // 不会影响文件选择器等操作，因为那些只触发onPause不触发onStop
+        if (::playbackEngine.isInitialized && isPlaying) {
+            playbackEngine.pause()
+            
+            // 更新UI状态
+            if (::controlsManager.isInitialized) {
+                controlsManager.updatePlayPauseButton(false)
+            }
+            
+            // 暂停指示器会由状态监听器自动显示，不需要手动调用
+            
+            Logger.d(TAG, "Video paused due to app going to background")
+        }
+        
         savePlaybackState()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // 不自动恢复播放，让用户手动控制
+        Logger.d(TAG, "Activity resumed")
     }
     
     override fun onWindowFocusChanged(hasFocus: Boolean) {
