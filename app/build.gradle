@@ -73,6 +73,7 @@ android {
     buildFeatures {
         viewBinding true
         compose true
+        buildConfig true  // 启用 BuildConfig 功能，支持 buildConfigField
     }
     
     composeOptions {
