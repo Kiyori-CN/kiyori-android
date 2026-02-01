@@ -188,6 +188,37 @@
 -keep class org.json.** { *; }
 -keepclassmembers class org.json.** { *; }
 
+# ============================================
+# DanDanPlay API 相关规则（重要！）
+# ============================================
+
+# 保护 DanDanPlay 数据模型类（Gson 反序列化需要）
+-keep class com.fam4k007.videoplayer.dandanplay.** { *; }
+-keepclassmembers class com.fam4k007.videoplayer.dandanplay.** { *; }
+
+# 特别保护数据类的字段和构造函数（防止被混淆）
+-keepclassmembers class com.fam4k007.videoplayer.dandanplay.** {
+    <init>(...);
+    <fields>;
+    public ** get*();
+    public ** set*(...);
+}
+
+# 保护 @SerializedName 注解的字段
+-keepclassmembers class com.fam4k007.videoplayer.dandanplay.** {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# 防止 data class 的方法被移除
+-keepclassmembers class com.fam4k007.videoplayer.dandanplay.** {
+    public ** copy(...);
+    public ** component*();
+}
+
+# JSON 解析需要的类（org.json）
+-keep class org.json.** { *; }
+-keepclassmembers class org.json.** { *; }
+
 # 保护所有 sealed class 和它们的子类（防止反射和序列化问题）
 -keep class com.fam4k007.videoplayer.bilibili.model.LoginResult { *; }
 -keep class com.fam4k007.videoplayer.bilibili.model.LoginResult$** { *; }
