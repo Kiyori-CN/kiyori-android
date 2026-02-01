@@ -55,6 +55,36 @@ class VideoListComposeActivity : ComponentActivity() {
     private fun setupContent(folderName: String, videos: ArrayList<VideoFileParcelable>) {
         val activity = this
         
+        // 如果使用Paging3模式，需要先将视频保存到数据库
+        if (usePaging && folderPath.isNotEmpty()) {
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    try {
+                        Logger.d(TAG, "开始将视频保存到数据库...")
+                        val database = VideoDatabase.getDatabase(activity)
+                        val entities = videos.map { video ->
+                            com.fam4k007.videoplayer.database.VideoCacheEntity(
+                                uri = video.uri,
+                                name = video.name,
+                                path = video.path,
+                                folderPath = folderPath,
+                                folderName = folderName,
+                                size = video.size,
+                                duration = video.duration,
+                                dateModified = video.dateAdded,
+                                dateAdded = video.dateAdded,
+                                lastScanned = System.currentTimeMillis()
+                            )
+                        }
+                        database.videoCacheDao().insertVideos(entities)
+                        Logger.d(TAG, "已保存 ${entities.size} 个视频到数据库")
+                    } catch (e: Exception) {
+                        Logger.e(TAG, "保存视频到数据库失败", e)
+                    }
+                }
+            }
+        }
+        
         setContent {
             val themeColors = getThemeColors(ThemeManager.getCurrentTheme(activity).themeName)
 
@@ -149,6 +179,8 @@ class VideoListComposeActivity : ComponentActivity() {
         
         val selection = "${MediaStore.Video.Media.DATA} LIKE ?"
         val selectionArgs = arrayOf("$folderPath%")
+        // 添加明确的排序，避免系统默认限制
+        val sortOrder = "${MediaStore.Video.Media.DISPLAY_NAME} ASC"
         
         try {
             contentResolver.query(
@@ -156,7 +188,7 @@ class VideoListComposeActivity : ComponentActivity() {
                 projection,
                 selection,
                 selectionArgs,
-                null
+                sortOrder
             )?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
                 val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
