@@ -34,6 +34,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.fam4k007.videoplayer.Anime4KManager
@@ -111,6 +113,7 @@ class VideoPlayerActivity : AppCompatActivity(),
     private var duration = 0.0
     private var isPlaying = false
     private var currentSpeed = 1.0
+    private var speedBeforeLongPress = 1.0  // 记录长按前的速度，用于松开后恢复
     private var isHardwareDecoding = true
     private var pendingSeekPosition: Int? = null  // 待处理的seek位置，用于解决连续双击问题
     
@@ -504,11 +507,19 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onLongPressRelease() {
-                    if (currentSpeed != 1.0) {
-                        currentSpeed = 1.0
-                        playbackEngine?.setSpeed(1.0)
-                        danmakuManager.setSpeed(1.0f)
-                    }
+                    // 恢复到长按前的速度
+                    currentSpeed = speedBeforeLongPress
+                    playbackEngine?.setSpeed(speedBeforeLongPress)
+                    danmakuManager.setSpeed(speedBeforeLongPress.toFloat())
+                    
+                    // 隐藏速度提示
+                    speedHint.animate()
+                        .alpha(0f)
+                        .setDuration(200)
+                        .withEndAction {
+                            speedHint.visibility = View.GONE
+                        }
+                        .start()
                 }
                 
                 override fun onSingleTap() {
@@ -525,21 +536,24 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onLongPress() {
-                    if (currentSpeed == 1.0) {
-                        val longPressSpeed = preferencesManager.getLongPressSpeed()
-                        
-                        currentSpeed = longPressSpeed.toDouble()
-                        playbackEngine?.setSpeed(longPressSpeed.toDouble())
-                        danmakuManager.setSpeed(longPressSpeed)
-                        
-                        speedHintText.text = "正在${String.format("%.1f", longPressSpeed)}倍速播放"
-                        speedHint.visibility = View.VISIBLE
-                        speedHint.alpha = 0f
-                        speedHint.animate()
-                            .alpha(1f)
-                            .setDuration(200)
-                            .start()
-                    }
+                    val longPressSpeed = preferencesManager.getLongPressSpeed()
+                    
+                    // 记录当前速度，用于松开后恢复
+                    speedBeforeLongPress = currentSpeed
+                    
+                    // 设置为长按速度
+                    currentSpeed = longPressSpeed.toDouble()
+                    playbackEngine?.setSpeed(longPressSpeed.toDouble())
+                    danmakuManager.setSpeed(longPressSpeed)
+                    
+                    // 显示速度提示
+                    speedHintText.text = "正在${String.format("%.1f", longPressSpeed)}倍速播放"
+                    speedHint.visibility = View.VISIBLE
+                    speedHint.alpha = 0f
+                    speedHint.animate()
+                        .alpha(1f)
+                        .setDuration(200)
+                        .start()
                 }
                 
                 override fun onSeekGesture(seekSeconds: Int, isRelativeSeek: Boolean) {
@@ -1438,7 +1452,29 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     override fun onStop() {
         super.onStop()
+        
+        // 当Activity完全不可见时（Home键、锁屏等），自动暂停视频
+        // 不会影响文件选择器等操作，因为那些只触发onPause不触发onStop
+        if (::playbackEngine.isInitialized && isPlaying) {
+            playbackEngine.pause()
+            
+            // 更新UI状态
+            if (::controlsManager.isInitialized) {
+                controlsManager.updatePlayPauseButton(false)
+            }
+            
+            // 暂停指示器会由状态监听器自动显示，不需要手动调用
+            
+            Logger.d(TAG, "Video paused due to app going to background")
+        }
+        
         savePlaybackState()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // 不自动恢复播放，让用户手动控制
+        Logger.d(TAG, "Activity resumed")
     }
     
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -1679,6 +1715,114 @@ class VideoPlayerActivity : AppCompatActivity(),
             )
             Logger.d(TAG, "Danmaku visibility updated in history: $visible")
         }
+    }
+    
+    override fun onMatchDanmaku() {
+        // 自动匹配弹幕
+        lifecycleScope.launch {
+            try {
+                // 获取当前视频文件路径
+                val uri = videoUri
+                if (uri == null) {
+                    DialogUtils.showToastShort(this@VideoPlayerActivity, "无法获取视频URI")
+                    return@launch
+                }
+                
+                // 获取真实文件路径
+                val videoPath = when (uri.scheme) {
+                    "file" -> uri.path
+                    "content" -> {
+                        // ContentResolver 方式获取路径
+                        try {
+                            val cursor = contentResolver.query(uri, arrayOf(android.provider.MediaStore.Video.Media.DATA), null, null, null)
+                            cursor?.use {
+                                if (it.moveToFirst()) {
+                                    val columnIndex = it.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DATA)
+                                    it.getString(columnIndex)
+                                } else null
+                            }
+                        } catch (e: Exception) {
+                            Logger.e(TAG, "Failed to get path from ContentResolver", e)
+                            null
+                        }
+                    }
+                    else -> uri.path
+                }
+                
+                if (videoPath.isNullOrEmpty()) {
+                    DialogUtils.showToastShort(this@VideoPlayerActivity, "无法获取视频文件路径")
+                    return@launch
+                }
+                
+                val videoFile = File(videoPath)
+                if (!videoFile.exists()) {
+                    DialogUtils.showToastShort(this@VideoPlayerActivity, "视频文件不存在: $videoPath")
+                    return@launch
+                }
+                
+                // 显示匹配提示
+                DialogUtils.showToastShort(this@VideoPlayerActivity, "正在匹配弹幕，请稍候...")
+                
+                val api = com.fam4k007.videoplayer.dandanplay.DanDanPlayApi()
+                
+                // 获取完整文件名
+                val fileName = videoFile.name
+                val fileSize = videoFile.length()
+                
+                Logger.d(TAG, "File info - name: $fileName, size: $fileSize, path: $videoPath")
+                
+                // 计算文件哈希
+                Logger.d(TAG, "Calculating file hash...")
+                val fileHash = api.calculateFileHash(videoPath)
+                Logger.d(TAG, "File hash calculated: $fileHash")
+                
+                // 调用匹配API
+                val matchResponse = api.matchDanmaku(
+                    fileName = fileName,
+                    fileHash = fileHash,
+                    fileSize = fileSize
+                )
+                
+                if (!matchResponse.isMatched || matchResponse.matches.isNullOrEmpty()) {
+                    DialogUtils.showToastLong(this@VideoPlayerActivity, "未找到匹配的弹幕")
+                    return@launch
+                }
+                
+                // 找到匹配，显示选择对话框
+                val matches = matchResponse.matches
+                if (matches.size == 1) {
+                    // 只有一个匹配，直接加载
+                    val match = matches[0]
+                    loadNetworkDanmaku(match.episodeId, match.animeTitle, match.episodeTitle)
+                } else {
+                    // 多个匹配，让用户选择
+                    withContext(Dispatchers.Main) {
+                        showMatchSelectionDialog(matches)
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to match danmaku", e)
+                DialogUtils.showToastLong(this@VideoPlayerActivity, "匹配失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 显示匹配结果选择对话框
+     */
+    private fun showMatchSelectionDialog(matches: List<com.fam4k007.videoplayer.dandanplay.MatchInfo>) {
+        val items = matches.map { "${it.animeTitle} - ${it.episodeTitle}" }.toTypedArray()
+        
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("选择匹配结果")
+            .setItems(items) { dialog, which ->
+                val match = matches[which]
+                loadNetworkDanmaku(match.episodeId, match.animeTitle, match.episodeTitle)
+                dialog.dismiss()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
     
     /**

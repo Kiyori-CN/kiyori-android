@@ -681,6 +681,7 @@ class PlayerDialogManager(
         // 简化的菜单项：移除了显示/隐藏选项，合并弹幕来源
         val menuItems = listOf(
             "选择弹幕",
+            "匹配弹幕",
             "弹幕轨道",
             "弹幕设置"
         )
@@ -695,8 +696,9 @@ class PlayerDialogManager(
         ) { position ->
             when (position) {
                 0 -> showDanmakuSourceDialog()  // 弹幕来源选择（三级菜单）
-                1 -> showDanmakuTrackDialog()  // 弹幕轨道
-                2 -> showDanmakuSettingsDialog()  // 弹幕设置
+                1 -> (activity as? DanmakuDialogCallback)?.onMatchDanmaku()  // 匹配弹幕
+                2 -> showDanmakuTrackDialog()  // 弹幕轨道
+                3 -> showDanmakuSettingsDialog()  // 弹幕设置
             }
         }
     }
@@ -949,6 +951,7 @@ interface DanmakuDialogCallback {
     fun onImportDanmaku()
     fun onDanmakuVisibilityChanged(visible: Boolean)
     fun onSearchNetworkDanmaku()
+    fun onMatchDanmaku()
 }
 
 interface MoreOptionsCallback {

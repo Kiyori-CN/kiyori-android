@@ -4,8 +4,10 @@ import android.util.Log
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 import java.net.URLEncoder
 import java.security.MessageDigest
@@ -267,5 +269,114 @@ class DanDanPlayApi {
 
         xmlBuilder.append("</i>")
         return xmlBuilder.toString()
+    }
+
+    /**
+     * 计算文件哈希（前16MB的MD5）
+     * @param filePath 文件路径
+     * @return 文件哈希值（32位小写MD5）
+     */
+    suspend fun calculateFileHash(filePath: String): String = withContext(Dispatchers.IO) {
+        try {
+            val file = java.io.File(filePath)
+            if (!file.exists()) {
+                throw IllegalArgumentException("文件不存在: $filePath")
+            }
+
+            val fileSize = file.length()
+            val readSize = minOf(fileSize, 16 * 1024 * 1024L) // 最多读取16MB
+
+            val digest = MessageDigest.getInstance("MD5")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(8192)
+                var totalRead = 0L
+                var bytesRead: Int
+
+                while (totalRead < readSize) {
+                    bytesRead = input.read(buffer, 0, minOf(buffer.size.toLong(), readSize - totalRead).toInt())
+                    if (bytesRead == -1) break
+                    digest.update(buffer, 0, bytesRead)
+                    totalRead += bytesRead
+                }
+            }
+
+            val hash = digest.digest()
+            hash.joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calculating file hash", e)
+            throw e
+        }
+    }
+
+    /**
+     * 使用文件哈希匹配弹幕
+     * POST /api/v2/match
+     * @param fileName 文件名
+     * @param fileHash 文件哈希（MD5）
+     * @param fileSize 文件大小（字节）
+     * @return 匹配结果
+     */
+    suspend fun matchDanmaku(fileName: String, fileHash: String, fileSize: Long): MatchResponse = withContext(Dispatchers.IO) {
+        try {
+            val timestamp = System.currentTimeMillis() / 1000
+            val path = "/api/v2/match"
+
+            val matchRequest = MatchRequest(
+                fileName = fileName,
+                fileHash = fileHash,
+                fileSize = fileSize
+                // 不传 matchMode 和 videoDuration，让API使用默认值
+            )
+            
+            val requestJson = gson.toJson(matchRequest)
+            Log.d(TAG, "Match request JSON: $requestJson")
+
+            val requestBody = requestJson.toRequestBody("application/json".toMediaType())
+
+            val request = Request.Builder()
+                .url("$BASE_URL$path")
+                .post(requestBody)
+                .addHeader("X-AppId", APP_ID)
+                .addHeader("X-Timestamp", timestamp.toString())
+                .addHeader("X-Signature", generateSignature(timestamp, path))
+                .addHeader("Accept-Encoding", "gzip")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            Log.d(TAG, "Matching danmaku: fileName=$fileName, hash=$fileHash, size=$fileSize")
+
+            val response = client.newCall(request).execute()
+            
+            // 处理GZIP压缩的响应
+            val responseBody = response.body?.let { body ->
+                val contentEncoding = response.header("Content-Encoding")
+                if (contentEncoding == "gzip") {
+                    // 解压GZIP
+                    val gzipStream = GZIPInputStream(body.byteStream())
+                    val buffer = ByteArrayOutputStream()
+                    val data = ByteArray(1024)
+                    var count: Int
+                    while (gzipStream.read(data).also { count = it } != -1) {
+                        buffer.write(data, 0, count)
+                    }
+                    buffer.toString("UTF-8")
+                } else {
+                    body.string()
+                }
+            } ?: throw Exception("空响应")
+
+            Log.d(TAG, "Match response: $responseBody")
+
+            if (!response.isSuccessful) {
+                throw Exception("匹配失败: ${response.code} - $responseBody")
+            }
+
+            val matchResponse = gson.fromJson(responseBody, MatchResponse::class.java)
+            Log.d(TAG, "Match result: isMatched=${matchResponse.isMatched}, matches count=${matchResponse.matches?.size ?: 0}")
+            matchResponse
+        } catch (e: Exception) {
+            Log.e(TAG, "Error matching danmaku", e)
+            throw e
+        }
     }
 }
