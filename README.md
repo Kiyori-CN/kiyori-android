@@ -335,9 +335,8 @@
    ```
    
    > 💡 **如何获取凭证？**
-   > 1. 前往 [DanDanPlay 开放平台](https://www.dandanplay.com/) 注册账号
-   > 2. 在开发者中心申请 AppId 和 AppSecret
-   > 3. 将凭证填入 `local.properties` 文件
+   > 1. 前往 [DanDanPlay 开放平台](https://www.dandanplay.com/) 获取 AppId 和 AppSecret
+   > 2. 将凭证填入 `local.properties` 文件
 
 3. **使用 Android Studio 打开项目并构建**
 
@@ -363,4 +362,4 @@
 
 ---
 
-**Last Updated:** 2026-01-10
+**Last Updated:** 2026-02-01
