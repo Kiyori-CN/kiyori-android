@@ -659,6 +659,22 @@ class PreferencesManager private constructor(context: Context) {
         sharedPreferences.edit().putString("last_danmaku_picker_path", path).apply()
     }
     
+    // ==================== 字幕文件选择器路径记忆 ====================
+    
+    /**
+     * 获取上次选择字幕文件的路径
+     */
+    fun getLastSubtitlePickerPath(): String? {
+        return sharedPreferences.getString("last_subtitle_picker_path", null)
+    }
+    
+    /**
+     * 保存字幕文件选择器路径
+     */
+    fun setLastSubtitlePickerPath(path: String) {
+        sharedPreferences.edit().putString("last_subtitle_picker_path", path).apply()
+    }
+    
     // ==================== 视频列表排序设置 ====================
     
     /**
@@ -689,6 +705,22 @@ class PreferencesManager private constructor(context: Context) {
      */
     fun setVideoListSortOrder(sortOrder: String) {
         sharedPreferences.edit().putString("video_list_sort_order", sortOrder).apply()
+    }
+    
+    // ==================== 字幕字体设置（全局） ====================
+    
+    /**
+     * 获取系统字体名称
+     */
+    fun getSystemFontName(): String {
+        return sharedPreferences.getString("system_font_name", "Noto Sans CJK SC") ?: "Noto Sans CJK SC"
+    }
+    
+    /**
+     * 保存系统字体名称
+     */
+    fun setSystemFontName(fontName: String) {
+        sharedPreferences.edit().putString("system_font_name", fontName).apply()
     }
     
     // ==================== 批量操作 ====================

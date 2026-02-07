@@ -34,8 +34,8 @@ class FilePickerManager(
         private const val TAG = "FilePickerManager"
     }
 
-    private var subtitlePickerLauncher: ActivityResultLauncher<Array<String>>? = null
-    // 移除系统弹幕文件选择器，改用Compose UI选择器
+    // 移除系统字幕和弹幕文件选择器，全面改用Compose UI选择器
+    // private var subtitlePickerLauncher: ActivityResultLauncher<Array<String>>? = null
     // private var danmakuPickerLauncher: ActivityResultLauncher<Array<String>>? = null
     
     private var wasPlayingBeforeSubtitlePicker = false
@@ -50,18 +50,8 @@ class FilePickerManager(
      * 初始化文件选择器
      */
     fun initialize() {
-        val activity = activityRef.get() ?: return
-        
-        // 字幕文件选择器（继续使用系统选择器）
-        subtitlePickerLauncher = activity.registerForActivityResult(
-            ActivityResultContracts.OpenDocument()
-        ) { uri ->
-            handleSubtitleSelected(uri)
-        }
-        
-        // 弹幕文件选择器改用Compose UI，不再注册系统选择器
-        
-        Log.d(TAG, "File pickers initialized")
+        // 字幕和弹幕文件选择器全部改用Compose UI，不再注册系统选择器
+        Log.d(TAG, "File pickers initialized (using Compose UI)")
     }
     
     /**
@@ -79,15 +69,28 @@ class FilePickerManager(
     }
 
     /**
-     * 导入字幕文件
+     * 导入字幕文件（使用Compose UI选择器）
      */
     fun importSubtitle(isPlaying: Boolean) {
-        wasPlayingBeforeSubtitlePicker = isPlaying
-        if (isPlaying) {
-            playbackEngineRef.get()?.pause()
-        }
+        // 不再暂停视频，让选择器不影响播放状态
         
-        subtitlePickerLauncher?.launch(arrayOf("*/*"))
+        // 获取上次选择的路径
+        val lastPath = preferencesManager.getLastSubtitlePickerPath()
+        
+        // 显示Compose文件选择器
+        composeOverlayManager?.showSubtitleFilePicker(
+            initialPath = lastPath,
+            onFileSelected = { filePath ->
+                // 保存选择的路径
+                val parentPath = File(filePath).parent
+                if (parentPath != null) {
+                    preferencesManager.setLastSubtitlePickerPath(parentPath)
+                }
+                
+                // 处理选择的文件
+                handleSubtitleFileSelected(filePath)
+            }
+        )
     }
 
     /**
@@ -116,8 +119,41 @@ class FilePickerManager(
     }
 
     /**
-     * 处理选中的字幕文件
+     * 处理选中的字幕文件（新方法，接收文件路径）
      */
+    private fun handleSubtitleFileSelected(filePath: String) {
+        val activity = activityRef.get() ?: return
+        
+        Log.d(TAG, "Subtitle file selected: $filePath")
+        
+        // 使用协程在后台线程处理字幕导入
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // 直接加载字幕文件
+                val success = subtitleManager.addExternalSubtitleFromPath(filePath)
+                
+                if (success) {
+                    DialogUtils.showToastShort(activity, "字幕导入成功")
+                    
+                    // 保存外挂字幕路径到历史记录
+                    currentVideoUri?.let { videoUri ->
+                        preferencesManager.setExternalSubtitle(videoUri.toString(), filePath)
+                        Log.d(TAG, "Saved external subtitle path: $filePath")
+                    }
+                } else {
+                    DialogUtils.showToastLong(activity, "字幕导入失败")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to import subtitle", e)
+                DialogUtils.showToastLong(activity, "字幕导入失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 处理选中的字幕文件（旧方法，接收URI，保留兼容性）
+     */
+    @Deprecated("使用handleSubtitleFileSelected(filePath)替代")
     private fun handleSubtitleSelected(uri: Uri?) {
         val activity = activityRef.get() ?: return
         
@@ -276,8 +312,7 @@ class FilePickerManager(
      * 清理资源
      */
     fun cleanup() {
-        subtitlePickerLauncher = null
-        // danmakuPickerLauncher = null  // 已移除
+        // 已移除系统文件选择器，不再需要清理 subtitlePickerLauncher 和 danmakuPickerLauncher
         currentVideoUri = null
         composeOverlayManager = null
         Log.d(TAG, "FilePickerManager cleaned up")

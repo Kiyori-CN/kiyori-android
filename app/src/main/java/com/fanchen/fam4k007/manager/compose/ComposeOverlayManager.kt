@@ -106,6 +106,7 @@ class ComposeOverlayManager(
                 onBorderColorChange = onBorderColorChange,
                 onBackColorChange = onBackColorChange,
                 onBorderStyleChange = onBorderStyleChange,
+                composeOverlayManager = this,
                 onDismiss = { clearContent() }
             )
         }
@@ -194,6 +195,22 @@ class ComposeOverlayManager(
     ) {
         setContent {
             DanmakuFilePickerDialog(
+                initialPath = initialPath,
+                onFileSelected = onFileSelected,
+                onDismiss = { clearContent() }
+            )
+        }
+    }
+    
+    /**
+     * 显示字幕文件选择器
+     */
+    fun showSubtitleFilePicker(
+        initialPath: String?,
+        onFileSelected: (String) -> Unit
+    ) {
+        setContent {
+            SubtitleFilePickerDialog(
                 initialPath = initialPath,
                 onFileSelected = onFileSelected,
                 onDismiss = { clearContent() }
