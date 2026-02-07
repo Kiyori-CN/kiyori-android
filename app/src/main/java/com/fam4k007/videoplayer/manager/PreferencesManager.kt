@@ -643,6 +643,22 @@ class PreferencesManager private constructor(context: Context) {
         sharedPreferences.edit().putInt(key, chapterIndex).apply()
     }
     
+    // ==================== 弹幕文件选择器路径记忆 ====================
+    
+    /**
+     * 获取上次选择弹幕文件的路径
+     */
+    fun getLastDanmakuPickerPath(): String? {
+        return sharedPreferences.getString("last_danmaku_picker_path", null)
+    }
+    
+    /**
+     * 保存弹幕文件选择器路径
+     */
+    fun setLastDanmakuPickerPath(path: String) {
+        sharedPreferences.edit().putString("last_danmaku_picker_path", path).apply()
+    }
+    
     // ==================== 批量操作 ====================
     
     /**

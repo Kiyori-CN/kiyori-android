@@ -753,10 +753,13 @@ class PlayerDialogManager(
             "取消弹幕轨道"
         )
         
+        // 根据trackSelected状态确定选中项：true=0（弹幕轨道），false=1（取消弹幕轨道）
+        val selectedIndex = if (danmakuManager.getTrackSelected()) 0 else 1
+        
         showPopupDialog(
             btnDanmaku,
             menuItems,
-            selectedPosition = 0,  // 默认选中当前轨道
+            selectedPosition = selectedIndex,
             showAbove = false,
             useFixedHeight = false,
             showScrollHint = false
@@ -782,7 +785,7 @@ class PlayerDialogManager(
      * 显示弹幕设置对话框（Compose版本）
      */
     fun showDanmakuSettingsDialog() {
-        val activity = activityRef.get() ?: return
+        activityRef.get() ?: return
         
         // 获取当前弹幕文件路径
         val danmakuPath = danmakuManager.getCurrentDanmakuPath()

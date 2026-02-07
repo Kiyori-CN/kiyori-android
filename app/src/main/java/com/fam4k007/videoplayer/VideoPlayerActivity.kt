@@ -334,12 +334,13 @@ class VideoPlayerActivity : AppCompatActivity(),
                     this@VideoPlayerActivity.isPlaying = isPlaying
                     controlsManager?.updatePlayPauseButton(isPlaying)
                     
-                    if (isPlaying) {
-                        // 只调用 resume，不要调用 start
-                        // start() 会清空弹幕状态，只应该在首次加载时调用
-                        danmakuManager.resume()
-                    } else {
-                        danmakuManager.pause()
+                    // 按照DanDanPlay的逻辑：只有弹幕prepared并且track被选中时才控制弹幕播放
+                    if (danmakuManager.isPrepared()) {
+                        if (isPlaying) {
+                            danmakuManager.resume()
+                        } else {
+                            danmakuManager.pause()
+                        }
                     }
                 }
                 
@@ -754,6 +755,8 @@ class VideoPlayerActivity : AppCompatActivity(),
             preferencesManager
         )
         filePickerManager.initialize()
+        // 设置ComposeOverlayManager供文件选择器使用
+        filePickerManager.setComposeOverlayManager(composeOverlayManager)
         
         // 初始化截图管理器
         screenshotManager = com.fam4k007.videoplayer.manager.ScreenshotManager(this)
@@ -812,13 +815,24 @@ class VideoPlayerActivity : AppCompatActivity(),
             if (!hasLoadedDanmaku) {
                 DialogUtils.showToastShort(this, "请先加载弹幕文件")
             } else {
-                val isVisible = danmakuManager.isVisible()
-                danmakuManager.setVisibility(!isVisible)
-                com.fam4k007.videoplayer.danmaku.DanmakuConfig.setEnabled(!isVisible)
-                // 更新按钮图标：显示时用alignjustify，隐藏时用alignslash
+                // 切换trackSelected状态(参考DanDanPlay的selectTrack/deselectTrack)
+                val currentVisible = danmakuManager.isVisible()
+                val newSelected = !currentVisible
+                
+                // 设置轨道选中状态
+                danmakuManager.setTrackSelected(newSelected)
+                
+                // 如果选中且视频正在播放,需要启动弹幕
+                if (newSelected && isPlaying && danmakuManager.isPrepared()) {
+                    danmakuManager.resume()
+                }
+                
+                // 更新按钮图标
                 btnDanmakuToggle.setImageResource(
-                    if (!isVisible) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
+                    if (newSelected) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
                 )
+                
+                Logger.d(TAG, "Danmaku track selected: $newSelected")
             }
         }
         
@@ -1107,7 +1121,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             
             if (history?.danmuPath != null && File(history.danmuPath).exists()) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Restoring danmaku from history: ${history.danmuPath}")
-                // 恢复用户上次的弹幕可见性设置
+                // 恢复用户上次的弹幕可见性设置(这会设置trackSelected状态)
                 val autoShow = history.danmuVisible
                 val loaded = danmakuManager.loadDanmakuFile(
                     history.danmuPath,
@@ -1115,18 +1129,16 @@ class VideoPlayerActivity : AppCompatActivity(),
                 )
                 
                 if (loaded) {
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku restored successfully, autoShow=$autoShow")
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Current danmaku visibility: ${danmakuManager.isVisible()}")
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku restored: path=${history.danmuPath}, trackSelected=$autoShow")
                     
-                    // 如果视频正在播放，启动弹幕
-                    if (isPlaying) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            danmakuManager.resume()
-                            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku resumed after restore, isPlaying=$isPlaying")
-                        }, 300)
-                    } else {
-                        com.fam4k007.videoplayer.utils.Logger.d(TAG, "Video not playing yet, danmaku will start when video plays")
-                    }
+                    // 同步UI按钮状态
+                    val btnDanmakuToggle = findViewById<ImageView>(R.id.btnDanmakuToggle)
+                    btnDanmakuToggle?.setImageResource(
+                        if (autoShow) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
+                    )
+                    
+                    // prepared回调和onPlaybackStateChanged会自动处理弹幕启动,这里不手动操作
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku will be controlled by onPlaybackStateChanged")
                 } else {
                     com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to restore danmaku, trying auto-find")
                     autoFindAndLoadDanmaku(videoUri)
@@ -1149,7 +1161,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             val videoPath = videoUri.resolveUri(this)
             if (videoPath != null) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-finding danmaku for: $videoPath")
-                danmakuManager.loadDanmakuForVideo(videoUri.toString(), videoPath)
+                danmakuManager.loadDanmakuForVideo(videoPath)
                 // prepared回调会自动处理弹幕启动，这里不需要手动启动
             }
         } catch (e: Exception) {
@@ -1384,9 +1396,16 @@ class VideoPlayerActivity : AppCompatActivity(),
         
         val position = preferencesManager.getPlaybackPosition(uri.toString())
         
+        // 【重要】清除旧弹幕，避免切换视频时弹幕残留
+        Logger.d(TAG, "Releasing old danmaku before playing new video")
+        danmakuManager.release()
+        
         playbackEngine?.loadVideo(uri, position)
         
-        // 自动加载字幕（和初始播放一样的逻辑）
+        // 设置当前视频 URI 给文件选择器管理器
+        filePickerManager.setCurrentVideoUri(uri)
+        
+        // 自动加载字幕和弹幕（和初始播放一样的逻辑）
         lifecycleScope.launch {
             delay(500)
             
@@ -1401,6 +1420,17 @@ class VideoPlayerActivity : AppCompatActivity(),
             
             // 恢复字幕偏好设置
             restoreSubtitlePreferences(uri)
+            
+            // 【重要】加载新视频的弹幕
+            Logger.d(TAG, "Loading danmaku for new video: $uri")
+            loadDanmakuForVideo(uri)
+            
+            // 同步弹幕到播放位置
+            if (position > 0) {
+                delay(300)
+                danmakuManager.seekTo((position * 1000).toLong())
+                Logger.d(TAG, "Synced danmaku to position: $position seconds")
+            }
         }
         
         updateEpisodeButtons()
@@ -1458,14 +1488,22 @@ class VideoPlayerActivity : AppCompatActivity(),
         if (::playbackEngine.isInitialized && isPlaying) {
             playbackEngine.pause()
             
+            // 手动同步播放状态(因为playbackEngine.pause()不会触发onPlaybackStateChanged)
+            isPlaying = false
+            
             // 更新UI状态
             if (::controlsManager.isInitialized) {
                 controlsManager.updatePlayPauseButton(false)
             }
             
+            // 同步暂停弹幕(关键!修复问题1)
+            if (::danmakuManager.isInitialized && danmakuManager.isPrepared()) {
+                danmakuManager.pause()
+            }
+            
             // 暂停指示器会由状态监听器自动显示，不需要手动调用
             
-            Logger.d(TAG, "Video paused due to app going to background")
+            Logger.d(TAG, "Video and danmaku paused due to app going to background")
         }
         
         savePlaybackState()
@@ -1552,16 +1590,18 @@ class VideoPlayerActivity : AppCompatActivity(),
                 )
                 Logger.d(TAG, "History saved: $fileName")
                 
-                // 3. 保存弹幕信息到历史记录
+                // 3. 保存弹幕信息到历史记录(保存真实的显示状态)
                 val danmakuPath = danmakuManager.getCurrentDanmakuPath()
                 if (danmakuPath != null) {
+                    // 只有prepared且visible时才保存为true
+                    val actualVisible = danmakuManager.isVisible() && danmakuManager.isPrepared()
                     historyManager.updateDanmu(
                         uri = uri,
                         danmuPath = danmakuPath,
-                        danmuVisible = danmakuManager.isVisible(),
+                        danmuVisible = actualVisible,
                         danmuOffsetTime = 0L
                     )
-                    Logger.d(TAG, "Danmu info saved: path=$danmakuPath, visible=${danmakuManager.isVisible()}")
+                    Logger.d(TAG, "Danmu info saved: path=$danmakuPath, visible=$actualVisible")
                 }
             } else if (isOnlineVideo) {
                 Logger.d(TAG, "Skipping history for online video: $uri")
@@ -1643,9 +1683,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                             danmakuDir.mkdirs()
                         }
                         
-                        // 使用番剧名和剧集名生成文件名
-                        val fileName = "${animeTitle}_${episodeTitle}_${episodeId}.xml"
+                        // 使用番剧名和剧集名生成文件名（先清理特殊字符，再添加.xml后缀）
+                        val cleanName = "${animeTitle}_${episodeTitle}_${episodeId}"
                             .replace("[^a-zA-Z0-9_\\u4e00-\\u9fa5]".toRegex(), "_")
+                        val fileName = "$cleanName.xml"
                         val danmakuFile = File(danmakuDir, fileName)
                         danmakuFile.writeText(xmlContent)
                         

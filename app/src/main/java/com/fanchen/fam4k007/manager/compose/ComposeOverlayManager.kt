@@ -186,6 +186,22 @@ class ComposeOverlayManager(
     }
     
     /**
+     * 显示弹幕文件选择器
+     */
+    fun showDanmakuFilePicker(
+        initialPath: String?,
+        onFileSelected: (String) -> Unit
+    ) {
+        setContent {
+            DanmakuFilePickerDialog(
+                initialPath = initialPath,
+                onFileSelected = onFileSelected,
+                onDismiss = { clearContent() }
+            )
+        }
+    }
+    
+    /**
      * 显示字幕延迟对话框（已废弃，保留兼容）
      */
     @Deprecated("使用 showSubtitleSettingsDrawer 替代")

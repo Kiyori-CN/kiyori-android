@@ -57,16 +57,14 @@ class DanmakuManager(
      * 加载弹幕文件
      * 自动根据视频文件路径查找同名的 .xml 弹幕文件
      */
-    fun loadDanmakuForVideo(videoUri: String, videoPath: String, autoShow: Boolean = true): Boolean {
+    fun loadDanmakuForVideo(videoPath: String, autoShow: Boolean = true): Boolean {
         if (!isInitialized) {
             Log.e(TAG, "DanmakuManager not initialized")
             return false
         }
 
-        if (!DanmakuConfig.isEnabled) {
-            Log.d(TAG, "Danmaku is disabled")
-            return false
-        }
+        // 即使弹幕功能被禁用，也要继续加载（只是不显示）
+        // 这样可以保证弹幕文件被记录，用户开启弹幕功能后可以直接使用
 
         // 查找同名弹幕文件
         val danmakuFile = findDanmakuFile(videoPath)
@@ -80,7 +78,8 @@ class DanmakuManager(
         if (loaded) {
             currentDanmakuPath = danmakuFile.absolutePath
             // 参考 DanDanPlay: addTrack 成功后自动调用 selectTrack
-            danmakuView.setTrackSelected(true)
+            // 注意：setTrackSelected 会根据 autoShow 参数决定可见性
+            danmakuView.setTrackSelected(autoShow)
             
             // 根据参数决定是否自动显示
             if (autoShow) {
@@ -108,7 +107,8 @@ class DanmakuManager(
         if (loaded) {
             currentDanmakuPath = danmakuPath
             // 参考 DanDanPlay: addTrack 成功后自动调用 selectTrack
-            danmakuView.setTrackSelected(true)
+            // 注意：setTrackSelected 会根据 autoShow 参数决定可见性
+            danmakuView.setTrackSelected(autoShow)
             Log.d(TAG, "Danmaku loaded and track selected: $danmakuPath, autoShow=$autoShow")
         }
         
@@ -129,12 +129,18 @@ class DanmakuManager(
             }
             
             // 获取文件名
-            val fileName = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            var fileName = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
                     if (nameIndex >= 0) cursor.getString(nameIndex) else null
                 } else null
             } ?: "danmaku_${System.currentTimeMillis()}.xml"
+            
+            // 确保文件有.xml后缀（兼容弹弹play缓存的无后缀文件）
+            if (!fileName.endsWith(".xml", ignoreCase = true)) {
+                fileName = "$fileName.xml"
+                Log.d(TAG, "Added .xml extension to danmaku file: $fileName")
+            }
             
             val danmakuFile = File(danmakuDir, fileName)
             
@@ -180,11 +186,12 @@ class DanmakuManager(
                 return danmakuFile
             }
 
-            // 也可以查找其他可能的命名
+            // 也可以查找其他可能的命名（包括无后缀的弹弹play缓存文件）
             val alternativeNames = listOf(
                 "${videoNameWithoutExt}.danmaku.xml",
                 "${videoNameWithoutExt}_danmaku.xml",
-                "danmaku.xml"
+                "danmaku.xml",
+                videoNameWithoutExt  // 无后缀（兼容弹弹play缓存）
             )
 
             for (name in alternativeNames) {
@@ -247,6 +254,13 @@ class DanmakuManager(
         danmakuView.setTrackSelected(selected)
         Log.d(TAG, "Danmaku track selected: $selected")
     }
+    
+    /**
+     * 获取弹幕轨道选中状态
+     */
+    fun getTrackSelected(): Boolean {
+        return danmakuView.getTrackSelected()
+    }
 
     /**
      * 设置弹幕显示状态
@@ -272,6 +286,13 @@ class DanmakuManager(
      */
     fun getCurrentDanmakuPath(): String? {
         return currentDanmakuPath
+    }
+    
+    /**
+     * 弹幕是否已准备好
+     */
+    fun isPrepared(): Boolean {
+        return danmakuView.isDanmakuPrepared()
     }
 
     /**

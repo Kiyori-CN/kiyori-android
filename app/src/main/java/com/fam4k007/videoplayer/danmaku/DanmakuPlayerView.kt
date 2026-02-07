@@ -62,7 +62,7 @@ class DanmakuPlayerView @JvmOverloads constructor(
             override fun prepared() {
                 // 弹幕准备完成
                 danmakuLoaded = true
-                Log.d(TAG, "Danmaku prepared, trackSelected=$trackSelected, isShown=$isShown, isPaused=$isPaused")
+                Log.d(TAG, "Danmaku prepared, trackSelected=$trackSelected, isShown=$isShown")
                 
                 // 如果有待应用的seek位置，现在应用它
                 if (pendingSeekPosition >= 0) {
@@ -71,18 +71,12 @@ class DanmakuPlayerView @JvmOverloads constructor(
                     Log.d(TAG, "Applied pending seek position")
                 }
                 
-                // 如果弹幕轨道被选中，应用可见性
-                if (trackSelected) {
-                    setDanmuVisible(true)
-                    
-                    // 如果视频未暂停，自动启动弹幕
-                    if (!isPaused) {
-                        start()
-                        Log.d(TAG, "Danmaku shown and started after prepared")
-                    } else {
-                        Log.d(TAG, "Danmaku shown (video paused)")
-                    }
-                }
+                // 根据 trackSelected 状态应用可见性
+                setDanmuVisible(trackSelected)
+                
+                // prepared后不自动启动弹幕,完全由onPlaybackStateChanged控制
+                // 这样确保弹幕播放状态始终与视频播放状态同步
+                Log.d(TAG, "Danmaku prepared, waiting for playback state change to start")
             }
 
             override fun updateTimer(timer: DanmakuTimer?) {
@@ -273,6 +267,13 @@ class DanmakuPlayerView @JvmOverloads constructor(
     }
     
     /**
+     * 获取弹幕轨道选中状态
+     */
+    fun getTrackSelected(): Boolean {
+        return trackSelected
+    }
+    
+    /**
      * 设置弹幕可见性（参考 DanDanPlay 的 setDanmuVisible）
      */
     private fun setDanmuVisible(visible: Boolean) {
@@ -287,6 +288,11 @@ class DanmakuPlayerView @JvmOverloads constructor(
      * 获取当前弹幕文件路径
      */
     fun getCurrentDanmakuPath(): String? = currentDanmakuPath
+    
+    /**
+     * 弹幕是否已准备
+     */
+    fun isDanmakuPrepared(): Boolean = danmakuLoaded && isPrepared
 
     // ==================== 样式更新方法 ====================
 
