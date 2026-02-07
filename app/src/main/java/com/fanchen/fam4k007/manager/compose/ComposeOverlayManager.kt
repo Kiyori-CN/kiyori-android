@@ -285,4 +285,24 @@ class ComposeOverlayManager(
             )
         }
     }
+    
+    // ===== 视频列表相关 =====
+    
+    /**
+     * 显示视频列表抽屉
+     */
+    fun showVideoListDrawer(
+        videoList: List<com.fam4k007.videoplayer.VideoFileParcelable>,
+        currentVideoUri: android.net.Uri,
+        onVideoSelected: (com.fam4k007.videoplayer.VideoFileParcelable, Int) -> Unit
+    ) {
+        setContent {
+            VideoListDrawer(
+                videoList = videoList,
+                currentVideoUri = currentVideoUri,
+                onVideoSelected = onVideoSelected,
+                onDismiss = { clearContent() }
+            )
+        }
+    }
 }

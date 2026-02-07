@@ -51,6 +51,7 @@ class PlayerControlsManager(
         fun onBackClick()
         fun onAspectRatioClick()  // 新增：画面比例按钮回调
         fun onLockClick()  // 新增：锁定按钮回调
+        fun onVideoTitleClick()  // 新增：视频标题点击回调
     }
 
     // UI 组件
@@ -58,6 +59,7 @@ class PlayerControlsManager(
     private var controlPanel: LinearLayout? = null
     
     private var tvFileName: TextView? = null
+    private var titleClickArea: android.view.View? = null  // 标题点击区域
     private var tvBattery: TextView? = null
     private var tvTime: TextView? = null
     private var tvTimeInfo: TextView? = null
@@ -128,6 +130,7 @@ class PlayerControlsManager(
         topInfoPanel: LinearLayout,
         controlPanel: LinearLayout,
         tvFileName: TextView,
+        titleClickArea: android.view.View,  // 标题点击区域
         tvBattery: TextView,
         tvTime: TextView,
         tvTimeInfo: TextView,
@@ -152,6 +155,7 @@ class PlayerControlsManager(
         this.controlPanel = controlPanel
         
         this.tvFileName = tvFileName
+        this.titleClickArea = titleClickArea
         this.tvBattery = tvBattery
         this.tvTime = tvTime
         this.tvTimeInfo = tvTimeInfo
@@ -207,6 +211,12 @@ class PlayerControlsManager(
     private fun setupClickListeners() {
         btnBack?.setOnClickListener {
             callback.onBackClick()
+        }
+        
+        // 视频标题区域点击（显示视频列表）- 整个区域都可以点击
+        titleClickArea?.setOnClickListener {
+            callback.onVideoTitleClick()
+            resetAutoHideTimer()
         }
         
         btnPlayPause?.setOnClickListener {
@@ -719,6 +729,7 @@ class PlayerControlsManager(
         topInfoPanel = null
         controlPanel = null
         tvFileName = null
+        titleClickArea = null
         tvBattery = null
         tvTime = null
         tvTimeInfo = null

@@ -132,6 +132,9 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     private var currentSeries: List<Uri> = emptyList()
     private var currentVideoIndex = -1
+    
+    // 当前文件夹的视频列表
+    private var currentVideoList: List<VideoFileParcelable> = emptyList()
 
     private var anime4KDialog: android.app.Dialog? = null
     private var anime4KEnabled = false
@@ -664,6 +667,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                 override fun onBackClick() {
                     handleBackNavigation()
                 }
+                
+                override fun onVideoTitleClick() {
+                    showVideoListDrawer()
+                }
             },
             WeakReference(gestureHandler)  // 传入GestureHandler引用
         )
@@ -675,6 +682,9 @@ class VideoPlayerActivity : AppCompatActivity(),
             val videoListParcelable = intent.getParcelableArrayListExtra<VideoFileParcelable>("video_list")
             
             if (videoListParcelable != null && videoListParcelable.isNotEmpty()) {
+                // 保存视频列表用于显示
+                currentVideoList = videoListParcelable
+                
                 val uriList = videoListParcelable.map { Uri.parse(it.uri) }
                 videoUri?.let { uri ->
                     seriesManager.setVideoList(uriList, uri)
@@ -782,6 +792,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             topInfoPanel = findViewById(R.id.topInfoPanel),
             controlPanel = findViewById(R.id.controlPanel),
             tvFileName = findViewById(R.id.tvFileName),
+            titleClickArea = findViewById(R.id.titleClickArea),  // 标题点击区域
             tvBattery = findViewById(R.id.tvBattery),
             tvTime = findViewById(R.id.tvTime),
             tvTimeInfo = findViewById(R.id.tvTimeInfo),
@@ -1901,6 +1912,30 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     override fun onShowSkipSettings() {
         skipIntroOutroManager.showSkipSettingsDrawer(currentFolderPath)
+    }
+    
+    /**
+     * 显示视频列表抽屉
+     */
+    private fun showVideoListDrawer() {
+        // 如果没有视频列表，提示用户
+        if (currentVideoList.isEmpty()) {
+            DialogUtils.showToastShort(this, "当前没有可用的视频列表")
+            return
+        }
+        
+        videoUri?.let { uri ->
+            composeOverlayManager.showVideoListDrawer(
+                videoList = currentVideoList,
+                currentVideoUri = uri,
+                onVideoSelected = { video, index ->
+                    // 切换到选中的视频
+                    val selectedUri = Uri.parse(video.uri)
+                    Logger.d(TAG, "Video selected from list: ${video.name}, index: $index")
+                    playVideo(selectedUri)
+                }
+            )
+        }
     }
     
     override fun getVideoUri(): Uri? = videoUri
