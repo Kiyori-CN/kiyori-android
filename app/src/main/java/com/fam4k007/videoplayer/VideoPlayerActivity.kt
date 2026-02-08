@@ -139,6 +139,9 @@ class VideoPlayerActivity : AppCompatActivity(),
     private var anime4KDialog: android.app.Dialog? = null
     private var anime4KEnabled = false
     private var anime4KMode = Anime4KManager.Mode.OFF
+    
+    // 标记本次播放是否已经自动加载过字幕（防止重复加载）
+    private var hasAutoLoadedSubtitle = false
     private var anime4KQuality = Anime4KManager.Quality.BALANCED
     
     // 当前视频所在文件夹路径
@@ -904,6 +907,9 @@ class VideoPlayerActivity : AppCompatActivity(),
      */
     private fun loadVideo() {
         videoUri?.let { uri ->
+            // 重置自动加载字幕标志（新视频开始播放）
+            hasAutoLoadedSubtitle = false
+            
             val position = if (duration > 0 && duration < 30) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Short video detected, starting from 0")
                 0.0
@@ -1026,32 +1032,96 @@ class VideoPlayerActivity : AppCompatActivity(),
             // 按优先级排序：ass > srt > 其他
             val priorityExtensions = listOf("ass", "srt", "ssa", "vtt", "sub", "sbv", "json")
             
-            // 查找同名字幕文件
-            var foundSubtitle: File? = null
-            for (ext in priorityExtensions) {
-                val subtitleFile = File(videoDir, "$videoNameWithoutExt.$ext")
-                if (subtitleFile.exists() && subtitleFile.isFile) {
-                    foundSubtitle = subtitleFile
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Found subtitle: ${subtitleFile.name}")
-                    break
-                }
+            // 模糊匹配：查找所有以视频文件名开头的字幕文件
+            val allSubtitles = videoDir.listFiles()?.filter { file ->
+                if (!file.isFile) return@filter false
+                val fileName = file.name.lowercase()
+                val videoName = videoNameWithoutExt.lowercase()
+                
+                // 文件名必须以视频名开头
+                if (!fileName.startsWith(videoName)) return@filter false
+                
+                // 扩展名必须在支持列表中
+                val ext = file.extension.lowercase()
+                priorityExtensions.contains(ext)
+            } ?: emptyList()
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Found ${allSubtitles.size} potential subtitle files")
+            
+            // 如果没有找到任何字幕，直接返回
+            if (allSubtitles.isEmpty()) {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No matching subtitle file found")
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Auto-load subtitle end =====")
+                return
             }
             
-            // 如果找到字幕文件，自动加载
-            if (foundSubtitle != null) {
-                val subtitlePath = foundSubtitle.absolutePath
-                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-loading subtitle: $subtitlePath")
+            // 获取系统语言偏好
+            val systemLanguage = resources.configuration.locales[0].toString().lowercase()
+            val isSimplifiedChinese = systemLanguage.contains("zh_cn") || systemLanguage.contains("zh-cn")
+            val isTraditionalChinese = systemLanguage.contains("zh_tw") || systemLanguage.contains("zh_hk") || 
+                                       systemLanguage.contains("zh-tw") || systemLanguage.contains("zh-hk")
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "System language: $systemLanguage, SC: $isSimplifiedChinese, TC: $isTraditionalChinese")
+            
+            // 按优先级排序字幕文件
+            val sortedSubtitles = allSubtitles.sortedWith(compareBy(
+                // 1. 扩展名优先级（数字越小优先级越高）
+                { file -> 
+                    val ext = file.extension.lowercase()
+                    priorityExtensions.indexOf(ext).let { if (it == -1) 999 else it }
+                },
+                // 2. 完全匹配优先（123.ass > 123.sc.ass）
+                { file -> 
+                    val nameWithoutExt = file.nameWithoutExtension
+                    if (nameWithoutExt.equals(videoNameWithoutExt, ignoreCase = true)) 0 else 1
+                },
+                // 3. 语言标记优先级（根据系统语言）
+                { file ->
+                    val nameLower = file.nameWithoutExtension.lowercase()
+                    val afterVideoName = nameLower.removePrefix(videoNameWithoutExt.lowercase())
+                    
+                    when {
+                        // 简体中文系统优先简体标记
+                        isSimplifiedChinese && (afterVideoName.contains("sc") || afterVideoName.contains("chs") || 
+                                                afterVideoName.contains("简") || afterVideoName.contains("zh-cn")) -> 0
+                        // 繁体中文系统优先繁体标记
+                        isTraditionalChinese && (afterVideoName.contains("tc") || afterVideoName.contains("cht") || 
+                                                 afterVideoName.contains("繁") || afterVideoName.contains("zh-tw")) -> 0
+                        else -> 1
+                    }
+                },
+                // 4. 文件名长度（越短越优先，假设越接近原始名称）
+                { file -> file.nameWithoutExtension.length },
+                // 5. 字母顺序
+                { file -> file.name.lowercase() }
+            ))
+            
+            // 打印所有找到的字幕（调试用）
+            sortedSubtitles.forEachIndexed { index, file ->
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Subtitle [$index]: ${file.name}")
+            }
+            
+            // 选择优先级最高的字幕文件
+            val foundSubtitle = sortedSubtitles.first()
+            
+            val subtitlePath = foundSubtitle.absolutePath
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-loading best match subtitle: $subtitlePath")
+            
+            try {
+                MPVLib.command("sub-add", subtitlePath, "select")
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Successfully auto-loaded subtitle: ${foundSubtitle.name}")
                 
-                try {
-                    MPVLib.command("sub-add", subtitlePath, "select")
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Successfully auto-loaded subtitle: ${foundSubtitle.name}")
-                    DialogUtils.showToastShort(this, "已自动加载字幕: ${foundSubtitle.name}")
-                } catch (e: Exception) {
-                    com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to auto-load subtitle", e)
-                    DialogUtils.showToastShort(this, "字幕加载失败: ${e.message}")
-                }
-            } else {
-                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No matching subtitle file found")
+                // 保存字幕路径到记忆中，下次进入视频时不会重复自动加载
+                preferencesManager.setExternalSubtitle(videoUri.toString(), subtitlePath)
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Saved auto-loaded subtitle path to preferences")
+                
+                // 设置标志，防止 restoreSubtitlePreferences 重复加载
+                hasAutoLoadedSubtitle = true
+                
+                DialogUtils.showToastShort(this, "已自动加载字幕: ${foundSubtitle.name}")
+            } catch (e: Exception) {
+                com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to auto-load subtitle", e)
+                DialogUtils.showToastShort(this, "字幕加载失败: ${e.message}")
             }
             
             com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Auto-load subtitle end =====")
@@ -1219,7 +1289,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                 
                 val savedSubtitlePath = preferencesManager.getExternalSubtitle(uriString)
                 if (savedSubtitlePath != null) {
-                    if (File(savedSubtitlePath).exists()) {
+                    // 如果已经自动加载过这个字幕，就跳过（防止重复加载）
+                    if (hasAutoLoadedSubtitle) {
+                        Logger.d(TAG, "Subtitle already auto-loaded this session, skipping restore")
+                    } else if (File(savedSubtitlePath).exists()) {
                         try {
                             MPVLib.command("sub-add", savedSubtitlePath, "select")
                             Logger.d(TAG, "Restored external subtitle from path: $savedSubtitlePath")
@@ -1397,6 +1470,9 @@ class VideoPlayerActivity : AppCompatActivity(),
      */
     private fun playVideo(uri: Uri) {
         videoUri = uri
+        
+        // 重置自动加载字幕标志（新视频开始播放）
+        hasAutoLoadedSubtitle = false
         
         // 显示加载动画
         loadingIndicator.visibility = View.VISIBLE
