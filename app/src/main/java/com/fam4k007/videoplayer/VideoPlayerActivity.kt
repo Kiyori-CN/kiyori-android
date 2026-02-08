@@ -269,6 +269,13 @@ class VideoPlayerActivity : AppCompatActivity(),
         clickArea = findViewById(R.id.clickArea)
         loadingIndicator = findViewById(R.id.loadingIndicator)
         
+        // 根据是否为在线视频设置加载动画的初始状态
+        if (isOnlineVideo) {
+            loadingIndicator.visibility = View.VISIBLE
+        } else {
+            loadingIndicator.visibility = View.GONE
+        }
+        
         // 初始化暂停指示器
         pauseIndicator = ImageView(this).apply {
             setImageResource(R.drawable.media)  // 使用提供的media.png图标
@@ -393,10 +400,12 @@ class VideoPlayerActivity : AppCompatActivity(),
                         lastPositionForBuffering = position
                         lastPositionUpdateTime = currentTime
                     } else if (isPlaying && currentTime - lastPositionUpdateTime > 200 && !isStalledBuffering) {
-                        // 位置停顿超过0.2秒，且正在播放，显示停顿缓冲
+                        // 位置停顿超过0.2秒，且正在播放，显示停顿缓冲（仅在线视频）
                         isStalledBuffering = true
-                        loadingIndicator.visibility = View.VISIBLE
-                        com.fam4k007.videoplayer.utils.Logger.d(TAG, "Playback stalled, show buffering indicator")
+                        if (isOnlineVideo) {
+                            loadingIndicator.visibility = View.VISIBLE
+                            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Playback stalled, show buffering indicator (online video)")
+                        }
                     }
                     
                     // 初始播放后隐藏加载动画（防止MPV缓冲状态延迟）
@@ -459,11 +468,11 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onBufferingStateChanged(isBuffering: Boolean) {
-                    // 根据缓冲状态显示或隐藏加载动画
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Buffering state changed: $isBuffering")
+                    // 根据缓冲状态显示或隐藏加载动画（仅在线视频）
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Buffering state changed: $isBuffering, isOnlineVideo: $isOnlineVideo")
                     
-                    if (isBuffering) {
-                        // 显示加载动画
+                    if (isBuffering && isOnlineVideo) {
+                        // 显示加载动画（仅在线视频）
                         loadingIndicator.visibility = View.VISIBLE
                         loadingIndicator.alpha = 0f
                         loadingIndicator.animate()
@@ -1474,9 +1483,16 @@ class VideoPlayerActivity : AppCompatActivity(),
         // 重置自动加载字幕标志（新视频开始播放）
         hasAutoLoadedSubtitle = false
         
-        // 显示加载动画
-        loadingIndicator.visibility = View.VISIBLE
-        loadingIndicator.alpha = 1f
+        // 更新在线视频标志
+        isOnlineVideo = uri.scheme?.startsWith("http") == true
+        
+        // 显示加载动画（仅在线视频）
+        if (isOnlineVideo) {
+            loadingIndicator.visibility = View.VISIBLE
+            loadingIndicator.alpha = 1f
+        } else {
+            loadingIndicator.visibility = View.GONE
+        }
         
         val fileName = getFileNameFromUri(uri)
         controlsManager?.setFileName(fileName)
@@ -1495,9 +1511,6 @@ class VideoPlayerActivity : AppCompatActivity(),
         // 自动加载字幕和弹幕（和初始播放一样的逻辑）
         lifecycleScope.launch {
             delay(500)
-            
-            // 检查是否为在线视频
-            val isOnlineVideo = uri.scheme?.startsWith("http") == true
             
             // 本地视频自动加载同名字幕
             if (!isOnlineVideo) {
