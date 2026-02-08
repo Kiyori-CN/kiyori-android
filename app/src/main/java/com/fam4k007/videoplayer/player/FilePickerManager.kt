@@ -10,6 +10,12 @@ import com.fam4k007.videoplayer.danmaku.DanmakuManager
 import com.fam4k007.videoplayer.manager.PreferencesManager
 import com.fam4k007.videoplayer.manager.SubtitleManager
 import com.fam4k007.videoplayer.utils.DialogUtils
+import com.fanchen.fam4k007.manager.compose.ComposeOverlayManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.lang.ref.WeakReference
 
 /**
@@ -28,35 +34,31 @@ class FilePickerManager(
         private const val TAG = "FilePickerManager"
     }
 
-    private var subtitlePickerLauncher: ActivityResultLauncher<Array<String>>? = null
-    private var danmakuPickerLauncher: ActivityResultLauncher<Array<String>>? = null
+    // 移除系统字幕和弹幕文件选择器，全面改用Compose UI选择器
+    // private var subtitlePickerLauncher: ActivityResultLauncher<Array<String>>? = null
+    // private var danmakuPickerLauncher: ActivityResultLauncher<Array<String>>? = null
     
     private var wasPlayingBeforeSubtitlePicker = false
     private var wasPlayingBeforeDanmakuPicker = false
     
     private var currentVideoUri: Uri? = null
+    
+    // Compose overlay管理器（用于显示自定义文件选择器）
+    private var composeOverlayManager: ComposeOverlayManager? = null
 
     /**
      * 初始化文件选择器
      */
     fun initialize() {
-        val activity = activityRef.get() ?: return
-        
-        // 字幕文件选择器
-        subtitlePickerLauncher = activity.registerForActivityResult(
-            ActivityResultContracts.OpenDocument()
-        ) { uri ->
-            handleSubtitleSelected(uri)
-        }
-        
-        // 弹幕文件选择器
-        danmakuPickerLauncher = activity.registerForActivityResult(
-            ActivityResultContracts.OpenDocument()
-        ) { uri ->
-            handleDanmakuSelected(uri)
-        }
-        
-        Log.d(TAG, "File pickers initialized")
+        // 字幕和弹幕文件选择器全部改用Compose UI，不再注册系统选择器
+        Log.d(TAG, "File pickers initialized (using Compose UI)")
+    }
+    
+    /**
+     * 设置Compose overlay管理器
+     */
+    fun setComposeOverlayManager(manager: ComposeOverlayManager) {
+        composeOverlayManager = manager
     }
 
     /**
@@ -67,32 +69,91 @@ class FilePickerManager(
     }
 
     /**
-     * 导入字幕文件
+     * 导入字幕文件（使用Compose UI选择器）
      */
     fun importSubtitle(isPlaying: Boolean) {
-        wasPlayingBeforeSubtitlePicker = isPlaying
-        if (isPlaying) {
-            playbackEngineRef.get()?.pause()
-        }
+        // 不再暂停视频，让选择器不影响播放状态
         
-        subtitlePickerLauncher?.launch(arrayOf("*/*"))
+        // 获取上次选择的路径
+        val lastPath = preferencesManager.getLastSubtitlePickerPath()
+        
+        // 显示Compose文件选择器
+        composeOverlayManager?.showSubtitleFilePicker(
+            initialPath = lastPath,
+            onFileSelected = { filePath ->
+                // 保存选择的路径
+                val parentPath = File(filePath).parent
+                if (parentPath != null) {
+                    preferencesManager.setLastSubtitlePickerPath(parentPath)
+                }
+                
+                // 处理选择的文件
+                handleSubtitleFileSelected(filePath)
+            }
+        )
     }
 
     /**
-     * 导入弹幕文件
+     * 导入弹幕文件（使用Compose UI选择器）
      */
     fun importDanmaku(isPlaying: Boolean) {
-        wasPlayingBeforeDanmakuPicker = isPlaying
-        if (isPlaying) {
-            playbackEngineRef.get()?.pause()
-        }
+        // 不再暂停视频，让选择器不影响播放状态
         
-        danmakuPickerLauncher?.launch(arrayOf("text/xml", "application/xml", "*/*"))
+        // 获取上次选择的路径
+        val lastPath = preferencesManager.getLastDanmakuPickerPath()
+        
+        // 显示Compose文件选择器
+        composeOverlayManager?.showDanmakuFilePicker(
+            initialPath = lastPath,
+            onFileSelected = { filePath ->
+                // 保存选择的路径
+                val parentPath = File(filePath).parent
+                if (parentPath != null) {
+                    preferencesManager.setLastDanmakuPickerPath(parentPath)
+                }
+                
+                // 处理选择的文件
+                handleDanmakuFileSelected(filePath)
+            }
+        )
     }
 
     /**
-     * 处理选中的字幕文件
+     * 处理选中的字幕文件（新方法，接收文件路径）
      */
+    private fun handleSubtitleFileSelected(filePath: String) {
+        val activity = activityRef.get() ?: return
+        
+        Log.d(TAG, "Subtitle file selected: $filePath")
+        
+        // 使用协程在后台线程处理字幕导入
+        CoroutineScope(Dispatchers.Main).launch {
+            try {
+                // 直接加载字幕文件
+                val success = subtitleManager.addExternalSubtitleFromPath(filePath)
+                
+                if (success) {
+                    DialogUtils.showToastShort(activity, "字幕导入成功")
+                    
+                    // 保存外挂字幕路径到历史记录
+                    currentVideoUri?.let { videoUri ->
+                        preferencesManager.setExternalSubtitle(videoUri.toString(), filePath)
+                        Log.d(TAG, "Saved external subtitle path: $filePath")
+                    }
+                } else {
+                    DialogUtils.showToastLong(activity, "字幕导入失败")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to import subtitle", e)
+                DialogUtils.showToastLong(activity, "字幕导入失败: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * 处理选中的字幕文件（旧方法，接收URI，保留兼容性）
+     */
+    @Deprecated("使用handleSubtitleFileSelected(filePath)替代")
     private fun handleSubtitleSelected(uri: Uri?) {
         val activity = activityRef.get() ?: return
         
@@ -124,64 +185,126 @@ class FilePickerManager(
     }
 
     /**
-     * 处理选中的弹幕文件
+     * 处理选中的弹幕文件（新方法，接收文件路径）
      */
+    private fun handleDanmakuFileSelected(filePath: String) {
+        val activity = activityRef.get() ?: return
+        val playbackEngine = playbackEngineRef.get() ?: return
+        
+        Log.d(TAG, "Danmaku file selected: $filePath")
+        
+        // 使用协程在后台线程处理弹幕导入
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // 直接加载弹幕文件
+                withContext(Dispatchers.Main) {
+                    DialogUtils.showToastShort(activity, "弹幕导入成功")
+                    
+                    // 加载弹幕文件
+                    val loaded = danmakuManager.loadDanmakuFile(filePath, autoShow = true)
+                    if (loaded) {
+                        // 同步弹幕到当前播放位置
+                        val currentPosition = (playbackEngine.currentPosition * 1000).toLong()
+                        danmakuManager.seekTo(currentPosition)
+                        
+                        Log.d(TAG, "Danmaku loaded and synced to position: $currentPosition")
+                    }
+                    
+                    // 更新历史记录
+                    currentVideoUri?.let { videoUri ->
+                        historyManager.updateDanmu(
+                            uri = videoUri,
+                            danmuPath = filePath,
+                            danmuVisible = danmakuManager.isVisible(),
+                            danmuOffsetTime = 0L
+                        )
+                        Log.d(TAG, "Danmu info updated in history")
+                    }
+                    
+                    // 不再恢复播放状态，保持用户原有的播放状态
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to import danmaku", e)
+                withContext(Dispatchers.Main) {
+                    DialogUtils.showToastLong(activity, "弹幕导入失败: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * 处理选中的弹幕文件（旧方法，接收URI，已废弃但保留兼容）
+     */
+    @Deprecated("使用handleDanmakuFileSelected(filePath)替代")
     private fun handleDanmakuSelected(uri: Uri?) {
         val activity = activityRef.get() ?: return
         val playbackEngine = playbackEngineRef.get() ?: return
         
         if (uri != null) {
             Log.d(TAG, "Danmaku file selected: $uri")
-            try {
-                // 使用 DanmakuManager 导入弹幕文件
-                val danmakuPath = danmakuManager.importDanmakuFile(activity, uri)
-                if (danmakuPath != null) {
-                    DialogUtils.showToastShort(activity, "弹幕导入成功")
+            
+            // 使用协程在后台线程处理弹幕导入，避免卡死主线程
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    // 使用 DanmakuManager 导入弹幕文件（IO操作）
+                    val danmakuPath = danmakuManager.importDanmakuFile(activity, uri)
                     
-                    // 加载弹幕文件（autoShow=true 会调用show()设置可见）
-                    val loaded = danmakuManager.loadDanmakuFile(danmakuPath, autoShow = true)
-                    if (loaded) {
-                        // 同步弹幕到当前播放位置
-                        val currentPosition = (playbackEngine.currentPosition * 1000).toLong()
-                        danmakuManager.seekTo(currentPosition)
-                        
-                        // 如果视频正在播放，立即启动弹幕
-                        if (wasPlayingBeforeDanmakuPicker) {
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                danmakuManager.resume()
-                                Log.d(TAG, "Danmaku resumed (video playing)")
-                            }, 300)
+                    // 切回主线程处理UI和播放器操作
+                    withContext(Dispatchers.Main) {
+                        if (danmakuPath != null) {
+                            DialogUtils.showToastShort(activity, "弹幕导入成功")
+                            
+                            // 加载弹幕文件（autoShow=true 会设置track为选中状态）
+                            val loaded = danmakuManager.loadDanmakuFile(danmakuPath, autoShow = true)
+                            if (loaded) {
+                                // 同步弹幕到当前播放位置
+                                val currentPosition = (playbackEngine.currentPosition * 1000).toLong()
+                                danmakuManager.seekTo(currentPosition)
+                                
+                                Log.d(TAG, "Danmaku loaded and synced to position: $currentPosition")
+                                
+                                // 按照DanDanPlay逻辑：弹幕的播放控制由onPlaybackStateChanged统一管理
+                                // 不需要在这里手动调用start或resume
+                            }
+                            
+                            // 更新历史记录中的弹幕信息（使用实际的可见性状态）
+                            currentVideoUri?.let { videoUri ->
+                                historyManager.updateDanmu(
+                                    uri = videoUri,
+                                    danmuPath = danmakuPath,
+                                    danmuVisible = danmakuManager.isVisible(),
+                                    danmuOffsetTime = 0L
+                                )
+                                Log.d(TAG, "Danmu info updated in history, visible=${danmakuManager.isVisible()}")
+                            }
                         } else {
-                            Log.d(TAG, "Danmaku loaded but not started (video paused)")
+                            DialogUtils.showToastLong(activity, "弹幕导入失败")
                         }
                         
-                        Log.d(TAG, "Danmaku loaded and synced to position: $currentPosition")
+                        // 恢复播放状态（必须在主线程）
+                        if (wasPlayingBeforeDanmakuPicker) {
+                            playbackEngineRef.get()?.play()
+                        }
                     }
-                    
-                    // 更新历史记录中的弹幕信息
-                    currentVideoUri?.let { videoUri ->
-                        historyManager.updateDanmu(
-                            uri = videoUri,
-                            danmuPath = danmakuPath,
-                            danmuVisible = true,
-                            danmuOffsetTime = 0L
-                        )
-                        Log.d(TAG, "Danmu info updated in history")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to import danmaku", e)
+                    withContext(Dispatchers.Main) {
+                        DialogUtils.showToastLong(activity, "弹幕导入失败: ${e.message}")
+                        
+                        // 发生异常也要恢复播放状态
+                        if (wasPlayingBeforeDanmakuPicker) {
+                            playbackEngineRef.get()?.play()
+                        }
                     }
-                } else {
-                    DialogUtils.showToastLong(activity, "弹幕导入失败")
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to import danmaku", e)
-                DialogUtils.showToastLong(activity, "弹幕导入失败: ${e.message}")
             }
         } else {
             Log.d(TAG, "Danmaku picker cancelled")
-        }
-        
-        // 恢复播放状态
-        if (wasPlayingBeforeDanmakuPicker) {
-            playbackEngineRef.get()?.play()
+            
+            // 取消选择也要恢复播放状态
+            if (wasPlayingBeforeDanmakuPicker) {
+                playbackEngineRef.get()?.play()
+            }
         }
     }
 
@@ -189,9 +312,9 @@ class FilePickerManager(
      * 清理资源
      */
     fun cleanup() {
-        subtitlePickerLauncher = null
-        danmakuPickerLauncher = null
+        // 已移除系统文件选择器，不再需要清理 subtitlePickerLauncher 和 danmakuPickerLauncher
         currentVideoUri = null
+        composeOverlayManager = null
         Log.d(TAG, "FilePickerManager cleaned up")
     }
 }

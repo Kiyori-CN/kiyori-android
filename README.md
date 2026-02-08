@@ -6,6 +6,23 @@
 
 本项目旨在将二次元动漫/动画/番剧风格的视频进行优化超分，当然你也可以当作普通的播放器使用。
 
+## 📑 目录
+
+- [声明](#声明)
+- [⚠️ 重要声明](#️-重要声明)
+- [快速开始](#快速开始)
+  - [📥 下载安装](#-下载安装)
+  - [⚙️ 系统要求](#️-系统要求)
+  - [🚀 快速使用](#-快速使用)
+- [功能特性](#功能特性)
+- [功能截图](#功能截图)
+- [技术架构](#技术架构)
+- [功能规划](#功能规划)
+- [致谢](#致谢)
+- [隐私与第三方服务](#隐私与第三方服务)
+- [开发说明](#开发说明)
+- [反馈与建议](#反馈与建议)
+
 ---
 
 ## 声明
@@ -101,6 +118,16 @@
 - **音量增强**：支持开关增强功能，且可精细到0.1%调整
 - **弹幕功能**：
   - 支持导入本地 XML 格式弹幕文件
+  - **支持弹弹play弹幕匹配**
+    <details>
+    <summary>✨ 展开查看功能特性</summary>
+    
+    - 自动匹配本地视频文件到弹弹play弹幕库
+    - 智能文件名识别，支持动漫番剧匹配
+    - 一键下载匹配到的弹幕
+    - 支持手动选择匹配结果
+    
+    </details>
   - **支持从哔哩哔哩下载弹幕**
     <details>
     <summary>📖 查看详细说明</summary>
@@ -184,8 +211,6 @@
 以下功能已规划但暂未实现：
 
 - 帧插值补帧
-- 字幕字体自定义
-- 字体选择
 
 ## 致谢
 
@@ -215,6 +240,9 @@
 - **[bilibili/DanmakuFlameMaster](https://github.com/bilibili/DanmakuFlameMaster)**  
   此项目的弹幕底层核心库为哔哩哔哩的Android开源弹幕解析绘制引擎项目
 
+- **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
+  提供弹幕API服务，支持本地视频文件智能匹配和弹幕下载
+
 - **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
   感谢此项目收集的公开API，将散落的API集中起来，本项目参考了其中的使用方法
 
@@ -226,12 +254,6 @@
 
 - **[qiusunshine/hikerView](https://github.com/qiusunshine/hikerView)**  
   本项目参考了此项目的嗅探功能实现以及某些特定情况下，需要特定反嗅探的算法逻辑
-
-- **[thegrizzlylabs/sardine-android](https://github.com/thegrizzlylabs/sardine-android)**  
-  提供了 WebDAV 协议的 Android 客户端实现，支持文件浏览、上传、下载等操作
-
-- **[ngallagher/simplexml](https://github.com/ngallagher/simplexml)**  
-  提供了轻量级的 XML 序列化框架，用于解析 WebDAV 服务器返回的 XML 格式响应数据
 
 ---
 
@@ -261,7 +283,11 @@
 
 ### 🔌 使用的第三方API
 
-本应用使用 **哔哩哔哩 (Bilibili)** 的公开API，用于登录、番剧播放、弹幕下载、视频下载等功能。
+本应用使用以下第三方API服务：
+
+#### 哔哩哔哩 (Bilibili)
+
+用于登录、番剧播放、弹幕下载、视频下载等功能。
 
 <details>
 <summary>查看API列表</summary>
@@ -277,6 +303,21 @@
 </details>
 
 **声明**：本应用与哔哩哔哩无任何官方关联，仅使用其公开API。
+
+#### 弹弹play (DanDanPlay)
+
+用于本地视频弹幕匹配和下载功能。
+
+<details>
+<summary>查看API列表</summary>
+
+- 弹幕匹配API: `https://api.dandanplay.net/api/v2/match`
+- 弹幕搜索API: `https://api.dandanplay.net/api/v2/search/episodes`
+- 弹幕下载API: `https://api.dandanplay.net/api/v2/comment/*`
+
+</details>
+
+**说明**：使用弹弹play API需要在 `local.properties` 中配置AppId和AppSecret（详见[开发说明](#开发说明)）。
 
 ### 🔐 数据安全说明
 
@@ -362,4 +403,4 @@
 
 ---
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-08

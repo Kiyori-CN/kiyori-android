@@ -6,6 +6,24 @@ An Android local video player based on libmpv, supporting multiple video formats
 
 This project aims to optimize and upscale anime-style videos, though it can also be used as a regular video player.
 
+## 📑 Table of Contents
+
+- [License](#license)
+- [⚠️ Important Notice](#️-important-notice)
+- [Quick Start](#quick-start)
+  - [📥 Download & Installation](#-download--installation)
+  - [⚙️ System Requirements](#️-system-requirements)
+  - [🚀 Getting Started](#-getting-started)
+- [Feature Highlights](#feature-highlights)
+- [Screenshots](#screenshots)
+- [Key Features](#key-features)
+- [Technical Architecture](#technical-architecture)
+- [Planned Features](#planned-features)
+- [Acknowledgments](#acknowledgments)
+- [Privacy & Third-Party Services](#privacy--third-party-services)
+- [Development Notes](#development-notes)
+- [Feedback & Suggestions](#feedback--suggestions)
+
 ---
 
 ## License
@@ -101,6 +119,16 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
 - **Volume Boost**: Toggle volume boost feature with fine-grained 0.1% adjustment
 - **Danmaku Features**:
   - Support for importing local XML format danmaku files
+  - **Support for DanDanPlay danmaku matching**
+    <details>
+    <summary>✨ Expand Features</summary>
+    
+    - Automatically match local video files to DanDanPlay danmaku library
+    - Intelligent filename recognition for anime/bangumi matching
+    - One-click download of matched danmaku
+    - Support for manual match selection
+    
+    </details>
   - **Support for downloading danmaku from Bilibili**
     <details>
     <summary>📖 View Details</summary>
@@ -226,8 +254,6 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
 The following features are planned but not yet implemented:
 
 - Frame interpolation
-- Subtitle font customization
-- Font selection
 
 ## Acknowledgments
 
@@ -257,6 +283,9 @@ This project would not be possible without the support of the following open-sou
 - **[bilibili/DanmakuFlameMaster](https://github.com/bilibili/DanmakuFlameMaster)**  
   The danmaku core engine for this project is Bilibili's open-source danmaku parsing and rendering engine
 
+- **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
+  Provides danmaku API service, supporting intelligent matching and downloading of danmaku for local video files
+
 - **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
   Thanks for collecting public APIs and centralizing scattered APIs. This project referenced the usage methods
 
@@ -268,12 +297,6 @@ This project would not be possible without the support of the following open-sou
 
 - **[qiusunshine/hikerView](https://github.com/qiusunshine/hikerView)**  
   Referenced the sniffing feature implementation and specific anti-sniffing algorithm logic for certain scenarios
-
-- **[thegrizzlylabs/sardine-android](https://github.com/thegrizzlylabs/sardine-android)**  
-  Provides Android WebDAV client implementation, supporting file browsing, uploading, and downloading operations
-
-- **[ngallagher/simplexml](https://github.com/ngallagher/simplexml)**  
-  Provides a lightweight XML serialization framework for parsing XML format response data from WebDAV servers
 
 ---
 
@@ -303,10 +326,15 @@ This application highly values user privacy protection:
 
 ### 🔌 Third-Party APIs Used
 
-This application uses public APIs from **Bilibili** for login, bangumi playback, danmaku downloads, and video downloads.
+This application uses the following third-party API services:
+
+#### Bilibili
+
+For login, bangumi playback, danmaku downloads, and video downloads.
 
 <details>
 <summary>View API List</summary>
+
 - Login API: `https://passport.bilibili.com/x/passport-login/web/qrcode/*`
 - Bangumi Info API: `https://api.bilibili.com/pgc/view/web/season`
 - Bangumi Playback API: `https://api.bilibili.com/pgc/player/web/playurl`
@@ -318,6 +346,21 @@ This application uses public APIs from **Bilibili** for login, bangumi playback,
 </details>
 
 **Disclaimer**: This application has no official affiliation with Bilibili and only uses its public APIs.
+
+#### DanDanPlay
+
+For local video danmaku matching and download functionality.
+
+<details>
+<summary>View API List</summary>
+
+- Danmaku Match API: `https://api.dandanplay.net/api/v2/match`
+- Danmaku Search API: `https://api.dandanplay.net/api/v2/search/episodes`
+- Danmaku Download API: `https://api.dandanplay.net/api/v2/comment/*`
+
+</details>
+
+**Note**: Using DanDanPlay API requires configuring AppId and AppSecret in `local.properties` (see [Development Instructions](#development-instructions)).
 
 ### 🔐 Data Security
 
@@ -403,4 +446,4 @@ Encountered an issue or have improvement suggestions? Welcome to provide feedbac
 
 ---
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-02-08

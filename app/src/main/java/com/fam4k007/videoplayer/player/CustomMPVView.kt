@@ -54,11 +54,18 @@ class CustomMPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context
         MPVLib.setOptionString("sub-codepage", "auto")
         // 首选字幕语言
         MPVLib.setOptionString("slang", "zh,chi,zho,chs,cht,zh-CN,zh-TW,en,eng")
-        // libass 字体配置
-        MPVLib.setOptionString("sub-font-provider", "none")
+        
+        // libass 字体配置（使用系统字体）
+        val preferencesManager = com.fam4k007.videoplayer.manager.PreferencesManager.getInstance(context)
+        val systemFontName = preferencesManager.getSystemFontName()
+        
+        MPVLib.setOptionString("sub-font-provider", "auto")
         MPVLib.setOptionString("sub-fonts-dir", "/system/fonts")
-        MPVLib.setOptionString("sub-font", "Noto Sans CJK SC")
-        MPVLib.setOptionString("embeddedfonts", "no")
+        MPVLib.setOptionString("sub-font", systemFontName)
+        MPVLib.setOptionString("embeddedfonts", "yes")
+        
+        Log.d(TAG, "Using system font: $systemFontName")
+        
         // 字幕显示位置
         MPVLib.setOptionString("sub-use-margins", "yes")
         MPVLib.setOptionString("sub-ass-force-margins", "yes")

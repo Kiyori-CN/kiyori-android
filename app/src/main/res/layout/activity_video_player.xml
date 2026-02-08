@@ -33,7 +33,7 @@
         android:layout_height="60dp"
         android:layout_centerInParent="true"
         android:indeterminateTint="#FFFFFF"
-        android:visibility="visible" />
+        android:visibility="gone" />
 
     <!-- 双击跳转指示器 - 左侧（快退） -->
     <com.fam4k007.videoplayer.player.DoubleTapSeekIndicator
@@ -104,18 +104,29 @@
                 android:layout_marginEnd="8dp" />
 
             <!-- 左侧区域:标题(占1/2宽度) -->
-            <TextView
-                android:id="@+id/tvFileName"
+            <FrameLayout
+                android:id="@+id/titleClickArea"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="视频文件名"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:maxLines="2"
-                android:ellipsize="end"
-                android:lineSpacingMultiplier="0.85" />
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingVertical="4dp">
+                
+                <TextView
+                    android:id="@+id/tvFileName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:text="视频文件名"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:lineSpacingMultiplier="0.85" />
+            </FrameLayout>
 
             <!-- 右侧区域:状态+按钮(占1/2宽度,预留导航栏空间) -->
             <LinearLayout

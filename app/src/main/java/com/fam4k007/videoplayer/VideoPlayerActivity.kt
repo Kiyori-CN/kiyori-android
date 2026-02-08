@@ -132,10 +132,16 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     private var currentSeries: List<Uri> = emptyList()
     private var currentVideoIndex = -1
+    
+    // 当前文件夹的视频列表
+    private var currentVideoList: List<VideoFileParcelable> = emptyList()
 
     private var anime4KDialog: android.app.Dialog? = null
     private var anime4KEnabled = false
     private var anime4KMode = Anime4KManager.Mode.OFF
+    
+    // 标记本次播放是否已经自动加载过字幕（防止重复加载）
+    private var hasAutoLoadedSubtitle = false
     private var anime4KQuality = Anime4KManager.Quality.BALANCED
     
     // 当前视频所在文件夹路径
@@ -263,6 +269,13 @@ class VideoPlayerActivity : AppCompatActivity(),
         clickArea = findViewById(R.id.clickArea)
         loadingIndicator = findViewById(R.id.loadingIndicator)
         
+        // 根据是否为在线视频设置加载动画的初始状态
+        if (isOnlineVideo) {
+            loadingIndicator.visibility = View.VISIBLE
+        } else {
+            loadingIndicator.visibility = View.GONE
+        }
+        
         // 初始化暂停指示器
         pauseIndicator = ImageView(this).apply {
             setImageResource(R.drawable.media)  // 使用提供的media.png图标
@@ -334,12 +347,13 @@ class VideoPlayerActivity : AppCompatActivity(),
                     this@VideoPlayerActivity.isPlaying = isPlaying
                     controlsManager?.updatePlayPauseButton(isPlaying)
                     
-                    if (isPlaying) {
-                        // 只调用 resume，不要调用 start
-                        // start() 会清空弹幕状态，只应该在首次加载时调用
-                        danmakuManager.resume()
-                    } else {
-                        danmakuManager.pause()
+                    // 按照DanDanPlay的逻辑：只有弹幕prepared并且track被选中时才控制弹幕播放
+                    if (danmakuManager.isPrepared()) {
+                        if (isPlaying) {
+                            danmakuManager.resume()
+                        } else {
+                            danmakuManager.pause()
+                        }
                     }
                 }
                 
@@ -386,10 +400,12 @@ class VideoPlayerActivity : AppCompatActivity(),
                         lastPositionForBuffering = position
                         lastPositionUpdateTime = currentTime
                     } else if (isPlaying && currentTime - lastPositionUpdateTime > 200 && !isStalledBuffering) {
-                        // 位置停顿超过0.2秒，且正在播放，显示停顿缓冲
+                        // 位置停顿超过0.2秒，且正在播放，显示停顿缓冲（仅在线视频）
                         isStalledBuffering = true
-                        loadingIndicator.visibility = View.VISIBLE
-                        com.fam4k007.videoplayer.utils.Logger.d(TAG, "Playback stalled, show buffering indicator")
+                        if (isOnlineVideo) {
+                            loadingIndicator.visibility = View.VISIBLE
+                            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Playback stalled, show buffering indicator (online video)")
+                        }
                     }
                     
                     // 初始播放后隐藏加载动画（防止MPV缓冲状态延迟）
@@ -452,11 +468,11 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onBufferingStateChanged(isBuffering: Boolean) {
-                    // 根据缓冲状态显示或隐藏加载动画
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Buffering state changed: $isBuffering")
+                    // 根据缓冲状态显示或隐藏加载动画（仅在线视频）
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Buffering state changed: $isBuffering, isOnlineVideo: $isOnlineVideo")
                     
-                    if (isBuffering) {
-                        // 显示加载动画
+                    if (isBuffering && isOnlineVideo) {
+                        // 显示加载动画（仅在线视频）
                         loadingIndicator.visibility = View.VISIBLE
                         loadingIndicator.alpha = 0f
                         loadingIndicator.animate()
@@ -663,6 +679,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                 override fun onBackClick() {
                     handleBackNavigation()
                 }
+                
+                override fun onVideoTitleClick() {
+                    showVideoListDrawer()
+                }
             },
             WeakReference(gestureHandler)  // 传入GestureHandler引用
         )
@@ -674,6 +694,9 @@ class VideoPlayerActivity : AppCompatActivity(),
             val videoListParcelable = intent.getParcelableArrayListExtra<VideoFileParcelable>("video_list")
             
             if (videoListParcelable != null && videoListParcelable.isNotEmpty()) {
+                // 保存视频列表用于显示
+                currentVideoList = videoListParcelable
+                
                 val uriList = videoListParcelable.map { Uri.parse(it.uri) }
                 videoUri?.let { uri ->
                     seriesManager.setVideoList(uriList, uri)
@@ -754,6 +777,8 @@ class VideoPlayerActivity : AppCompatActivity(),
             preferencesManager
         )
         filePickerManager.initialize()
+        // 设置ComposeOverlayManager供文件选择器使用
+        filePickerManager.setComposeOverlayManager(composeOverlayManager)
         
         // 初始化截图管理器
         screenshotManager = com.fam4k007.videoplayer.manager.ScreenshotManager(this)
@@ -779,6 +804,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             topInfoPanel = findViewById(R.id.topInfoPanel),
             controlPanel = findViewById(R.id.controlPanel),
             tvFileName = findViewById(R.id.tvFileName),
+            titleClickArea = findViewById(R.id.titleClickArea),  // 标题点击区域
             tvBattery = findViewById(R.id.tvBattery),
             tvTime = findViewById(R.id.tvTime),
             tvTimeInfo = findViewById(R.id.tvTimeInfo),
@@ -812,13 +838,24 @@ class VideoPlayerActivity : AppCompatActivity(),
             if (!hasLoadedDanmaku) {
                 DialogUtils.showToastShort(this, "请先加载弹幕文件")
             } else {
-                val isVisible = danmakuManager.isVisible()
-                danmakuManager.setVisibility(!isVisible)
-                com.fam4k007.videoplayer.danmaku.DanmakuConfig.setEnabled(!isVisible)
-                // 更新按钮图标：显示时用alignjustify，隐藏时用alignslash
+                // 切换trackSelected状态(参考DanDanPlay的selectTrack/deselectTrack)
+                val currentVisible = danmakuManager.isVisible()
+                val newSelected = !currentVisible
+                
+                // 设置轨道选中状态
+                danmakuManager.setTrackSelected(newSelected)
+                
+                // 如果选中且视频正在播放,需要启动弹幕
+                if (newSelected && isPlaying && danmakuManager.isPrepared()) {
+                    danmakuManager.resume()
+                }
+                
+                // 更新按钮图标
                 btnDanmakuToggle.setImageResource(
-                    if (!isVisible) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
+                    if (newSelected) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
                 )
+                
+                Logger.d(TAG, "Danmaku track selected: $newSelected")
             }
         }
         
@@ -879,6 +916,9 @@ class VideoPlayerActivity : AppCompatActivity(),
      */
     private fun loadVideo() {
         videoUri?.let { uri ->
+            // 重置自动加载字幕标志（新视频开始播放）
+            hasAutoLoadedSubtitle = false
+            
             val position = if (duration > 0 && duration < 30) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Short video detected, starting from 0")
                 0.0
@@ -1001,32 +1041,96 @@ class VideoPlayerActivity : AppCompatActivity(),
             // 按优先级排序：ass > srt > 其他
             val priorityExtensions = listOf("ass", "srt", "ssa", "vtt", "sub", "sbv", "json")
             
-            // 查找同名字幕文件
-            var foundSubtitle: File? = null
-            for (ext in priorityExtensions) {
-                val subtitleFile = File(videoDir, "$videoNameWithoutExt.$ext")
-                if (subtitleFile.exists() && subtitleFile.isFile) {
-                    foundSubtitle = subtitleFile
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Found subtitle: ${subtitleFile.name}")
-                    break
-                }
+            // 模糊匹配：查找所有以视频文件名开头的字幕文件
+            val allSubtitles = videoDir.listFiles()?.filter { file ->
+                if (!file.isFile) return@filter false
+                val fileName = file.name.lowercase()
+                val videoName = videoNameWithoutExt.lowercase()
+                
+                // 文件名必须以视频名开头
+                if (!fileName.startsWith(videoName)) return@filter false
+                
+                // 扩展名必须在支持列表中
+                val ext = file.extension.lowercase()
+                priorityExtensions.contains(ext)
+            } ?: emptyList()
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Found ${allSubtitles.size} potential subtitle files")
+            
+            // 如果没有找到任何字幕，直接返回
+            if (allSubtitles.isEmpty()) {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No matching subtitle file found")
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Auto-load subtitle end =====")
+                return
             }
             
-            // 如果找到字幕文件，自动加载
-            if (foundSubtitle != null) {
-                val subtitlePath = foundSubtitle.absolutePath
-                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-loading subtitle: $subtitlePath")
+            // 获取系统语言偏好
+            val systemLanguage = resources.configuration.locales[0].toString().lowercase()
+            val isSimplifiedChinese = systemLanguage.contains("zh_cn") || systemLanguage.contains("zh-cn")
+            val isTraditionalChinese = systemLanguage.contains("zh_tw") || systemLanguage.contains("zh_hk") || 
+                                       systemLanguage.contains("zh-tw") || systemLanguage.contains("zh-hk")
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "System language: $systemLanguage, SC: $isSimplifiedChinese, TC: $isTraditionalChinese")
+            
+            // 按优先级排序字幕文件
+            val sortedSubtitles = allSubtitles.sortedWith(compareBy(
+                // 1. 扩展名优先级（数字越小优先级越高）
+                { file -> 
+                    val ext = file.extension.lowercase()
+                    priorityExtensions.indexOf(ext).let { if (it == -1) 999 else it }
+                },
+                // 2. 完全匹配优先（123.ass > 123.sc.ass）
+                { file -> 
+                    val nameWithoutExt = file.nameWithoutExtension
+                    if (nameWithoutExt.equals(videoNameWithoutExt, ignoreCase = true)) 0 else 1
+                },
+                // 3. 语言标记优先级（根据系统语言）
+                { file ->
+                    val nameLower = file.nameWithoutExtension.lowercase()
+                    val afterVideoName = nameLower.removePrefix(videoNameWithoutExt.lowercase())
+                    
+                    when {
+                        // 简体中文系统优先简体标记
+                        isSimplifiedChinese && (afterVideoName.contains("sc") || afterVideoName.contains("chs") || 
+                                                afterVideoName.contains("简") || afterVideoName.contains("zh-cn")) -> 0
+                        // 繁体中文系统优先繁体标记
+                        isTraditionalChinese && (afterVideoName.contains("tc") || afterVideoName.contains("cht") || 
+                                                 afterVideoName.contains("繁") || afterVideoName.contains("zh-tw")) -> 0
+                        else -> 1
+                    }
+                },
+                // 4. 文件名长度（越短越优先，假设越接近原始名称）
+                { file -> file.nameWithoutExtension.length },
+                // 5. 字母顺序
+                { file -> file.name.lowercase() }
+            ))
+            
+            // 打印所有找到的字幕（调试用）
+            sortedSubtitles.forEachIndexed { index, file ->
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Subtitle [$index]: ${file.name}")
+            }
+            
+            // 选择优先级最高的字幕文件
+            val foundSubtitle = sortedSubtitles.first()
+            
+            val subtitlePath = foundSubtitle.absolutePath
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-loading best match subtitle: $subtitlePath")
+            
+            try {
+                MPVLib.command("sub-add", subtitlePath, "select")
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Successfully auto-loaded subtitle: ${foundSubtitle.name}")
                 
-                try {
-                    MPVLib.command("sub-add", subtitlePath, "select")
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Successfully auto-loaded subtitle: ${foundSubtitle.name}")
-                    DialogUtils.showToastShort(this, "已自动加载字幕: ${foundSubtitle.name}")
-                } catch (e: Exception) {
-                    com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to auto-load subtitle", e)
-                    DialogUtils.showToastShort(this, "字幕加载失败: ${e.message}")
-                }
-            } else {
-                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No matching subtitle file found")
+                // 保存字幕路径到记忆中，下次进入视频时不会重复自动加载
+                preferencesManager.setExternalSubtitle(videoUri.toString(), subtitlePath)
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Saved auto-loaded subtitle path to preferences")
+                
+                // 设置标志，防止 restoreSubtitlePreferences 重复加载
+                hasAutoLoadedSubtitle = true
+                
+                DialogUtils.showToastShort(this, "已自动加载字幕: ${foundSubtitle.name}")
+            } catch (e: Exception) {
+                com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to auto-load subtitle", e)
+                DialogUtils.showToastShort(this, "字幕加载失败: ${e.message}")
             }
             
             com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Auto-load subtitle end =====")
@@ -1107,7 +1211,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             
             if (history?.danmuPath != null && File(history.danmuPath).exists()) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Restoring danmaku from history: ${history.danmuPath}")
-                // 恢复用户上次的弹幕可见性设置
+                // 恢复用户上次的弹幕可见性设置(这会设置trackSelected状态)
                 val autoShow = history.danmuVisible
                 val loaded = danmakuManager.loadDanmakuFile(
                     history.danmuPath,
@@ -1115,18 +1219,16 @@ class VideoPlayerActivity : AppCompatActivity(),
                 )
                 
                 if (loaded) {
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku restored successfully, autoShow=$autoShow")
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Current danmaku visibility: ${danmakuManager.isVisible()}")
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku restored: path=${history.danmuPath}, trackSelected=$autoShow")
                     
-                    // 如果视频正在播放，启动弹幕
-                    if (isPlaying) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            danmakuManager.resume()
-                            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku resumed after restore, isPlaying=$isPlaying")
-                        }, 300)
-                    } else {
-                        com.fam4k007.videoplayer.utils.Logger.d(TAG, "Video not playing yet, danmaku will start when video plays")
-                    }
+                    // 同步UI按钮状态
+                    val btnDanmakuToggle = findViewById<ImageView>(R.id.btnDanmakuToggle)
+                    btnDanmakuToggle?.setImageResource(
+                        if (autoShow) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
+                    )
+                    
+                    // prepared回调和onPlaybackStateChanged会自动处理弹幕启动,这里不手动操作
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku will be controlled by onPlaybackStateChanged")
                 } else {
                     com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to restore danmaku, trying auto-find")
                     autoFindAndLoadDanmaku(videoUri)
@@ -1149,7 +1251,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             val videoPath = videoUri.resolveUri(this)
             if (videoPath != null) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-finding danmaku for: $videoPath")
-                danmakuManager.loadDanmakuForVideo(videoUri.toString(), videoPath)
+                danmakuManager.loadDanmakuForVideo(videoPath)
                 // prepared回调会自动处理弹幕启动，这里不需要手动启动
             }
         } catch (e: Exception) {
@@ -1196,7 +1298,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                 
                 val savedSubtitlePath = preferencesManager.getExternalSubtitle(uriString)
                 if (savedSubtitlePath != null) {
-                    if (File(savedSubtitlePath).exists()) {
+                    // 如果已经自动加载过这个字幕，就跳过（防止重复加载）
+                    if (hasAutoLoadedSubtitle) {
+                        Logger.d(TAG, "Subtitle already auto-loaded this session, skipping restore")
+                    } else if (File(savedSubtitlePath).exists()) {
                         try {
                             MPVLib.command("sub-add", savedSubtitlePath, "select")
                             Logger.d(TAG, "Restored external subtitle from path: $savedSubtitlePath")
@@ -1375,23 +1480,37 @@ class VideoPlayerActivity : AppCompatActivity(),
     private fun playVideo(uri: Uri) {
         videoUri = uri
         
-        // 显示加载动画
-        loadingIndicator.visibility = View.VISIBLE
-        loadingIndicator.alpha = 1f
+        // 重置自动加载字幕标志（新视频开始播放）
+        hasAutoLoadedSubtitle = false
+        
+        // 更新在线视频标志
+        isOnlineVideo = uri.scheme?.startsWith("http") == true
+        
+        // 显示加载动画（仅在线视频）
+        if (isOnlineVideo) {
+            loadingIndicator.visibility = View.VISIBLE
+            loadingIndicator.alpha = 1f
+        } else {
+            loadingIndicator.visibility = View.GONE
+        }
         
         val fileName = getFileNameFromUri(uri)
         controlsManager?.setFileName(fileName)
         
         val position = preferencesManager.getPlaybackPosition(uri.toString())
         
+        // 【重要】清除旧弹幕，避免切换视频时弹幕残留
+        Logger.d(TAG, "Releasing old danmaku before playing new video")
+        danmakuManager.release()
+        
         playbackEngine?.loadVideo(uri, position)
         
-        // 自动加载字幕（和初始播放一样的逻辑）
+        // 设置当前视频 URI 给文件选择器管理器
+        filePickerManager.setCurrentVideoUri(uri)
+        
+        // 自动加载字幕和弹幕（和初始播放一样的逻辑）
         lifecycleScope.launch {
             delay(500)
-            
-            // 检查是否为在线视频
-            val isOnlineVideo = uri.scheme?.startsWith("http") == true
             
             // 本地视频自动加载同名字幕
             if (!isOnlineVideo) {
@@ -1401,6 +1520,17 @@ class VideoPlayerActivity : AppCompatActivity(),
             
             // 恢复字幕偏好设置
             restoreSubtitlePreferences(uri)
+            
+            // 【重要】加载新视频的弹幕
+            Logger.d(TAG, "Loading danmaku for new video: $uri")
+            loadDanmakuForVideo(uri)
+            
+            // 同步弹幕到播放位置
+            if (position > 0) {
+                delay(300)
+                danmakuManager.seekTo((position * 1000).toLong())
+                Logger.d(TAG, "Synced danmaku to position: $position seconds")
+            }
         }
         
         updateEpisodeButtons()
@@ -1458,14 +1588,22 @@ class VideoPlayerActivity : AppCompatActivity(),
         if (::playbackEngine.isInitialized && isPlaying) {
             playbackEngine.pause()
             
+            // 手动同步播放状态(因为playbackEngine.pause()不会触发onPlaybackStateChanged)
+            isPlaying = false
+            
             // 更新UI状态
             if (::controlsManager.isInitialized) {
                 controlsManager.updatePlayPauseButton(false)
             }
             
+            // 同步暂停弹幕(关键!修复问题1)
+            if (::danmakuManager.isInitialized && danmakuManager.isPrepared()) {
+                danmakuManager.pause()
+            }
+            
             // 暂停指示器会由状态监听器自动显示，不需要手动调用
             
-            Logger.d(TAG, "Video paused due to app going to background")
+            Logger.d(TAG, "Video and danmaku paused due to app going to background")
         }
         
         savePlaybackState()
@@ -1552,16 +1690,18 @@ class VideoPlayerActivity : AppCompatActivity(),
                 )
                 Logger.d(TAG, "History saved: $fileName")
                 
-                // 3. 保存弹幕信息到历史记录
+                // 3. 保存弹幕信息到历史记录(保存真实的显示状态)
                 val danmakuPath = danmakuManager.getCurrentDanmakuPath()
                 if (danmakuPath != null) {
+                    // 只有prepared且visible时才保存为true
+                    val actualVisible = danmakuManager.isVisible() && danmakuManager.isPrepared()
                     historyManager.updateDanmu(
                         uri = uri,
                         danmuPath = danmakuPath,
-                        danmuVisible = danmakuManager.isVisible(),
+                        danmuVisible = actualVisible,
                         danmuOffsetTime = 0L
                     )
-                    Logger.d(TAG, "Danmu info saved: path=$danmakuPath, visible=${danmakuManager.isVisible()}")
+                    Logger.d(TAG, "Danmu info saved: path=$danmakuPath, visible=$actualVisible")
                 }
             } else if (isOnlineVideo) {
                 Logger.d(TAG, "Skipping history for online video: $uri")
@@ -1643,9 +1783,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                             danmakuDir.mkdirs()
                         }
                         
-                        // 使用番剧名和剧集名生成文件名
-                        val fileName = "${animeTitle}_${episodeTitle}_${episodeId}.xml"
+                        // 使用番剧名和剧集名生成文件名（先清理特殊字符，再添加.xml后缀）
+                        val cleanName = "${animeTitle}_${episodeTitle}_${episodeId}"
                             .replace("[^a-zA-Z0-9_\\u4e00-\\u9fa5]".toRegex(), "_")
+                        val fileName = "$cleanName.xml"
                         val danmakuFile = File(danmakuDir, fileName)
                         danmakuFile.writeText(xmlContent)
                         
@@ -1860,6 +2001,30 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     override fun onShowSkipSettings() {
         skipIntroOutroManager.showSkipSettingsDrawer(currentFolderPath)
+    }
+    
+    /**
+     * 显示视频列表抽屉
+     */
+    private fun showVideoListDrawer() {
+        // 如果没有视频列表，提示用户
+        if (currentVideoList.isEmpty()) {
+            DialogUtils.showToastShort(this, "当前没有可用的视频列表")
+            return
+        }
+        
+        videoUri?.let { uri ->
+            composeOverlayManager.showVideoListDrawer(
+                videoList = currentVideoList,
+                currentVideoUri = uri,
+                onVideoSelected = { video, index ->
+                    // 切换到选中的视频
+                    val selectedUri = Uri.parse(video.uri)
+                    Logger.d(TAG, "Video selected from list: ${video.name}, index: $index")
+                    playVideo(selectedUri)
+                }
+            )
+        }
     }
     
     override fun getVideoUri(): Uri? = videoUri

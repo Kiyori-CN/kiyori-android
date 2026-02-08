@@ -106,6 +106,7 @@ class ComposeOverlayManager(
                 onBorderColorChange = onBorderColorChange,
                 onBackColorChange = onBackColorChange,
                 onBorderStyleChange = onBorderStyleChange,
+                composeOverlayManager = this,
                 onDismiss = { clearContent() }
             )
         }
@@ -181,6 +182,38 @@ class ComposeOverlayManager(
             com.fam4k007.videoplayer.compose.DanDanPlaySearchDialog(
                 onDismiss = { clearContent() },
                 onEpisodeSelected = onEpisodeSelected
+            )
+        }
+    }
+    
+    /**
+     * 显示弹幕文件选择器
+     */
+    fun showDanmakuFilePicker(
+        initialPath: String?,
+        onFileSelected: (String) -> Unit
+    ) {
+        setContent {
+            DanmakuFilePickerDialog(
+                initialPath = initialPath,
+                onFileSelected = onFileSelected,
+                onDismiss = { clearContent() }
+            )
+        }
+    }
+    
+    /**
+     * 显示字幕文件选择器
+     */
+    fun showSubtitleFilePicker(
+        initialPath: String?,
+        onFileSelected: (String) -> Unit
+    ) {
+        setContent {
+            SubtitleFilePickerDialog(
+                initialPath = initialPath,
+                onFileSelected = onFileSelected,
+                onDismiss = { clearContent() }
             )
         }
     }
@@ -265,6 +298,26 @@ class ComposeOverlayManager(
             SubtitleStyleDialog(
                 currentBorderSize = currentBorderSize,
                 onBorderSizeChange = onBorderSizeChange,
+                onDismiss = { clearContent() }
+            )
+        }
+    }
+    
+    // ===== 视频列表相关 =====
+    
+    /**
+     * 显示视频列表抽屉
+     */
+    fun showVideoListDrawer(
+        videoList: List<com.fam4k007.videoplayer.VideoFileParcelable>,
+        currentVideoUri: android.net.Uri,
+        onVideoSelected: (com.fam4k007.videoplayer.VideoFileParcelable, Int) -> Unit
+    ) {
+        setContent {
+            VideoListDrawer(
+                videoList = videoList,
+                currentVideoUri = currentVideoUri,
+                onVideoSelected = onVideoSelected,
                 onDismiss = { clearContent() }
             )
         }

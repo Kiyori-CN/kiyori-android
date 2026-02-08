@@ -71,6 +71,52 @@ class SubtitleManager {
             false
         }
     }
+    
+    /**
+     * 从文件路径直接添加外挂字幕（新方法）
+     * @param filePath 字幕文件的绝对路径
+     * @return 是否添加成功
+     */
+    fun addExternalSubtitleFromPath(filePath: String): Boolean {
+        return try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                Log.w(TAG, "Subtitle file does not exist: $filePath")
+                return false
+            }
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Adding external subtitle from path =====")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Path: $filePath")
+            
+            // 保存路径供外部使用
+            lastAddedSubtitlePath = filePath
+            
+            // 执行 sub-add 命令，使用 "select" 标志自动选中字幕
+            MPVLib.command("sub-add", filePath, "select")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "sub-add command executed with 'select' flag")
+            
+            // 立即查询 track-list 状态
+            val trackCount = MPVLib.getPropertyInt("track-list/count") ?: 0
+            val currentSid = MPVLib.getPropertyString("sid") ?: "no"
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Immediately after sub-add: track-list/count = $trackCount, current sid = $currentSid")
+            
+            for (i in 0 until trackCount) {
+                val type = MPVLib.getPropertyString("track-list/$i/type")
+                val id = MPVLib.getPropertyInt("track-list/$i/id")
+                val lang = MPVLib.getPropertyString("track-list/$i/lang") ?: "unknown"
+                val title = MPVLib.getPropertyString("track-list/$i/title") ?: ""
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "  Track[$i]: type=$type, id=$id, lang=$lang, title=$title")
+            }
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Successfully added external subtitle: $filePath")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== End adding external subtitle =====")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add external subtitle from path", e)
+            e.printStackTrace()
+            false
+        }
+    }
 
     /**
      * 获取字幕文件的实际路径

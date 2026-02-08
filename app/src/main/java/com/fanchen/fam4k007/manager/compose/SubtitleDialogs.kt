@@ -37,6 +37,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
+ * 系统字体数据类
+ */
+data class SystemFont(
+    val name: String,
+    val displayName: String
+)
+
+/**
+ * 系统预设字体列表
+ */
+val SYSTEM_FONTS = listOf(
+    SystemFont("Noto Sans CJK SC", "思源黑体"),
+    SystemFont("Noto Serif CJK SC", "思源宋体")
+)
+
+/**
  * 右侧抽屉式字幕设置面板
  */
 @Composable
@@ -57,6 +73,7 @@ fun SubtitleSettingsDrawer(
     onBorderColorChange: (String) -> Unit,
     onBackColorChange: (String) -> Unit,
     onBorderStyleChange: (String) -> Unit,
+    composeOverlayManager: com.fanchen.fam4k007.manager.compose.ComposeOverlayManager,
     onDismiss: () -> Unit
 ) {
     var expandedSection by remember { mutableStateOf<String?>(null) }
@@ -237,7 +254,7 @@ fun SubtitleSettingsDrawer(
                                 isExpanded = expandedSection == "font",
                                 onToggle = { expandedSection = if (expandedSection == "font") null else "font" }
                             ) {
-                                SubtitleFontContent()
+                                SubtitleFontContent(composeOverlayManager)
                             }
                         }
                     }
@@ -1136,24 +1153,169 @@ fun QuickButton(text: String, onClick: () -> Unit) {
  * 字幕字体设置内容
  */
 @Composable
-fun SubtitleFontContent() {
+fun SubtitleFontContent(composeOverlayManager: com.fanchen.fam4k007.manager.compose.ComposeOverlayManager) {
     val context = LocalContext.current
+    val preferencesManager = remember { 
+        com.fam4k007.videoplayer.manager.PreferencesManager.getInstance(context)
+    }
     
-    Column {
-        Button(
-            onClick = {
-                Toast.makeText(context, "正在开发中", Toast.LENGTH_SHORT).show()
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF64B5F6),
-                contentColor = Color.White
-            ),
+    var systemFontName by remember { mutableStateOf(preferencesManager.getSystemFontName()) }
+    var expandedSystemFonts by remember { mutableStateOf(false) }
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // 当前字体显示
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF1A2332), RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "当前字体",
+                fontSize = 13.sp,
+                color = Color(0xFF9E9E9E),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            val font = SYSTEM_FONTS
+                .find { it.name == systemFontName }
+            Text(
+                text = font?.displayName ?: systemFontName,
+                fontSize = 16.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        // 系统字体选择
+        Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("更改字体")
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expandedSystemFonts = !expandedSystemFonts },
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF2A3A4A)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "选择字体",
+                            fontSize = 15.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "适用于所有字幕格式",
+                            fontSize = 12.sp,
+                            color = Color(0xFF9E9E9E),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                    Text(
+                        text = if (expandedSystemFonts) "▲" else "▼",
+                        fontSize = 14.sp,
+                        color = Color(0xFF9E9E9E)
+                    )
+                }
+            }
+            
+            // 系统字体列表
+            androidx.compose.animation.AnimatedVisibility(
+                visible = expandedSystemFonts,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    SYSTEM_FONTS.forEach { font ->
+                        val isSelected = systemFontName == font.name
+                        
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    systemFontName = font.name
+                                    preferencesManager.setSystemFontName(font.name)
+                                    expandedSystemFonts = false
+                                    Toast
+                                        .makeText(context, "已切换到: ${font.displayName}\n重新播放生效", Toast.LENGTH_SHORT)
+                                        .show()
+                                },
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) Color(0xFF405060) else Color(0xFF1A2332)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 选中指示器
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .background(
+                                            if (isSelected) Color(0xFF64B5F6) else Color.Transparent,
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Text(
+                                            text = "✓",
+                                            fontSize = 12.sp,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.width(12.dp))
+                                
+                                Column {
+                                    Text(
+                                        text = font.displayName,
+                                        fontSize = 14.sp,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = font.name,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF9E9E9E)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+        
+        // 提示信息
+        Text(
+            text = "💡 提示：字体更改需要重新播放视频才能生效",
+            fontSize = 12.sp,
+            color = Color(0xFF9E9E9E),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0x22FFFFFF), RoundedCornerShape(8.dp))
+                .padding(12.dp)
+        )
     }
 }
+
 
 // 保留旧的Dialog组件（兼容性）
 @Composable
