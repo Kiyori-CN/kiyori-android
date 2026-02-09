@@ -696,6 +696,10 @@ class VideoPlayerActivity : AppCompatActivity(),
         if (!isOnlineVideo) {
             val videoListParcelable = intent.getParcelableArrayListExtra<VideoFileParcelable>("video_list")
             
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "=== Video List Processing ===")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "videoListParcelable: ${videoListParcelable?.size ?: "null"}")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "isFromHomeContinue: $isFromHomeContinue")
+            
             if (videoListParcelable != null && videoListParcelable.isNotEmpty()) {
                 // 保存视频列表用于显示
                 currentVideoList = videoListParcelable
@@ -705,7 +709,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                     seriesManager.setVideoList(uriList, uri)
                     com.fam4k007.videoplayer.utils.Logger.d(TAG, "Video list from intent: ${uriList.size} videos, currentIndex: ${seriesManager.currentIndex}")
                 }
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "currentVideoList size: ${currentVideoList.size}")
             } else {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No video_list in intent, calling identifySeries")
                 videoUri?.let { uri ->
                     seriesManager.identifySeries(this, uri) { videoUri ->
                         getFileNameFromUri(videoUri)

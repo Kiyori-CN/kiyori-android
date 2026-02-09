@@ -482,11 +482,35 @@ private fun continueLastPlay(
 ) {
     try {
         val videoUri = Uri.parse(lastVideo.uri)
+        
+        com.fam4k007.videoplayer.utils.Logger.d("HomeScreen", "=== Continue Last Play ===")
+        com.fam4k007.videoplayer.utils.Logger.d("HomeScreen", "Video URI: $videoUri")
+        com.fam4k007.videoplayer.utils.Logger.d("HomeScreen", "Folder name: ${lastVideo.folderName}")
+        
+        // 【修复】从 URI 获取完整的文件夹路径来扫描视频
+        val folderPath = getFullFolderPath(context, videoUri)
+        com.fam4k007.videoplayer.utils.Logger.d("HomeScreen", "Full folder path: $folderPath")
+        
+        val videoList = if (folderPath != null) {
+            scanVideosInFolder(context, folderPath)
+        } else {
+            emptyList()
+        }
+        
+        com.fam4k007.videoplayer.utils.Logger.d("HomeScreen", "Scanned ${videoList.size} videos from folder")
+        
         val intent = Intent(context, VideoPlayerActivity::class.java).apply {
             data = videoUri
             action = Intent.ACTION_VIEW
             putExtra("folder_path", lastVideo.folderName)
             putExtra("last_position", lastVideo.position)
+            
+            if (videoList.isNotEmpty()) {
+                putParcelableArrayListExtra("video_list", ArrayList(videoList))
+                com.fam4k007.videoplayer.utils.Logger.d("HomeScreen", "Put ${videoList.size} videos into intent")
+            } else {
+                com.fam4k007.videoplayer.utils.Logger.w("HomeScreen", "No videos found, will use identifySeries fallback")
+            }
         }
         
         context.startActivity(intent)
@@ -495,10 +519,100 @@ private fun continueLastPlay(
             R.anim.slide_out_left
         )
     } catch (e: Exception) {
+        com.fam4k007.videoplayer.utils.Logger.e("HomeScreen", "Failed to continue last play", e)
         android.widget.Toast.makeText(
             context,
             "无法播放该视频: ${e.message}",
             android.widget.Toast.LENGTH_SHORT
         ).show()
     }
+}
+
+/**
+ * 从 URI 获取完整的文件夹路径
+ */
+private fun getFullFolderPath(context: android.content.Context, uri: Uri): String? {
+    val projection = arrayOf(android.provider.MediaStore.Video.Media.DATA)
+    
+    try {
+        context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val dataColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DATA)
+                val fullPath = cursor.getString(dataColumn)
+                // 从完整路径中提取文件夹路径
+                return fullPath.substringBeforeLast("/")
+            }
+        }
+    } catch (e: Exception) {
+        com.fam4k007.videoplayer.utils.Logger.e("HomeScreen", "Failed to get folder path from URI", e)
+    }
+    
+    return null
+}
+
+/**
+ * 扫描指定文件夹的所有视频文件
+ */
+private fun scanVideosInFolder(context: android.content.Context, folderPath: String): List<com.fam4k007.videoplayer.VideoFileParcelable> {
+    val videos = mutableListOf<com.fam4k007.videoplayer.VideoFileParcelable>()
+    val projection = arrayOf(
+        android.provider.MediaStore.Video.Media._ID,
+        android.provider.MediaStore.Video.Media.DISPLAY_NAME,
+        android.provider.MediaStore.Video.Media.DATA,
+        android.provider.MediaStore.Video.Media.DURATION,
+        android.provider.MediaStore.Video.Media.SIZE,
+        android.provider.MediaStore.Video.Media.DATE_ADDED
+    )
+    
+    val selection = "${android.provider.MediaStore.Video.Media.DATA} LIKE ?"
+    val selectionArgs = arrayOf("$folderPath%")
+    val sortOrder = "${android.provider.MediaStore.Video.Media.DISPLAY_NAME} ASC"
+    
+    try {
+        context.contentResolver.query(
+            android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder
+        )?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DISPLAY_NAME)
+            val dataColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DATA)
+            val durationColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DURATION)
+            val sizeColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.SIZE)
+            val dateColumn = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DATE_ADDED)
+            
+            while (cursor.moveToNext()) {
+                val path = cursor.getString(dataColumn)
+                // 只获取直接在该文件夹下的视频（不包括子文件夹）
+                if (path.substringBeforeLast("/") == folderPath) {
+                    val id = cursor.getLong(idColumn)
+                    val name = cursor.getString(nameColumn)
+                    val duration = cursor.getLong(durationColumn)
+                    val size = cursor.getLong(sizeColumn)
+                    val dateAdded = cursor.getLong(dateColumn)
+                    val uri = Uri.withAppendedPath(
+                        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                        id.toString()
+                    ).toString()
+                    
+                    videos.add(
+                        com.fam4k007.videoplayer.VideoFileParcelable(
+                            uri = uri,
+                            name = name,
+                            path = path,
+                            size = size,
+                            duration = duration,
+                            dateAdded = dateAdded
+                        )
+                    )
+                }
+            }
+        }
+    } catch (e: Exception) {
+        com.fam4k007.videoplayer.utils.Logger.e("HomeScreen", "Failed to scan videos in folder: $folderPath", e)
+    }
+    
+    return videos
 }
