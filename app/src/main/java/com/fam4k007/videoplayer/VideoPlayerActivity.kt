@@ -331,6 +331,9 @@ class VideoPlayerActivity : AppCompatActivity(),
         
         initializeManagers()
         
+        // 【优化】设置播放引擎，让弹幕可以自动同步播放位置（参考 DanDanPlay 的 ControlWrapper）
+        danmakuManager.setPlaybackEngine(playbackEngine)
+        
         handleVideoListIntent()
         
     }
@@ -693,6 +696,10 @@ class VideoPlayerActivity : AppCompatActivity(),
         if (!isOnlineVideo) {
             val videoListParcelable = intent.getParcelableArrayListExtra<VideoFileParcelable>("video_list")
             
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "=== Video List Processing ===")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "videoListParcelable: ${videoListParcelable?.size ?: "null"}")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "isFromHomeContinue: $isFromHomeContinue")
+            
             if (videoListParcelable != null && videoListParcelable.isNotEmpty()) {
                 // 保存视频列表用于显示
                 currentVideoList = videoListParcelable
@@ -702,7 +709,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                     seriesManager.setVideoList(uriList, uri)
                     com.fam4k007.videoplayer.utils.Logger.d(TAG, "Video list from intent: ${uriList.size} videos, currentIndex: ${seriesManager.currentIndex}")
                 }
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "currentVideoList size: ${currentVideoList.size}")
             } else {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No video_list in intent, calling identifySeries")
                 videoUri?.let { uri ->
                     seriesManager.identifySeries(this, uri) { videoUri ->
                         getFileNameFromUri(videoUri)
@@ -845,9 +854,17 @@ class VideoPlayerActivity : AppCompatActivity(),
                 // 设置轨道选中状态
                 danmakuManager.setTrackSelected(newSelected)
                 
-                // 如果选中且视频正在播放,需要启动弹幕
-                if (newSelected && isPlaying && danmakuManager.isPrepared()) {
-                    danmakuManager.resume()
+                // 如果选中且弹幕已准备好
+                if (newSelected && danmakuManager.isPrepared()) {
+                    // 先同步弹幕到当前播放位置（修复隐藏期间弹幕不同步的问题）
+                    val currentPosition = (playbackEngine.currentPosition * 1000).toLong()
+                    danmakuManager.seekTo(currentPosition)
+                    Logger.d(TAG, "Danmaku synced to current position: $currentPosition ms")
+                    
+                    // 如果视频正在播放，启动弹幕
+                    if (isPlaying) {
+                        danmakuManager.resume()
+                    }
                 }
                 
                 // 更新按钮图标

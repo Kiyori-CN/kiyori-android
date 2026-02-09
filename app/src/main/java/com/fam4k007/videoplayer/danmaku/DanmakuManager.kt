@@ -22,6 +22,9 @@ class DanmakuManager(
     
     // 记录当前加载的弹幕文件路径（参考 DanDanPlay 的 mAddedTrack）
     private var currentDanmakuPath: String? = null
+    
+    // 播放引擎引用（用于提供播放位置）
+    private var playbackEngine: Any? = null
 
     /**
      * 初始化弹幕配置
@@ -51,6 +54,44 @@ class DanmakuManager(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize DanmakuManager", e)
         }
+    }
+    
+    /**
+     * 设置播放引擎（用于提供播放位置）
+     * 参考 DanDanPlay 的 ControlWrapper 设计
+     */
+    fun setPlaybackEngine(engine: Any) {
+        playbackEngine = engine
+        
+        // 创建 PlaybackPositionProvider 并设置到 DanmakuView
+        val provider = object : DanmakuPlayerView.PlaybackPositionProvider {
+            override fun getCurrentPosition(): Long {
+                return try {
+                    // 使用反射获取 currentPosition 属性（秒）并转换为毫秒
+                    val field = engine.javaClass.getDeclaredField("currentPosition")
+                    field.isAccessible = true
+                    val positionInSeconds = field.getDouble(engine)
+                    (positionInSeconds * 1000).toLong()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get currentPosition", e)
+                    0L
+                }
+            }
+            
+            override fun isPlaying(): Boolean {
+                return try {
+                    val field = engine.javaClass.getDeclaredField("isPlaying")
+                    field.isAccessible = true
+                    field.getBoolean(engine)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to get isPlaying", e)
+                    false
+                }
+            }
+        }
+        
+        danmakuView.setPlaybackPositionProvider(provider)
+        Log.d(TAG, "PlaybackEngine set")
     }
 
     /**
@@ -233,9 +274,11 @@ class DanmakuManager(
 
     /**
      * 同步进度
+     * @param timeMs 时间（毫秒）
+     * @param isPlaying 是否正在播放（默认 true）
      */
-    fun seekTo(timeMs: Long) {
-        danmakuView.seekDanmaku(timeMs)
+    fun seekTo(timeMs: Long, isPlaying: Boolean = true) {
+        danmakuView.seekDanmaku(timeMs, isPlaying)
     }
 
     /**

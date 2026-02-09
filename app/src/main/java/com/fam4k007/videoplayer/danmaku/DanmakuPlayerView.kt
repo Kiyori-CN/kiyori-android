@@ -29,6 +29,15 @@ class DanmakuPlayerView @JvmOverloads constructor(
         private const val DANMU_MAX_TEXT_ALPHA = 1f
         private const val DANMU_MAX_TEXT_SPEED = 2.5f
         private const val DANMU_MAX_TEXT_STROKE = 20f
+        private const val INVALID_POSITION = -1L  // 使用常量代替魔法数字
+    }
+    
+    /**
+     * 播放位置提供接口（参考 DanDanPlay 的 ControlWrapper）
+     */
+    interface PlaybackPositionProvider {
+        fun getCurrentPosition(): Long  // 返回毫秒
+        fun isPlaying(): Boolean
     }
 
     private val danmakuContext = DanmakuContext.create()
@@ -41,10 +50,13 @@ class DanmakuPlayerView @JvmOverloads constructor(
     private var danmakuLoaded = false
     
     // 待应用的seek位置（在prepared之前调用seekTo会保存在这里）
-    private var pendingSeekPosition: Long = -1L
+    private var pendingSeekPosition: Long = INVALID_POSITION
     
     // 弹幕轨道是否被选中（参考 DanDanPlay 的 mTrackSelected）
     private var trackSelected = false
+    
+    // 播放位置提供器（用于 prepared 回调中自动同步）
+    private var positionProvider: PlaybackPositionProvider? = null
 
     init {
         // 显示 FPS（调试用）
@@ -64,11 +76,22 @@ class DanmakuPlayerView @JvmOverloads constructor(
                 danmakuLoaded = true
                 Log.d(TAG, "Danmaku prepared, trackSelected=$trackSelected, isShown=$isShown")
                 
-                // 如果有待应用的seek位置，现在应用它
-                if (pendingSeekPosition >= 0) {
+                // 参考 DanDanPlay：在 prepared 中自动同步到当前播放位置
+                if (pendingSeekPosition != INVALID_POSITION) {
+                    // 有待应用的seek位置，优先使用它
                     seekTo(pendingSeekPosition)
-                    pendingSeekPosition = -1L
+                    pendingSeekPosition = INVALID_POSITION
                     Log.d(TAG, "Applied pending seek position")
+                } else {
+                    // 没有 pending seek，且轨道已选中，自动同步到当前播放位置
+                    // 【重要】这里解决了显示弹幕时自动同步的问题
+                    positionProvider?.let { provider ->
+                        if (provider.isPlaying() && trackSelected) {
+                            val currentPosition = provider.getCurrentPosition()
+                            seekTo(currentPosition + DanmakuConfig.offsetTime)
+                            Log.d(TAG, "Auto synced to current position: $currentPosition ms")
+                        }
+                    }
                 }
                 
                 // 根据 trackSelected 状态应用可见性
@@ -200,15 +223,18 @@ class DanmakuPlayerView @JvmOverloads constructor(
     }
 
     /**
-     * 同步弹幕进度
+     * 同步弹幕进度（参考 DanDanPlay 的设计，添加 isPlaying 参数）
+     * @param timeMs 目标时间（毫秒）
+     * @param isPlaying 是否正在播放（默认 true 保持向后兼容）
      */
-    fun seekDanmaku(timeMs: Long) {
-        if (isPrepared && danmakuLoaded) {
+    fun seekDanmaku(timeMs: Long, isPlaying: Boolean = true) {
+        if (isPlaying && isPrepared && danmakuLoaded) {
+            // 已加载且正在播放：立即 seek
             val adjustedTime = timeMs + DanmakuConfig.offsetTime
             seekTo(adjustedTime)
             Log.d(TAG, "Danmaku seeked to: $adjustedTime ms")
         } else {
-            // 如果弹幕还没准备好，保存位置等prepared后再应用
+            // 未加载或暂停：保存为 pending
             pendingSeekPosition = timeMs + DanmakuConfig.offsetTime
             Log.d(TAG, "Danmaku not ready, pending seek to: $pendingSeekPosition ms")
         }
@@ -220,12 +246,21 @@ class DanmakuPlayerView @JvmOverloads constructor(
     fun releaseDanmaku() {
         currentDanmakuPath = null
         danmakuLoaded = false
-        pendingSeekPosition = -1L
+        pendingSeekPosition = INVALID_POSITION
+        positionProvider = null
         hide()
         clear()
         clearDanmakusOnScreen()
         release()
         Log.d(TAG, "Danmaku released")
+    }
+    
+    /**
+     * 设置播放位置提供器（用于 prepared 回调中自动同步）
+     */
+    fun setPlaybackPositionProvider(provider: PlaybackPositionProvider?) {
+        positionProvider = provider
+        Log.d(TAG, "PlaybackPositionProvider set: ${provider != null}")
     }
 
     /**
