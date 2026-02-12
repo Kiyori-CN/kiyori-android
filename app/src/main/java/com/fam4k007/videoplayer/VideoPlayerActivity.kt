@@ -1226,13 +1226,15 @@ class VideoPlayerActivity : AppCompatActivity(),
             
             val history = historyManager.getHistoryForUri(videoUri)
             
+            // 如果历史记录中有弹幕路径且文件存在，恢复弹幕
             if (history?.danmuPath != null && File(history.danmuPath).exists()) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Restoring danmaku from history: ${history.danmuPath}")
                 // 恢复用户上次的弹幕可见性设置(这会设置trackSelected状态)
                 val autoShow = history.danmuVisible
                 val loaded = danmakuManager.loadDanmakuFile(
                     history.danmuPath,
-                    autoShow = autoShow
+                    autoShow = autoShow,
+                    isPlaying = isPlaying
                 )
                 
                 if (loaded) {
@@ -1243,16 +1245,17 @@ class VideoPlayerActivity : AppCompatActivity(),
                     btnDanmakuToggle?.setImageResource(
                         if (autoShow) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
                     )
-                    
-                    // prepared回调和onPlaybackStateChanged会自动处理弹幕启动,这里不手动操作
-                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmaku will be controlled by onPlaybackStateChanged")
                 } else {
-                    com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to restore danmaku, trying auto-find")
-                    autoFindAndLoadDanmaku(videoUri)
+                    com.fam4k007.videoplayer.utils.Logger.w(TAG, "Failed to restore danmaku")
                 }
-            } else {
-                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No danmaku history found, auto-finding...")
+            } 
+            // 只有当历史记录不存在时，才执行自动查找
+            // 如果历史记录存在但 danmuPath 为 null，说明之前尝试过但没找到，不要重复尝试
+            else if (history == null) {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "No history found, trying auto-find...")
                 autoFindAndLoadDanmaku(videoUri)
+            } else {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "History exists but no danmaku path, skipping auto-find")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading danmaku", e)
@@ -1265,12 +1268,63 @@ class VideoPlayerActivity : AppCompatActivity(),
      */
     private fun autoFindAndLoadDanmaku(videoUri: android.net.Uri) {
         try {
-            val videoPath = videoUri.resolveUri(this)
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Auto-load danmaku start =====")
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Video URI: $videoUri")
+            
+            // 【修复】使用 getRealPathFromUri 获取真实文件路径（而不是 fd:// 路径）
+            val videoPath = getRealPathFromUri(videoUri)
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Real video path: $videoPath")
+            
             if (videoPath != null) {
                 com.fam4k007.videoplayer.utils.Logger.d(TAG, "Auto-finding danmaku for: $videoPath")
-                danmakuManager.loadDanmakuForVideo(videoPath)
-                // prepared回调会自动处理弹幕启动，这里不需要手动启动
+                
+                // 自动加载弹幕，默认不显示（autoShow = false），由用户手动控制
+                val loaded = danmakuManager.loadDanmakuForVideo(
+                    videoPath, 
+                    autoShow = false,  // 加载但不自动显示
+                    isPlaying = isPlaying
+                )
+                
+                if (loaded) {
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "✓ Danmaku auto-loaded successfully")
+                    
+                    // 在主线程显示提示和更新UI
+                    runOnUiThread {
+                        // 获取实际加载的弹幕文件名
+                        val danmakuPath = danmakuManager.getCurrentDanmakuPath()
+                        val fileName = danmakuPath?.substringAfterLast("/") ?: "弹幕文件"
+                        
+                        // 显示加载成功提示，提醒用户需要手动显示
+                        DialogUtils.showToastShort(this, "已加载弹幕: $fileName\n点击弹幕按钮显示")
+                        
+                        // 根据实际的 trackSelected 状态更新按钮
+                        val btnDanmakuToggle = findViewById<ImageView>(R.id.btnDanmakuToggle)
+                        val isTrackSelected = danmakuManager.getTrackSelected()
+                        btnDanmakuToggle?.setImageResource(
+                            if (isTrackSelected) R.drawable.ic_danmaku_visible else R.drawable.ic_danmaku_hidden
+                        )
+                        
+                        com.fam4k007.videoplayer.utils.Logger.d(TAG, "Button state updated: trackSelected=$isTrackSelected")
+                        
+                        // 【修复】保存弹幕信息到历史记录，避免下次重复自动加载
+                        if (danmakuPath != null) {
+                            historyManager.updateDanmu(
+                                uri = videoUri,
+                                danmuPath = danmakuPath,
+                                danmuVisible = isTrackSelected,
+                                danmuOffsetTime = 0L
+                            )
+                            com.fam4k007.videoplayer.utils.Logger.d(TAG, "Danmu info saved to history: path=$danmakuPath")
+                        }
+                    }
+                } else {
+                    com.fam4k007.videoplayer.utils.Logger.d(TAG, "✗ No danmaku file found")
+                }
+            } else {
+                com.fam4k007.videoplayer.utils.Logger.d(TAG, "Cannot get real path from URI, skipping danmaku auto-load")
             }
+            
+            com.fam4k007.videoplayer.utils.Logger.d(TAG, "===== Auto-load danmaku end =====")
         } catch (e: Exception) {
             Log.e(TAG, "Error auto-finding danmaku", e)
             // 自动查找失败不提示，避免打扰用户

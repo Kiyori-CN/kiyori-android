@@ -98,7 +98,7 @@ class DanmakuManager(
      * 加载弹幕文件
      * 自动根据视频文件路径查找同名的 .xml 弹幕文件
      */
-    fun loadDanmakuForVideo(videoPath: String, autoShow: Boolean = true): Boolean {
+    fun loadDanmakuForVideo(videoPath: String, autoShow: Boolean = true, isPlaying: Boolean = false): Boolean {
         if (!isInitialized) {
             Log.e(TAG, "DanmakuManager not initialized")
             return false
@@ -122,6 +122,12 @@ class DanmakuManager(
             // 注意：setTrackSelected 会根据 autoShow 参数决定可见性
             danmakuView.setTrackSelected(autoShow)
             
+            // 【修复】如果视频正在播放且需要自动显示，立即启动弹幕
+            if (autoShow && isPlaying && isPrepared()) {
+                start()
+                Log.d(TAG, "Danmaku auto-started for playing video")
+            }
+            
             // 根据参数决定是否自动显示
             if (autoShow) {
                 Log.d(TAG, "Danmaku loaded, track selected and shown: ${danmakuFile.absolutePath}")
@@ -136,7 +142,7 @@ class DanmakuManager(
      * 加载指定的弹幕文件（用户手动选择或历史恢复）
      * 参考 DanDanPlay 的 addTrack 方法
      */
-    fun loadDanmakuFile(danmakuPath: String, autoShow: Boolean = true): Boolean {
+    fun loadDanmakuFile(danmakuPath: String, autoShow: Boolean = true, isPlaying: Boolean = false): Boolean {
         if (!isInitialized) {
             Log.e(TAG, "DanmakuManager not initialized")
             return false
@@ -150,6 +156,13 @@ class DanmakuManager(
             // 参考 DanDanPlay: addTrack 成功后自动调用 selectTrack
             // 注意：setTrackSelected 会根据 autoShow 参数决定可见性
             danmakuView.setTrackSelected(autoShow)
+            
+            // 【修复】如果视频正在播放且需要自动显示，立即启动弹幕
+            if (autoShow && isPlaying && isPrepared()) {
+                start()
+                Log.d(TAG, "Danmaku auto-started for playing video")
+            }
+            
             Log.d(TAG, "Danmaku loaded and track selected: $danmakuPath, autoShow=$autoShow")
         }
         
@@ -212,38 +225,69 @@ class DanmakuManager(
 
     /**
      * 查找弹幕文件
-     * 规则：视频文件同目录下，同名的 .xml 文件
+     * 规则：视频文件同目录下，同名的弹幕文件
+     * 支持多种弹幕格式和命名规则
      */
     private fun findDanmakuFile(videoPath: String): File? {
         try {
+            Log.d(TAG, "===== Finding danmaku file =====")
+            Log.d(TAG, "Video path: $videoPath")
+            
             val videoFile = File(videoPath)
-            val videoDir = videoFile.parentFile ?: return null
+            val videoDir = videoFile.parentFile
+            
+            if (videoDir == null) {
+                Log.d(TAG, "✗ Parent directory is null")
+                return null
+            }
+            
+            if (!videoDir.exists() || !videoDir.isDirectory) {
+                Log.d(TAG, "✗ Parent directory does not exist or is not a directory: ${videoDir.absolutePath}")
+                return null
+            }
+            
             val videoNameWithoutExt = videoFile.nameWithoutExtension
+            Log.d(TAG, "Video name without ext: $videoNameWithoutExt")
+            Log.d(TAG, "Searching in directory: ${videoDir.absolutePath}")
 
-            // 查找同名 .xml 文件
+            // 优先级1：查找标准同名 .xml 文件
             val danmakuFile = File(videoDir, "$videoNameWithoutExt.xml")
             if (danmakuFile.exists() && danmakuFile.isFile) {
-                Log.d(TAG, "Found danmaku file: ${danmakuFile.absolutePath}")
+                Log.d(TAG, "✓ Found danmaku file: ${danmakuFile.absolutePath}")
                 return danmakuFile
             }
 
-            // 也可以查找其他可能的命名（包括无后缀的弹弹play缓存文件）
+            // 优先级2：查找其他常见命名格式
             val alternativeNames = listOf(
+                // B站格式
                 "${videoNameWithoutExt}.danmaku.xml",
                 "${videoNameWithoutExt}_danmaku.xml",
+                // 弹弹play格式
+                "${videoNameWithoutExt}.dandan.xml",
+                "${videoNameWithoutExt}_dandan.xml",
+                // AcFun格式
+                "${videoNameWithoutExt}.acfun.xml",
+                // 通用格式
                 "danmaku.xml",
-                videoNameWithoutExt  // 无后缀（兼容弹弹play缓存）
+                "弹幕.xml",
+                // 无扩展名（兼容弹弹play缓存）
+                videoNameWithoutExt
             )
 
+            Log.d(TAG, "Trying alternative names...")
             for (name in alternativeNames) {
                 val file = File(videoDir, name)
                 if (file.exists() && file.isFile) {
-                    Log.d(TAG, "Found alternative danmaku file: ${file.absolutePath}")
+                    Log.d(TAG, "✓ Found alternative danmaku file: ${file.absolutePath}")
                     return file
                 }
             }
 
-            Log.d(TAG, "No danmaku file found in: ${videoDir.absolutePath}")
+            Log.d(TAG, "✗ No danmaku file found for: $videoNameWithoutExt")
+            Log.d(TAG, "Directory contents:")
+            videoDir.listFiles()?.take(10)?.forEach { file ->
+                Log.d(TAG, "  - ${file.name}")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error finding danmaku file", e)
         }
