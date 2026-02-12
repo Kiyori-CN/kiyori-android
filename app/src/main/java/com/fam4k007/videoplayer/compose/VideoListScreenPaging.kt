@@ -204,8 +204,23 @@ fun VideoListScreenPaging(
                                 VideoItem(
                                     video = video,
                                     onClick = { 
-                                        // 注意：Paging3模式下无法获取完整列表，传空列表
-                                        onOpenVideo(video, emptyList()) 
+                                        // 从数据库查询该文件夹的所有视频
+                                        coroutineScope.launch {
+                                            val allVideos = withContext(Dispatchers.IO) {
+                                                val dao = VideoDatabase.getDatabase(context).videoCacheDao()
+                                                dao.getVideosByFolder(folderPath).map { entity ->
+                                                    VideoFileParcelable(
+                                                        uri = entity.uri,
+                                                        name = entity.name,
+                                                        path = entity.path,
+                                                        size = entity.size,
+                                                        duration = entity.duration,
+                                                        dateAdded = entity.dateAdded
+                                                    )
+                                                }
+                                            }
+                                            onOpenVideo(video, allVideos)
+                                        }
                                     },
                                     onMoreClick = { selectedVideo = video }
                                 )

@@ -97,9 +97,16 @@ class DanmakuPlayerView @JvmOverloads constructor(
                 // 根据 trackSelected 状态应用可见性
                 setDanmuVisible(trackSelected)
                 
-                // prepared后不自动启动弹幕,完全由onPlaybackStateChanged控制
-                // 这样确保弹幕播放状态始终与视频播放状态同步
-                Log.d(TAG, "Danmaku prepared, waiting for playback state change to start")
+                // 【修复】如果轨道已选中且视频正在播放，立即启动弹幕
+                // 这样可以处理在视频播放中途加载弹幕的情况
+                positionProvider?.let { provider ->
+                    if (trackSelected && provider.isPlaying()) {
+                        start()
+                        Log.d(TAG, "Danmaku auto-started after prepared (video is playing)")
+                    } else {
+                        Log.d(TAG, "Danmaku prepared, waiting for playback state change to start")
+                    }
+                }
             }
 
             override fun updateTimer(timer: DanmakuTimer?) {
