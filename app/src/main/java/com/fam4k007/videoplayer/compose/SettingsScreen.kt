@@ -141,6 +141,26 @@ fun SettingsScreen(
                 )
             }
             
+            // 字幕设置分组
+            item {
+                SettingsSectionHeader(title = "字幕")
+            }
+            
+            item {
+                SettingsCard(
+                    icon = Icons.Default.Subtitles,
+                    title = "字幕搜索下载",
+                    subtitle = "搜索并下载在线字幕",
+                    onClick = {
+                        context.startActivity(Intent(context, SubtitleSearchActivity::class.java))
+                        (context as? android.app.Activity)?.overridePendingTransition(
+                            R.anim.slide_in_bottom,
+                            R.anim.no_anim
+                        )
+                    }
+                )
+            }
+            
             // 下载分组
             item {
                 SettingsSectionHeader(title = "下载")
