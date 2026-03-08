@@ -41,7 +41,7 @@ class AboutComposeActivity : BaseActivity() {
                     versionName = versionName,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.no_anim, R.anim.slide_out_down)
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onNavigateToLicense = {
                         startActivity(Intent(this, LicenseActivity::class.java))

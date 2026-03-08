@@ -107,7 +107,10 @@ class VideoListComposeActivity : ComponentActivity() {
                     VideoListScreenPaging(
                         folderName = folderName,
                         folderPath = folderPath,
-                        onNavigateBack = { finish() },
+                        onNavigateBack = { 
+                            finish()
+                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        },
                         onOpenVideo = { video, allVideos -> 
                             openVideoPlayer(video, 0, folderName, allVideos)
                         },
@@ -122,7 +125,10 @@ class VideoListComposeActivity : ComponentActivity() {
                     VideoListScreen(
                         folderName = folderName,
                         initialVideos = videos,
-                        onNavigateBack = { finish() },
+                        onNavigateBack = { 
+                            finish()
+                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        },
                         onOpenVideo = { video, index, allVideos -> 
                             openVideoPlayer(video, index, folderName, allVideos)
                         },

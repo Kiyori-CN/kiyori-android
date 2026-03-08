@@ -80,7 +80,7 @@ class SubtitleSearchActivity : BaseActivity() {
                     selectedMedia = selectedMedia,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.no_anim, R.anim.slide_out_down)
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onFolderSelected = { uri -> handleFolderSelected(uri) },
                     onSearchOptionsChanged = { options -> handleSearchOptionsChanged(options) },

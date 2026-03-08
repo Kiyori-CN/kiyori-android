@@ -59,7 +59,7 @@ class BiliBiliDanmakuComposeActivity : BaseActivity() {
                     isDownloading = isDownloading,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.no_anim, R.anim.slide_out_down)
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onFolderSelected = { uri: Uri -> handleFolderSelected(uri) },
                     onDownloadDanmaku = { url: String, downloadWholeSeason: Boolean ->

@@ -102,7 +102,7 @@ class MainActivity : BaseActivity() {
                     historyManager = historyManager ?: PlaybackHistoryManager(activity),
                     onNavigateToSettings = {
                         startActivity(Intent(activity, SettingsComposeActivity::class.java))
-                        overridePendingTransition(R.anim.scale_in, R.anim.scale_out)
+                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
                     }
                 )
                 

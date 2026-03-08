@@ -72,8 +72,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, PlaybackHistoryComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
@@ -106,8 +106,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, PlaybackSettingsComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
@@ -127,8 +127,8 @@ fun SettingsScreen(
                         if (authManager.isLoggedIn()) {
                             context.startActivity(Intent(context, BiliBiliDanmakuComposeActivity::class.java))
                             (context as? android.app.Activity)?.overridePendingTransition(
-                                R.anim.slide_in_bottom,
-                                R.anim.no_anim
+                                R.anim.slide_in_right,
+                                R.anim.slide_out_left
                             )
                         } else {
                             android.widget.Toast.makeText(
@@ -154,8 +154,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, SubtitleSearchActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
@@ -202,8 +202,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, HelpComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.fade_in,
-                            R.anim.fade_out
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
@@ -253,8 +253,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, AboutComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
