@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.fam4k007.videoplayer.Anime4KManager
 import com.fam4k007.videoplayer.R
-import com.fam4k007.videoplayer.adapter.Anime4KModeAdapter
 import com.fam4k007.videoplayer.danmaku.DanmakuConfig
 import com.fam4k007.videoplayer.danmaku.DanmakuManager
 import com.fam4k007.videoplayer.manager.PreferencesManager
@@ -40,8 +39,6 @@ class PlayerDialogManager(
 
     private val context: Context?
         get() = activityRef.get()
-
-    private var anime4KDialog: Dialog? = null
     
     // 追踪所有活动的Dialog，防止内存泄漏
     private val activeDialogs = mutableListOf<Dialog>()
@@ -493,26 +490,6 @@ class PlayerDialogManager(
     fun showAnime4KModeDialog(currentMode: Anime4KManager.Mode) {
         val activity = activityRef.get() ?: return
 
-        if (anime4KDialog != null && anime4KDialog!!.isShowing) return
-
-        val dialog = Dialog(activity, android.R.style.Theme_DeviceDefault_Light_Dialog_NoActionBar)
-        dialog.setContentView(R.layout.dialog_anime4k_mode)
-
-        val window = dialog.window
-        window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val layoutParams = window?.attributes
-        layoutParams?.gravity = android.view.Gravity.START or android.view.Gravity.TOP
-        layoutParams?.x = 80
-        layoutParams?.y = 100
-        layoutParams?.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-        layoutParams?.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-        layoutParams?.flags = layoutParams?.flags?.or(android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL) ?: 0
-        window?.attributes = layoutParams
-
-        val rvMode = dialog.findViewById<RecyclerView>(R.id.rvAnime4KMode)
-        val btnClose = dialog.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btnAnime4KClose)
-
         val modes = listOf(
             Anime4KManager.Mode.OFF,
             Anime4KManager.Mode.A,
@@ -522,25 +499,33 @@ class PlayerDialogManager(
             Anime4KManager.Mode.B_PLUS,
             Anime4KManager.Mode.C_PLUS
         )
-
-        rvMode.layoutManager = LinearLayoutManager(activity, LinearLayoutManager.VERTICAL, false)
-        rvMode.adapter = Anime4KModeAdapter(modes, currentMode) { mode ->
-            val enabled = mode != Anime4KManager.Mode.OFF
-            dialogCallback?.onAnime4KChanged(enabled, mode, Anime4KManager.Quality.BALANCED)
-            dialog.dismiss()
-        }
-
-        btnClose.setOnClickListener { dialog.dismiss() }
-        anime4KDialog = dialog
         
-        // 追踪Dialog
-        activeDialogs.add(dialog)
-        dialog.setOnDismissListener {
-            activeDialogs.remove(dialog)
-            anime4KDialog = null
-        }
+        val modeNames = listOf(
+            "关 - 原始画质",
+            "A - 强力重建",
+            "B - 柔和重建",
+            "C - 降噪处理",
+            "A+ - 双重强化",
+            "B+ - 双重柔和",
+            "C+ - 降噪强化"
+        )
         
-        dialog.show()
+        val currentSelection = modes.indexOf(currentMode)
+        val btnAnime4K = activity.findViewById<android.widget.Button>(R.id.btnAnime4K)
+
+        showPopupDialog(
+            btnAnime4K,
+            modeNames,
+            currentSelection,
+            showAbove = true,
+            useFixedHeight = true,
+            showScrollHint = true
+        ) { position ->
+            val selectedMode = modes[position]
+            val enabled = selectedMode != Anime4KManager.Mode.OFF
+            dialogCallback?.onAnime4KChanged(enabled, selectedMode, Anime4KManager.Quality.BALANCED)
+            DialogUtils.showToastShort(activity, "超分模式：${modeNames[position]}")
+        }
     }
 
     /**
@@ -878,10 +863,6 @@ class PlayerDialogManager(
             }
         }
         activeDialogs.clear()
-        
-        // 释放anime4KDialog
-        anime4KDialog?.dismiss()
-        anime4KDialog = null
         
         // 清理回调
         dialogCallback = null

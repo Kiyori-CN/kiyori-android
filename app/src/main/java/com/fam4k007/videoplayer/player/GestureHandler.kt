@@ -28,7 +28,10 @@ class GestureHandler(
         // 参考 mpvKt 的灵敏度设置
         private const val BRIGHTNESS_SENSITIVITY = 0.001f  // 亮度灵敏度
         private const val VOLUME_SENSITIVITY = 0.1f        // 音量灵敏度 (支持0.1%-100%) - 已降低敏感度
-        private const val SEEK_SENSITIVITY = 0.15f         // 进度灵敏度
+        
+        // 进度灵敏度配置 - 参考 mpvEx 使用固定灵敏度，保证所有视频都能精确跳转
+        // 使用中等灵敏度值，平衡精确度和操作便利性
+        private const val SEEK_SENSITIVITY = 0.05f  // 固定灵敏度：每滑动1像素 ≈ 0.05秒
         
         // 音量配置 - 统一使用MPV音量控制
         private const val MIN_VOLUME = 0.1f       // 最小音量 0.1%
@@ -52,7 +55,11 @@ class GestureHandler(
         fun onSingleTap()
         fun onDoubleTap()
         fun onLongPress()
-        fun onSeekGesture(seekSeconds: Int, isRelativeSeek: Boolean = false)  // isRelativeSeek: true=双击累积模式, false=滑动绝对模式
+        fun onSeekGesture(seekSeconds: Int, isRelativeSeek: Boolean = false)  // 双击用：相对seek
+        fun onSeekStart(initialPosition: Int)  // 滑动开始，传递初始位置
+        fun onSeekUpdate(targetPosition: Int, deltaSeconds: Int)  // 滑动中，实时更新目标位置
+        fun onSeekEnd()  // 滑动结束
+        fun getCurrentPosition(): Int  // 获取当前播放位置（秒）
     }
 
     // 音量和亮度控制
@@ -281,6 +288,11 @@ class GestureHandler(
         
         // 触摸结束时重置并隐藏指示器
         if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
+            // 如果正在seek中，通知结束
+            if (isAdjusting) {
+                callback.onSeekEnd()
+            }
+            
             // 如果是长按松手，调用释放回调
             if (isLongPressing) {
                 callback.onLongPressRelease()
@@ -519,12 +531,14 @@ class GestureHandler(
 
     /**
      * 计算Seek值（纯计算，无副作用）
-     * 固定步进：每100px滑动 = 5秒
-     * @param deltaX 水平滑动距离
-     * @return seek秒数
+     * 参考 mpvEx 的算法：使用固定灵敏度，保证所有视频都能精确跳转
+     * @param deltaX 水平滑动距离（像素）
+     * @return seek偏移秒数（相对于手势开始位置）
      */
     private fun calculateSeek(deltaX: Float): Int {
-        return (deltaX / 100f * 5.0).toInt()
+        // 使用固定灵敏度：滑动距离 × 灵敏度系数 = 视频跳转时间
+        // 这样无论视频多长，都能通过滑动精确控制跳转位置
+        return (deltaX * SEEK_SENSITIVITY).toInt()
     }
 
     /**
@@ -548,11 +562,16 @@ class GestureHandler(
         // 缓存屏幕尺寸，避免每次 onScroll 都重新获取
         private var cachedScreenWidth = 0
         private var cachedScreenHeight = 0
+        
+        // 滑动seek的状态（参考 mpvEx）
+        private var isSeekingActive = false
+        private var seekInitialPosition = 0  // seek开始时的视频位置（秒）
 
         override fun onDown(e: MotionEvent): Boolean {
             initialX = e.x
             initialY = e.y
             gestureType = GestureType.NONE
+            isSeekingActive = false  // 重置seek状态
             
             // 首次或屏幕尺寸变化时更新缓存（避免每次 onScroll 都获取）
             val context = contextRef.get()
@@ -661,6 +680,8 @@ class GestureHandler(
                             return false
                         }
                         gestureType = GestureType.SEEK
+                        // 记录seek开始时的视频位置（只记录一次）
+                        seekInitialPosition = callback.getCurrentPosition()
                     } else if (absY > absX * 1.2f) {  // 从1.5降低到1.2
                         // 纵向滑动 - 调整音量/亮度（参考 mpvKt：屏幕左半边=亮度，右半边=音量）
                         if (initialX < screenWidth / 2) {
@@ -672,24 +693,37 @@ class GestureHandler(
                 }
             }
             
-            // 根据手势类型执行相应操作（使用新算法）
+            // 根据手势类型执行相应操作（参考 mpvEx 的实现）
             when (gestureType) {
                 GestureType.BRIGHTNESS -> {
-                    isAdjusting = true
-                    callback.onGestureStart()
+                    if (!isAdjusting) {
+                        isAdjusting = true
+                        callback.onGestureStart()
+                    }
                     adjustBrightness(initialY, e2.y)
                 }
                 GestureType.VOLUME -> {
-                    isAdjusting = true
-                    callback.onGestureStart()
+                    if (!isAdjusting) {
+                        isAdjusting = true
+                        callback.onGestureStart()
+                    }
                     adjustVolume(initialY, e2.y)
                 }
                 GestureType.SEEK -> {
-                    isAdjusting = true
-                    callback.onGestureStart()
-                    // 使用计算方法获取seek值
-                    val seekStep = calculateSeek(deltaX)
-                    callback.onSeekGesture(seekStep, isRelativeSeek = false)
+                    // 第一次进入seek模式时，初始化
+                    if (!isSeekingActive) {
+                        isSeekingActive = true
+                        isAdjusting = true
+                        // 通知Activity开始seek，传递初始位置
+                        callback.onSeekStart(seekInitialPosition)
+                    }
+                    
+                    // 计算目标位置（基于初始位置 + 滑动偏移）
+                    val seekOffset = calculateSeek(deltaX)
+                    val targetPosition = seekInitialPosition + seekOffset
+                    
+                    // 通知Activity实时更新seek位置
+                    callback.onSeekUpdate(targetPosition, seekOffset)
                 }
                 GestureType.NONE -> {
                     // 还未确定手势类型

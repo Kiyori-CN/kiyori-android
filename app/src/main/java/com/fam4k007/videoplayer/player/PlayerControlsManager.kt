@@ -52,11 +52,14 @@ class PlayerControlsManager(
         fun onAspectRatioClick()  // 新增：画面比例按钮回调
         fun onLockClick()  // 新增：锁定按钮回调
         fun onVideoTitleClick()  // 新增：视频标题点击回调
+        fun onControlsShown()  // 新增：控制栏显示时回调（用于隐藏暂停指示器）
     }
 
     // UI 组件
     private var topInfoPanel: LinearLayout? = null
     private var controlPanel: LinearLayout? = null
+    private var topGradientBackground: View? = null  // 顶部渐变阴影背景层
+    private var bottomGradientBackground: View? = null  // 底部渐变阴影背景层
     
     private var tvFileName: TextView? = null
     private var titleClickArea: android.view.View? = null  // 标题点击区域
@@ -73,7 +76,8 @@ class PlayerControlsManager(
     private var btnSubtitle: ImageView? = null  // 新增：字幕按钮
     private var btnAspectRatio: ImageView? = null  // 新增：画面比例按钮
     private var btnLock: ImageView? = null  // 新增：锁定按钮
-    private var btnUnlock: ImageView? = null  // 新增：解锁按钮
+    private var btnUnlock: ImageView? = null  // 新增：解锁按钮（左侧）
+    private var btnUnlockRight: ImageView? = null  // 新增：解锁按钮（右侧）
     private var btnMore: ImageView? = null
     private var btnSpeed: ImageView? = null
     private var btnAnime4K: Button? = null
@@ -105,9 +109,10 @@ class PlayerControlsManager(
         }
     }
     private val hideUnlockButtonRunnable = Runnable {
-        // 自动隐藏解锁按钮
+        // 自动隐藏解锁按钮（左右两侧）
         if (isLocked && isUnlockButtonVisible) {
             isUnlockButtonVisible = false
+            // 左侧按钮淡出
             btnUnlock?.animate()
                 ?.alpha(0f)
                 ?.setDuration(300)
@@ -116,7 +121,16 @@ class PlayerControlsManager(
                     btnUnlock?.visibility = View.GONE
                 }
                 ?.start()
-            Log.d(TAG, "Unlock button auto-hidden")
+            // 右侧按钮淡出
+            btnUnlockRight?.animate()
+                ?.alpha(0f)
+                ?.setDuration(300)
+                ?.setInterpolator(android.view.animation.AccelerateInterpolator())
+                ?.withEndAction {
+                    btnUnlockRight?.visibility = View.GONE
+                }
+                ?.start()
+            Log.d(TAG, "Unlock buttons auto-hidden")
         }
     }
 
@@ -129,6 +143,8 @@ class PlayerControlsManager(
     fun bindViews(
         topInfoPanel: LinearLayout,
         controlPanel: LinearLayout,
+        topGradientBackground: View,  // 新增参数
+        bottomGradientBackground: View,  // 新增参数
         tvFileName: TextView,
         titleClickArea: android.view.View,  // 标题点击区域
         tvBattery: TextView,
@@ -143,7 +159,8 @@ class PlayerControlsManager(
         btnSubtitle: ImageView,  // 新增参数
         btnAspectRatio: ImageView,  // 新增参数
         btnLock: ImageView,  // 新增参数
-        btnUnlock: ImageView,  // 新增参数
+        btnUnlock: ImageView,  // 新增参数（左侧）
+        btnUnlockRight: ImageView,  // 新增参数（右侧）
         btnMore: ImageView,
         btnSpeed: ImageView,
         btnAnime4K: Button,
@@ -153,6 +170,8 @@ class PlayerControlsManager(
     ) {
         this.topInfoPanel = topInfoPanel
         this.controlPanel = controlPanel
+        this.topGradientBackground = topGradientBackground
+        this.bottomGradientBackground = bottomGradientBackground
         
         this.tvFileName = tvFileName
         this.titleClickArea = titleClickArea
@@ -169,7 +188,8 @@ class PlayerControlsManager(
         this.btnSubtitle = btnSubtitle  // 初始化字幕按钮
         this.btnAspectRatio = btnAspectRatio  // 初始化画面比例按钮
         this.btnLock = btnLock  // 初始化锁定按钮
-        this.btnUnlock = btnUnlock  // 初始化解锁按钮
+        this.btnUnlock = btnUnlock  // 初始化解锁按钮（左侧）
+        this.btnUnlockRight = btnUnlockRight  // 初始化解锁按钮（右侧）
         this.btnMore = btnMore
         this.btnSpeed = btnSpeed
         this.btnAnime4K = btnAnime4K
@@ -258,6 +278,11 @@ class PlayerControlsManager(
         }
         
         btnUnlock?.setOnClickListener {
+            callback.onLockClick()
+            // 解锁时不重置自动隐藏定时器
+        }
+        
+        btnUnlockRight?.setOnClickListener {
             callback.onLockClick()
             // 解锁时不重置自动隐藏定时器
         }
@@ -415,9 +440,14 @@ class PlayerControlsManager(
     fun showControls() {
         if (isVisible) return
         
+        // 显示控制栏时立即隐藏暂停指示器
+        callback.onControlsShown()
+        
         // 设置可见性
         controlPanel?.visibility = View.VISIBLE
         topInfoPanel?.visibility = View.VISIBLE
+        topGradientBackground?.visibility = View.VISIBLE
+        bottomGradientBackground?.visibility = View.VISIBLE
         
         // 入场动画：淡入 + 从下往上滑入
         controlPanel?.apply {
@@ -435,6 +465,30 @@ class PlayerControlsManager(
         topInfoPanel?.apply {
             alpha = 0f
             translationY = -100f
+            animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+        
+        // 顶部渐变背景：淡入 + 从上往下滑入
+        topGradientBackground?.apply {
+            alpha = 0f
+            translationY = -100f
+            animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+        
+        // 底部渐变背景：淡入 + 从下往上滑入
+        bottomGradientBackground?.apply {
+            alpha = 0f
+            translationY = 100f
             animate()
                 .alpha(1f)
                 .translationY(0f)
@@ -473,6 +527,26 @@ class PlayerControlsManager(
             ?.withEndAction {
                 topInfoPanel?.visibility = View.GONE
                 topInfoPanel?.alpha = 1f
+            }
+            ?.start()
+        
+        topGradientBackground?.animate()
+            ?.alpha(0f)
+            ?.setDuration(200)
+            ?.setInterpolator(android.view.animation.AccelerateInterpolator())
+            ?.withEndAction {
+                topGradientBackground?.visibility = View.GONE
+                topGradientBackground?.alpha = 1f
+            }
+            ?.start()
+        
+        bottomGradientBackground?.animate()
+            ?.alpha(0f)
+            ?.setDuration(200)
+            ?.setInterpolator(android.view.animation.AccelerateInterpolator())
+            ?.withEndAction {
+                bottomGradientBackground?.visibility = View.GONE
+                bottomGradientBackground?.alpha = 1f
             }
             ?.start()
         
@@ -568,13 +642,23 @@ class PlayerControlsManager(
         isLocked = !isLocked
         if (isLocked) {
             // 锁定：隐藏所有控制组件，显示解锁按钮
-            // 控制面板淡出
+            // 顶部控制面板淡出
             topInfoPanel?.animate()
                 ?.alpha(0f)
                 ?.setDuration(200)
                 ?.withEndAction {
                     topInfoPanel?.visibility = View.GONE
                     topInfoPanel?.alpha = 1f
+                }
+                ?.start()
+            
+            // 顶部渐变背景淡出
+            topGradientBackground?.animate()
+                ?.alpha(0f)
+                ?.setDuration(200)
+                ?.withEndAction {
+                    topGradientBackground?.visibility = View.GONE
+                    topGradientBackground?.alpha = 1f
                 }
                 ?.start()
             
@@ -587,8 +671,32 @@ class PlayerControlsManager(
                 }
                 ?.start()
             
-            // 解锁按钮淡入
+            // 底部渐变背景淡出
+            bottomGradientBackground?.animate()
+                ?.alpha(0f)
+                ?.setDuration(200)
+                ?.withEndAction {
+                    bottomGradientBackground?.visibility = View.GONE
+                    bottomGradientBackground?.alpha = 1f
+                }
+                ?.start()
+            
+            // 左侧解锁按钮淡入
             btnUnlock?.let { unlockBtn ->
+                unlockBtn.visibility = View.VISIBLE
+                unlockBtn.alpha = 0f
+                unlockBtn.scaleX = 0.8f
+                unlockBtn.scaleY = 0.8f
+                unlockBtn.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(300)
+                    .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+                    .start()
+            }
+            // 右侧解锁按钮淡入
+            btnUnlockRight?.let { unlockBtn ->
                 unlockBtn.visibility = View.VISIBLE
                 unlockBtn.alpha = 0f
                 unlockBtn.scaleX = 0.8f
@@ -612,11 +720,21 @@ class PlayerControlsManager(
             Log.d(TAG, "Controls locked")
         } else {
             // 解锁：显示所有控制组件，隐藏解锁按钮
-            // 控制面板淡入
+            // 顶部控制面板淡入
             topInfoPanel?.let { panel ->
                 panel.visibility = View.VISIBLE
                 panel.alpha = 0f
                 panel.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start()
+            }
+            
+            // 顶部渐变背景淡入
+            topGradientBackground?.let { bg ->
+                bg.visibility = View.VISIBLE
+                bg.alpha = 0f
+                bg.animate()
                     .alpha(1f)
                     .setDuration(300)
                     .start()
@@ -631,10 +749,20 @@ class PlayerControlsManager(
                     .start()
             }
             
+            // 底部渐变背景淡入
+            bottomGradientBackground?.let { bg ->
+                bg.visibility = View.VISIBLE
+                bg.alpha = 0f
+                bg.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .start()
+            }
+            
             // 取消解锁按钮的自动隐藏定时器
             handler.removeCallbacks(hideUnlockButtonRunnable)
             
-            // 解锁按钮淡出
+            // 左侧解锁按钮淡出
             btnUnlock?.animate()
                 ?.alpha(0f)
                 ?.scaleX(0.8f)
@@ -645,6 +773,19 @@ class PlayerControlsManager(
                     btnUnlock?.alpha = 1f
                     btnUnlock?.scaleX = 1f
                     btnUnlock?.scaleY = 1f
+                }
+                ?.start()
+            // 右侧解锁按钮淡出
+            btnUnlockRight?.animate()
+                ?.alpha(0f)
+                ?.scaleX(0.8f)
+                ?.scaleY(0.8f)
+                ?.setDuration(200)
+                ?.withEndAction {
+                    btnUnlockRight?.visibility = View.GONE
+                    btnUnlockRight?.alpha = 1f
+                    btnUnlockRight?.scaleX = 1f
+                    btnUnlockRight?.scaleY = 1f
                 }
                 ?.start()
             isUnlockButtonVisible = true
@@ -667,6 +808,7 @@ class PlayerControlsManager(
         
         isUnlockButtonVisible = !isUnlockButtonVisible
         
+        // 左侧解锁按钮
         btnUnlock?.let { unlockBtn ->
             if (isUnlockButtonVisible) {
                 // 显示：淡入动画
@@ -677,8 +819,32 @@ class PlayerControlsManager(
                     .setDuration(300)
                     .setInterpolator(android.view.animation.DecelerateInterpolator())
                     .start()
+            } else {
+                // 隐藏：淡出动画
+                unlockBtn.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .setInterpolator(android.view.animation.AccelerateInterpolator())
+                    .withEndAction {
+                        unlockBtn.visibility = View.GONE
+                    }
+                    .start()
+            }
+        }
+        
+        // 右侧解锁按钮
+        btnUnlockRight?.let { unlockBtn ->
+            if (isUnlockButtonVisible) {
+                // 显示：淡入动画
+                unlockBtn.visibility = View.VISIBLE
+                unlockBtn.alpha = 0f
+                unlockBtn.animate()
+                    .alpha(1f)
+                    .setDuration(300)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
                 
-                // 启动5秒后自动隐藏
+                // 启动5秒后自动隐藏（只需要设置一次）
                 handler.postDelayed(hideUnlockButtonRunnable, 5000)
             } else {
                 // 隐藏：淡出动画

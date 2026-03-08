@@ -94,6 +94,8 @@ class VideoPlayerActivity : AppCompatActivity(),
     private lateinit var clickArea: View
     private lateinit var loadingIndicator: android.widget.ProgressBar
     private lateinit var pauseIndicator: android.widget.ImageView
+    private val pauseIndicatorHandler = Handler(Looper.getMainLooper())
+    private var pauseIndicatorHideRunnable: Runnable? = null
     
     private var resumeProgressPrompt: LinearLayout? = null
     private var btnResumePromptConfirm: TextView? = null
@@ -116,6 +118,7 @@ class VideoPlayerActivity : AppCompatActivity(),
     private var speedBeforeLongPress = 1.0  // 记录长按前的速度，用于松开后恢复
     private var isHardwareDecoding = true
     private var pendingSeekPosition: Int? = null  // 待处理的seek位置，用于解决连续双击问题
+    private var gestureStartPosition = 0  // 手势开始时的视频位置（用于滑动跳转）
     
     private var currentVideoAspect = VideoAspect.FIT  // 当前画面比例模式
     
@@ -276,22 +279,23 @@ class VideoPlayerActivity : AppCompatActivity(),
             loadingIndicator.visibility = View.GONE
         }
         
-        // 初始化暂停指示器
+        // 初始化暂停指示器（方案A：屏幕中央大图标）
         pauseIndicator = ImageView(this).apply {
             setImageResource(R.drawable.media)  // 使用提供的media.png图标
             visibility = View.GONE
-            alpha = 1f
+            alpha = 0f
+            scaleX = 0.8f
+            scaleY = 0.8f
             setColorFilter(android.graphics.Color.WHITE)  // 设置图标为白色
         }
-        // 添加到根布局右下角（距离边框约三分之一位置）
+        // 添加到根布局正中央
+        val iconSizeDp = 90  // 图标大小90dp
+        val iconSizePx = (iconSizeDp * resources.displayMetrics.density).toInt()
         (findViewById(android.R.id.content) as ViewGroup)?.addView(pauseIndicator, FrameLayout.LayoutParams(
-            250,  // 图标宽度250px
-            250,  // 图标高度250px
-            Gravity.BOTTOM or Gravity.END
-        ).apply {
-            rightMargin = 180   // 右边距180px
-            bottomMargin = 100  // 底部边距100px
-        })
+            iconSizePx,
+            iconSizePx,
+            Gravity.CENTER  // 屏幕正中央
+        ))
         
         com.fam4k007.videoplayer.utils.Logger.d(TAG, "Initializing MPV in Activity...")
         try {
@@ -505,6 +509,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             WeakReference(window),
             object : GestureHandler.GestureCallback {
                 override fun onGestureStart() {
+                    // 通用手势开始（亮度/音量调节）
                 }
                 
                 override fun onGestureEnd() {
@@ -576,18 +581,11 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onSeekGesture(seekSeconds: Int, isRelativeSeek: Boolean) {
+                    // 仅用于双击快进/快退
                     if (duration > 0) {
-                        val newPos = if (isRelativeSeek) {
-                            // 双击模式: 相对当前位置(或pending位置)累加
-                            val basePosition = pendingSeekPosition ?: currentPosition.toInt()
-                            val result = (basePosition + seekSeconds).coerceIn(0, duration.toInt())
-                            // 更新pending位置，防止连续双击时基准位置错误
-                            pendingSeekPosition = result
-                            result
-                        } else {
-                            // 滑动模式: 基于初始位置的绝对偏移
-                            (currentPosition.toInt() + seekSeconds).coerceIn(0, duration.toInt())
-                        }
+                        val basePosition = pendingSeekPosition ?: currentPosition.toInt()
+                        val newPos = (basePosition + seekSeconds).coerceIn(0, duration.toInt())
+                        pendingSeekPosition = newPos
                         
                         val usePrecise = gestureHandler.isPreciseSeekingEnabled()
                         playbackEngine?.seekTo(newPos, usePrecise)
@@ -608,6 +606,52 @@ class VideoPlayerActivity : AppCompatActivity(),
                             seekHint.alpha = 1f
                         }
                     }
+                }
+                
+                override fun onSeekStart(initialPosition: Int) {
+                    // 滑动seek开始，记录初始位置
+                    gestureStartPosition = initialPosition
+                    Log.d(TAG, "Seek started from position: $initialPosition")
+                }
+                
+                override fun onSeekUpdate(targetPosition: Int, deltaSeconds: Int) {
+                    // 滑动中，实时seek到目标位置（参考 mpvEx）
+                    if (duration > 0) {
+                        val clampedPosition = targetPosition.coerceIn(0, duration.toInt())
+                        
+                        // 实时调用 seekTo，让视频跟着手指移动
+                        val usePrecise = gestureHandler.isPreciseSeekingEnabled()
+                        playbackEngine?.seekTo(clampedPosition, usePrecise)
+                        danmakuManager.seekTo((clampedPosition * 1000).toLong())
+                        
+                        // 更新提示文字
+                        val currentTime = FormatUtils.formatProgressTime(clampedPosition.toDouble())
+                        val sign = if (deltaSeconds >= 0) "+" else ""
+                        val seekTime = FormatUtils.formatProgressTime(kotlin.math.abs(deltaSeconds).toDouble())
+                        seekHint.text = "$currentTime\n[$sign$seekTime]"
+                        
+                        if (seekHint.visibility != View.VISIBLE) {
+                            seekHint.visibility = View.VISIBLE
+                            seekHint.alpha = 1f
+                        } else {
+                            seekHint.alpha = 1f
+                        }
+                    }
+                }
+                
+                override fun onSeekEnd() {
+                    // 滑动seek结束，延迟隐藏提示
+                    seekHint.postDelayed({
+                        seekHint.animate()
+                            .alpha(0f)
+                            .setDuration(300)
+                            .withEndAction { seekHint.visibility = View.GONE }
+                            .start()
+                    }, 300)
+                }
+                
+                override fun getCurrentPosition(): Int {
+                    return currentPosition.toInt()
                 }
             }
         )
@@ -685,6 +729,11 @@ class VideoPlayerActivity : AppCompatActivity(),
                 
                 override fun onVideoTitleClick() {
                     showVideoListDrawer()
+                }
+                
+                override fun onControlsShown() {
+                    // 显示控制栏时立即隐藏暂停指示器
+                    hidePauseIndicator()
                 }
             },
             WeakReference(gestureHandler)  // 传入GestureHandler引用
@@ -812,6 +861,8 @@ class VideoPlayerActivity : AppCompatActivity(),
         controlsManager.bindViews(
             topInfoPanel = findViewById(R.id.topInfoPanel),
             controlPanel = findViewById(R.id.controlPanel),
+            topGradientBackground = findViewById(R.id.topGradientBackground),  // 顶部渐变背景层
+            bottomGradientBackground = findViewById(R.id.bottomGradientBackground),  // 底部渐变背景层
             tvFileName = findViewById(R.id.tvFileName),
             titleClickArea = findViewById(R.id.titleClickArea),  // 标题点击区域
             tvBattery = findViewById(R.id.tvBattery),
@@ -826,7 +877,8 @@ class VideoPlayerActivity : AppCompatActivity(),
             btnSubtitle = findViewById(R.id.btnSubtitle),  // 新增字幕按钮
             btnAspectRatio = findViewById(R.id.btnAspectRatio),  // 新增画面比例按钮
             btnLock = findViewById(R.id.btnLock),  // 新增锁定按钮
-            btnUnlock = findViewById(R.id.btnUnlock),  // 新增解锁按钮
+            btnUnlock = findViewById(R.id.btnUnlock),  // 新增解锁按钮（左侧）
+            btnUnlockRight = findViewById(R.id.btnUnlockRight),  // 新增解锁按钮（右侧）
             btnMore = findViewById(R.id.btnMore),
             btnSpeed = findViewById(R.id.btnSpeed),
             btnAnime4K = findViewById(R.id.btnAnime4K),
@@ -2038,30 +2090,51 @@ class VideoPlayerActivity : AppCompatActivity(),
     }
     
     /**
-     * 显示暂停指示器（淡入动画）
+     * 显示暂停指示器（方案A：缩放+透明度动画，2秒后自动隐藏）
      */
     private fun showPauseIndicator() {
+        // 取消之前的自动隐藏任务
+        pauseIndicatorHideRunnable?.let { pauseIndicatorHandler.removeCallbacks(it) }
+        
         pauseIndicator.apply {
             visibility = View.VISIBLE
             alpha = 0f
-            translationY = 0f  // 位置居中
+            scaleX = 0.8f
+            scaleY = 0.8f
+            
+            // 入场动画：缩放（0.8x→1.0x）+ 透明度（0→0.9）
             animate()
-                .alpha(1f)
-                .setDuration(200)  // 与淡出速度一致
+                .alpha(0.9f)  // 半透明，不完全不透明
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(300)  // 300ms动画
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
         }
+        
+        // 2秒后自动隐藏
+        pauseIndicatorHideRunnable = Runnable {
+            hidePauseIndicator()
+        }
+        pauseIndicatorHandler.postDelayed(pauseIndicatorHideRunnable!!, 2000)
     }
     
     /**
-     * 隐藏暂停指示器（快速淡出）
+     * 隐藏暂停指示器（淡出动画）
      */
     private fun hidePauseIndicator() {
+        // 取消自动隐藏任务
+        pauseIndicatorHideRunnable?.let { pauseIndicatorHandler.removeCallbacks(it) }
+        
         pauseIndicator.animate()
             .alpha(0f)
-            .setDuration(200)  // 加快淡出速度
+            .setDuration(300)  // 淡出300ms
+            .setInterpolator(android.view.animation.AccelerateInterpolator())
             .withEndAction {
                 pauseIndicator.visibility = View.GONE
-                pauseIndicator.translationY = -200f  // 重置位置
+                // 重置状态
+                pauseIndicator.scaleX = 0.8f
+                pauseIndicator.scaleY = 0.8f
             }
             .start()
     }
