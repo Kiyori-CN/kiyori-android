@@ -271,3 +271,25 @@
 # 保持调试信息（方便定位崩溃）
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# ============================================
+# 字幕下载功能相关规则（重要！Gson 反序列化需要）
+# ============================================
+
+# 保护字幕下载管理器及其内部私有数据类（SubtitleApiResponse 用于 Gson TypeToken 解析）
+-keep class com.fam4k007.videoplayer.subtitle.** { *; }
+-keepclassmembers class com.fam4k007.videoplayer.subtitle.** {
+    <init>(...);
+    <fields>;
+    public ** get*();
+    public ** component*();
+    public ** copy(...);
+}
+
+# SubtitleDownloadManager 中的私有内部类也必须保护
+-keep class com.fam4k007.videoplayer.subtitle.SubtitleDownloadManager { *; }
+-keep class com.fam4k007.videoplayer.subtitle.SubtitleDownloadManager$* { *; }
+
+# 保护 SubtitleSearchActivity 和 SubtitleSearchScreen
+-keep class com.fam4k007.videoplayer.SubtitleSearchActivity { *; }
+-keep class com.fam4k007.videoplayer.compose.SubtitleSearchScreen { *; }
