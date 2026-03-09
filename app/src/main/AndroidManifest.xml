@@ -36,7 +36,6 @@
         <activity android:name=".PlaybackHistoryComposeActivity" />
         <activity android:name=".BiliBiliDanmakuComposeActivity" />
         <activity android:name=".SubtitleSearchActivity" />
-        <activity android:name=".HelpComposeActivity" />
         <activity android:name=".AboutComposeActivity" />
         <activity android:name=".LicenseActivity" />
         <activity android:name=".FeedbackActivity" />
