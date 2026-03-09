@@ -34,7 +34,6 @@ fun AboutScreen(
     onNavigateToFeedback: () -> Unit
 ) {
     val context = LocalContext.current
-    var showAboutDialog by remember { mutableStateOf(false) }
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
@@ -114,13 +113,6 @@ fun AboutScreen(
 
             // 功能列表
             AboutItem(
-                icon = Icons.Default.Info,
-                title = "关于应用",
-                subtitle = "查看详细信息",
-                onClick = { showAboutDialog = true }
-            )
-
-            AboutItem(
                 icon = Icons.Default.Code,
                 title = "开源主页",
                 subtitle = "访问 GitHub 仓库",
@@ -137,103 +129,12 @@ fun AboutScreen(
             )
 
             AboutItem(
-                icon = Icons.Default.Email,
-                title = "联系作者",
-                subtitle = "发送反馈和建议",
-                onClick = {
-                    openUrl(context, "mailto:your-email@example.com")
-                }
-            )
-
-            AboutItem(
                 icon = Icons.Default.BugReport,
                 title = "意见反馈",
                 subtitle = "报告问题或建议",
                 onClick = onNavigateToFeedback
             )
-
-            // 技术栈
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = SettingsPalette.CardBackground
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "技术栈",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SettingsPalette.PrimaryText
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = """
-                            • MPV - 强大的媒体播放引擎
-                            • Anime4K - 实时画质增强
-                            • Jetpack Compose - 现代化 UI
-                            • Kotlin Coroutines - 异步处理
-                            • Material Design 3 - 设计规范
-                        """.trimIndent(),
-                        fontSize = 14.sp,
-                        color = SettingsPalette.SecondaryText,
-                        lineHeight = 20.sp
-                    )
-                }
-            }
         }
-    }
-
-    // 关于详情对话框
-    if (showAboutDialog) {
-        AlertDialog(
-            onDismissRequest = { showAboutDialog = false },
-            title = { 
-                Text(
-                    "小喵Player",
-                    fontWeight = FontWeight.Bold,
-                    color = SettingsPalette.PrimaryText
-                ) 
-            },
-            text = {
-                Column {
-                    Text(
-                        text = "Version $versionName",
-                        fontSize = 14.sp,
-                        color = SettingsPalette.SecondaryText
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = """
-                            这是一款基于 MPV 和 Anime4K 的高品质视频播放器，专为动漫爱好者打造。
-                            
-                            主要特性：
-                            • 实时画质增强（Anime4K）
-                            • 支持多种视频格式
-                            • B站弹幕支持
-                            • 字幕自动加载
-                            • 播放历史记忆
-                            • Material Design 3 设计
-                            
-                            感谢所有开源项目的贡献！
-                        """.trimIndent(),
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = SettingsPalette.SecondaryText
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAboutDialog = false }) {
-                    Text("关闭", color = SettingsPalette.AccentText)
-                }
-            },
-            containerColor = SettingsPalette.DialogSurface
-        )
     }
 }
 

@@ -117,7 +117,10 @@ fun DownloadScreen(viewModel: BilibiliDownloadViewModel = viewModel()) {
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { activity?.finish() }) {
+                    IconButton(onClick = { 
+                        activity?.finish()
+                        activity?.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "返回",

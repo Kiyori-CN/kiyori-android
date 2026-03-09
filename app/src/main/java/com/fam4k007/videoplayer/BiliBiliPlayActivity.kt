@@ -64,7 +64,10 @@ class BiliBiliPlayActivity : ComponentActivity() {
             MaterialTheme {
                 BiliBiliPlayScreen(
                     authManager = authManager,
-                    onBack = { finish() },
+                    onBack = { 
+                        finish()
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    },
                     onPlayEpisode = { epId, cid, title ->
                         playEpisode(epId, cid, title)
                     }
@@ -80,7 +83,10 @@ class BiliBiliPlayActivity : ComponentActivity() {
             MaterialTheme {
                 BiliBiliPlayScreen(
                     authManager = authManager,
-                    onBack = { finish() },
+                    onBack = { 
+                        finish()
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    },
                     onPlayEpisode = { epId, cid, title ->
                         playEpisode(epId, cid, title)
                     }

@@ -70,7 +70,10 @@ class VideoBrowserComposeActivity : ComponentActivity() {
                     hasPermission = checkPermissions(),
                     onRequestPermission = { requestStoragePermission() },
                     onScanVideos = { callback -> scanVideoFiles(callback) },
-                    onNavigateBack = { finish() },
+                    onNavigateBack = { 
+                        finish()
+                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                    },
                     onOpenFolder = { folder -> openVideoList(folder) },
                     preferencesManager = preferencesManager
                 )

@@ -2,6 +2,7 @@ package com.fam4k007.videoplayer.compose
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -72,8 +73,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, PlaybackHistoryComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
@@ -106,8 +107,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, PlaybackSettingsComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )
@@ -127,8 +128,8 @@ fun SettingsScreen(
                         if (authManager.isLoggedIn()) {
                             context.startActivity(Intent(context, BiliBiliDanmakuComposeActivity::class.java))
                             (context as? android.app.Activity)?.overridePendingTransition(
-                                R.anim.slide_in_bottom,
-                                R.anim.no_anim
+                                R.anim.slide_in_right,
+                                R.anim.slide_out_left
                             )
                         } else {
                             android.widget.Toast.makeText(
@@ -137,6 +138,26 @@ fun SettingsScreen(
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
                         }
+                    }
+                )
+            }
+            
+            // 字幕设置分组
+            item {
+                SettingsSectionHeader(title = "字幕")
+            }
+            
+            item {
+                SettingsCard(
+                    icon = Icons.Default.Subtitles,
+                    title = "字幕搜索下载",
+                    subtitle = "搜索并下载在线字幕",
+                    onClick = {
+                        context.startActivity(Intent(context, SubtitleSearchActivity::class.java))
+                        (context as? android.app.Activity)?.overridePendingTransition(
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
+                        )
                     }
                 )
             }
@@ -178,13 +199,10 @@ fun SettingsScreen(
                 SettingsCard(
                     icon = Icons.Default.Help,
                     title = "使用说明",
-                    subtitle = "查看功能介绍和使用帮助",
+                    subtitle = "点击跳转外部在线文档查看",
                     onClick = {
-                        context.startActivity(Intent(context, HelpComposeActivity::class.java))
-                        (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.fade_in,
-                            R.anim.fade_out
-                        )
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.kdocs.cn/l/cjEzoxiyxaHT"))
+                        context.startActivity(intent)
                     }
                 )
             }
@@ -233,8 +251,8 @@ fun SettingsScreen(
                     onClick = {
                         context.startActivity(Intent(context, AboutComposeActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
-                            R.anim.slide_in_bottom,
-                            R.anim.no_anim
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
                         )
                     }
                 )

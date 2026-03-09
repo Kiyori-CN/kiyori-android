@@ -84,8 +84,8 @@ fun HomeScreen(
                 onLoginClick = {
                     context.startActivity(Intent(context, BiliBiliLoginActivity::class.java))
                     (context as? android.app.Activity)?.overridePendingTransition(
-                        R.anim.slide_in_bottom,
-                        R.anim.no_anim
+                        R.anim.slide_in_right,
+                        R.anim.slide_out_left
                     )
                 },
                 onSettingsClick = onNavigateToSettings
@@ -134,8 +134,8 @@ fun HomeScreen(
                 isExpanded = false  // 点击后自动收起
                 context.startActivity(Intent(context, BiliBiliPlayActivity::class.java))
                 (context as? android.app.Activity)?.overridePendingTransition(
-                    R.anim.scale_in,
-                    R.anim.scale_out
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
                 )
             },
             onWebDavClick = {

@@ -36,7 +36,7 @@ class LicenseActivity : BaseActivity() {
                 LicenseScreen(
                     onBack = {
                         activity.finish()
-                        activity.overridePendingTransition(R.anim.no_anim, R.anim.slide_out_down)
+                        activity.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
                     }
                 )
             }
