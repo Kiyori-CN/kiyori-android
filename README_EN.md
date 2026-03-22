@@ -83,27 +83,7 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
 
 ## Screenshots
 
-### Application Interface (Portrait)
 
-| Home | Folder List | Video List |
-|------|------------|------------|
-| <img src="docs/screenshots/软件主页2.jpg" width="280"/> | <img src="docs/screenshots/文件夹列表2.jpg" width="280"/> | <img src="docs/screenshots/视频列表2.jpg" width="280"/> |
-
-| WebDAV Feature | Bangumi Parsing | Settings Page |
-|----------------|----------------|----------------|
-| <img src="docs/screenshots/webdav支持.jpg" width="280"/> | <img src="docs/screenshots/番剧解析.jpg" width="280"/> | <img src="docs/screenshots/设置页面.jpg" width="280"/> |
-
----
-
-### Player Interface (Landscape)
-
-| Player Main Interface | Danmaku Styling | Subtitle Styling |
-|----------------------|----------------|------------------|
-| <img src="docs/screenshots/播放器主界面.jpg" width="280"/> | <img src="docs/screenshots/弹幕样式设置.jpg" width="280"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="280"/> |
-
-| Resume Playback | More Menu | Super-Resolution |
-|----------------|-----------|------------------|
-| <img src="docs/screenshots/记忆播放.jpg" width="280"/> | <img src="docs/screenshots/更多菜单.jpg" width="280"/> | <img src="docs/screenshots/超分功能.jpg" width="280"/> |
 
 ## Key Features
 
