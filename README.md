@@ -2,26 +2,29 @@
 
 **[中文版本](README.md) | [English Version](README_EN.md)**
 
-一个基于 libmpv 的 Android 本地视频播放器，支持多种视频格式、字幕处理、手势控制和实时超分等功能。
+一个基于 libmpv 的 Android 本地视频播放器，核心特色是开源实现 Anime4K 实时超分算法，针对动漫/动画/番剧视频风格进行优化，显著提升低分辨率动漫的观看体验。
 
-本项目旨在将二次元动漫/动画/番剧风格的视频进行优化超分，当然你也可以当作普通的播放器使用。
+同时支持弹幕、字幕、手势控制、B站番剧在线播放等功能，也可作为通用本地视频播放器使用。
 
 ## 📑 目录
 
-- [声明](#声明)
-- [⚠️ 重要声明](#️-重要声明)
-- [快速开始](#快速开始)
-  - [📥 下载安装](#-下载安装)
-  - [⚙️ 系统要求](#️-系统要求)
-  - [🚀 快速使用](#-快速使用)
-- [功能特性](#功能特性)
-- [功能截图](#功能截图)
-- [技术架构](#技术架构)
-- [功能规划](#功能规划)
-- [致谢](#致谢)
-- [隐私与第三方服务](#隐私与第三方服务)
-- [开发说明](#开发说明)
-- [反馈与建议](#反馈与建议)
+### 📋 项目信息
+- [声明](#声明) - 开源协议
+- [⚠️ 重要声明](#️-重要声明) - 使用须知
+
+### 🚀 开始使用
+- [快速开始](#快速开始) - 下载与安装
+- [功能特性](#功能特性) - 核心功能介绍
+- [功能截图](#功能截图) - 应用界面预览
+
+### 🔧 技术相关
+- [技术架构](#技术架构) - 技术栈说明
+- [致谢](#致谢) - 开源项目致谢
+
+### 🔒 隐私与开发
+- [隐私与第三方服务](#隐私与第三方服务) - 隐私政策与 API 说明
+- [开发说明](#开发说明) - 构建与开发指南
+- [反馈与建议](#反馈与建议) - 问题反馈渠道
 
 ---
 
@@ -52,23 +55,9 @@
 
 ## 快速开始
 
-### 📥 下载安装
+📥 **下载安装**：[GitHub Releases](https://github.com/azxcvn/mpv-android-anime4k/releases)
 
-- **下载APK**：[GitHub Releases](https://github.com/azxcvn/mpv-android-anime4k/releases)
-
-### ⚙️ 系统要求
-
-- **Android 版本**：Android 12 (API 31) 及以上
-- **内存**：建议 8GB 以上 RAM（超分功能需要较大内存）
-- **存储空间**：建议至少 64GB
-- **处理器**：建议中高端处理器以获得更好的超分性能
-
-### 🚀 快速使用
-
-1. 下载并安装 APK 文件
-2. 首次启动时授予**存储权限**（必需）和**网络权限**（默认授予）
-3. 在主界面选择本地视频文件夹或添加 WebDAV 服务器
-4. 点击视频即可播放，支持手势控制和实时超分
+> **系统要求**：Android 12 (API 31) 及以上，建议 8GB+ RAM
 
 ---
 
@@ -76,101 +65,19 @@
 
 ### 核心功能
 
-- **视频播放**：支持主流视频格式（MP4、MKV、AVI 等）
-- **网页嗅探功能**：软件内置 WebView，可以嗅探网页视频并自动选择最佳地址，一键播放
-- **哔哩哔哩番剧支持**：支持登录B站账号、在线播放番剧
-  <details>
-  <summary>📖 查看详细说明</summary>
-  
-  - [登录实现说明](docs/bilibili_login.md)
-  - [番剧解析原理](docs/bilibili_bangumi.md)
-  
-  </details>
-- **哔哩哔哩视频/番剧下载**：支持下载B站视频和番剧到本地
-  <details>
-  <summary>📖 查看详细说明</summary>
-  
-  - [下载实现原理](docs/bilibili_download_principle.md)
-  
-  </details>
-  <details>
-  <summary>⬇️ 展开查看功能特性</summary>
-  
-  - 支持完整URL、短链（b23.tv）、带文本的分享链接
-  - 自动解析视频信息，支持番剧多集选择下载
-  - 音视频自动合并为MP4格式
-  - 支持暂停、恢复、取消下载
-  - 下载进度实时显示
-  - ⚠️ **仅供个人学习使用，严禁商业用途**
-  
-  </details>
-- **WebDAV 网络存储**：支持连接 WebDAV 服务器，直接播放云端视频文件
-  <details>
-  <summary>📖 查看详细说明</summary>
-  
-  - [WebDAV 使用说明](docs/webdav使用说明.md)
-  
-  </details>
-- **播放列表**：自动扫描文件夹、支持视频排序和分类
-- **字幕管理**：内嵌字幕解析、外部字幕导入、字幕位置和大小调整
-- **字幕自动加载**：同文件夹内，同名字幕可以自动加载
-- **音频轨道**：多音轨切换
-- **音量增强**：支持开关增强功能，且可精细到0.1%调整
-- **弹幕功能**：
-  - 支持导入本地 XML 格式弹幕文件
-  - **支持弹弹play弹幕匹配**
-    <details>
-    <summary>✨ 展开查看功能特性</summary>
-    
-    - 自动匹配本地视频文件到弹弹play弹幕库
-    - 智能文件名识别，支持动漫番剧匹配
-    - 一键下载匹配到的弹幕
-    - 支持手动选择匹配结果
-    
-    </details>
-  - **支持从哔哩哔哩下载弹幕**
-    <details>
-    <summary>📖 查看详细说明</summary>
-    
-    - [弹幕下载原理说明](docs/bilibili_danmaku_download.md)
-    
-    </details>
-    <details>
-    <summary>✨ 展开查看功能特性</summary>
-    
-    - 使用B站分段弹幕API，获取完整弹幕数据
-    - 支持普通视频和番剧整季批量下载
-    - 并发下载技术，速度提升10-20倍
-    - 自动携带登录Cookie，获取会员专属弹幕
-    
-    </details>
-  - 弹幕样式与功能
-    <details>
-    <summary>🎨 展开查看详情</summary>
-    
-    - 弹幕样式自定义（大小、速度、透明度、描边等）
-    - 弹幕轨道管理，支持显示/隐藏不同类型弹幕
-    - 自动记忆弹幕文件和显示状态
-    - 高刷新率屏幕适配（支持 90Hz/120Hz/144Hz）
-    - 弹幕与视频进度同步，支持章节跳转
-    
-    </details>
-- **手势控制**：
-  <details>
-  <summary>👆 展开查看详情</summary>
-  
-  - 左侧滑动：调节亮度
-  - 右侧滑动：调节音量
-  - 左右滑动：快进/快退
-  - 双击：暂停/播放（或者前进后退，可在设置里修改）
-  - 长按：倍速播放
-  - 进度条拖动：精确定位
-  
-  </details>
-- **播放控制**：快进/快退、倍速播放、字幕延迟调整
-- **超分辨率**：集成 Anime4K，支持实时视频超分
-- **播放进度恢复**：自动保存播放进度，下次打开自动续播
-- **截图功能**：支持视频截图保存
+- 🎬 **视频播放**：支持主流视频格式（MP4、MKV、AVI 等）
+- 🌐 **网页嗅探**：内置 WebView，嗅探网页视频并一键播放
+- 📺 **B站番剧**：支持登录、在线播放、视频/番剧下载
+- ☁️ **WebDAV**：连接云端服务器，直接播放网络视频
+- 📂 **播放列表**：自动扫描、排序、分类管理
+- 📝 **字幕**：内嵌/外部字幕、自动加载、样式调整
+- 🔊 **音频**：多音轨切换、音量增强（精细到 0.1%）
+- 💬 **弹幕**：弹弹play 匹配、B站弹幕下载、样式自定义
+- 👆 **手势控制**：亮度、音量、进度调节，支持自定义
+- 🎨 **超分辨率**：Anime4K 实时视频超分
+- 🖼️ **其他**：截图保存、播放进度记忆
+
+📖 **查看完整功能说明**：[功能特性详细文档](docs/features.md)
 
 ---
 
@@ -206,64 +113,75 @@
 - **最低 SDK**：28 (Android 9.0)
 - **编译 SDK**：34 (Android 14)
 
-## 功能规划
-
-以下功能已规划但暂未实现：
-
-- 帧插值补帧
-
 ## 致谢
 
-本项目离不开以下开源项目的支持：
+本项目的诞生离不开以下开源项目和开发者的贡献，特此致谢！
+
+### 🏗️ 核心基础
+
+以下项目为本应用提供了核心技术支撑：
 
 - **[mpv-player/mpv](https://github.com/mpv-player/mpv)**  
-  本项目的核心基础，强大的多媒体播放器库
+  本项目的核心基础，强大的开源多媒体播放器库
 
 - **[mpv-android/mpv-android](https://github.com/mpv-android/mpv-android)**  
-  Android 移动端实现参考
+  Android 平台移植参考
 
 - **[abdallahmehiz/mpv-android](https://github.com/abdallahmehiz/mpv-android/releases)**  
-  提供现成可用的 libmpv 库文件
-
-- **[abdallahmehiz/mpvKt](https://github.com/abdallahmehiz/mpvKt)**  
-  参考了手势控制、滑动处理、外部字幕导入等多项实现
-
-- **[bloc97/Anime4K](https://github.com/bloc97/Anime4K)**  
-  超分辨率滤镜 GLSL 文件来源
-
-- **[Predidit/Kazumi](https://github.com/Predidit/Kazumi)**  
-  项目开发灵感和原始需求
-
-- **[xyoye/DanDanPlayForAndroid](https://github.com/xyoye/DanDanPlayForAndroid)**  
-  参考了弹幕实现与重构以及webdav功能的实现等其他诸多功能
+  提供现成可用的 libmpv 预编译库文件
 
 - **[bilibili/DanmakuFlameMaster](https://github.com/bilibili/DanmakuFlameMaster)**  
-  此项目的弹幕底层核心库为哔哩哔哩的Android开源弹幕解析绘制引擎项目
+  B站开源的 Android 弹幕引擎，本项目弹幕功能的核心
 
-- **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
-  提供弹幕API服务，支持本地视频文件智能匹配和弹幕下载
+### 🔧 算法与功能实现
 
-- **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
-  感谢此项目收集的公开API，将散落的API集中起来，本项目参考了其中的使用方法
+以下项目为本应用的功能实现提供了重要参考：
+
+- **[bloc97/Anime4K](https://github.com/bloc97/Anime4K)**  
+  实时超分辨率算法，提供 GLSL 着色器文件
+
+- **[marlboro-advance/mpvEx](https://github.com/marlboro-advance/mpvEx)**  
+  参考了滑动算法以及整体交互逻辑
+
+- **[abdallahmehiz/mpvKt](https://github.com/abdallahmehiz/mpvKt)**  
+  参考了手势控制、外部字幕导入等实现
+
+- **[xyoye/DanDanPlayForAndroid](https://github.com/xyoye/DanDanPlayForAndroid)**  
+  参考了弹幕系统架构、WebDAV 功能实现及其他诸多功能
 
 - **[the1812/Bilibili-Evolved](https://github.com/the1812/Bilibili-Evolved)**  
-  哔哩哔哩增强脚本，参考了弹幕下载的并发优化策略和API调用方式
+  参考了弹幕下载的并发优化策略和 API 调用方式
 
 - **[btjawa/BiliTools](https://github.com/btjawa/BiliTools)**  
-  本项目参考了此项目的视频/番剧下载的实现原理
+  参考了 B站视频/番剧下载的实现原理
 
 - **[qiusunshine/hikerView](https://github.com/qiusunshine/hikerView)**  
-  本项目参考了此项目的嗅探功能实现以及某些特定情况下，需要特定反嗅探的算法逻辑
+  参考了网页视频嗅探功能及反嗅探算法逻辑
 
----
+### 🌐 API 服务与文档
 
-### 素材归属
+感谢以下项目提供 API 服务和技术文档：
+
+- **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
+  提供弹幕匹配 API 服务，支持本地视频智能匹配和弹幕下载
+
+- **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
+  收集整理了 B站公开 API，为本项目提供了宝贵的 API 参考文档
+
+### 💡 灵感来源
+
+- **[Predidit/Kazumi](https://github.com/Predidit/Kazumi)**  
+  项目的最初灵感和需求来源
+
+### 🎨 素材资源
 
 - **应用图标**：由 AI 生成
 - **播放器控制图标**：来自 [FLATICON](https://www.flaticon.com/)
-- **其他UI图标**：Material Icons（Google 提供，遵循 Apache License 2.0）
+- **其他 UI 图标**：Material Icons（Google 提供，遵循 Apache License 2.0）
 
-感谢以上所有开源项目和开发者的无私贡献，没有你们的努力就没有这个项目的诞生！
+---
+
+**特别感谢以上所有开源项目和开发者的无私贡献！** 没有以上项目的开源就没有这个项目的诞生。
 
 ---
 
@@ -283,66 +201,15 @@
 
 ### 🔌 使用的第三方API
 
-本应用使用以下第三方API服务：
+本应用使用哔哩哔哩和弹弹play的公开API服务，用于番剧播放、弹幕匹配下载等功能。
 
-#### 哔哩哔哩 (Bilibili)
-
-用于登录、番剧播放、弹幕下载、视频下载等功能。
-
-<details>
-<summary>查看API列表</summary>
-
-- 登录API: `https://passport.bilibili.com/x/passport-login/web/qrcode/*`
-- 番剧信息API: `https://api.bilibili.com/pgc/view/web/season`
-- 番剧播放API: `https://api.bilibili.com/pgc/player/web/playurl`
-- 弹幕下载API: `https://api.bilibili.com/x/v1/dm/list.so`
-- 视频信息API: `https://api.bilibili.com/x/web-interface/view`
-- 视频下载API: `https://api.bilibili.com/x/player/playurl`
-- 番剧下载API: `https://api.bilibili.com/pgc/player/web/playurl`
-
-</details>
-
-**声明**：本应用与哔哩哔哩无任何官方关联，仅使用其公开API。
-
-#### 弹弹play (DanDanPlay)
-
-用于本地视频弹幕匹配和下载功能。
-
-<details>
-<summary>查看API列表</summary>
-
-- 弹幕匹配API: `https://api.dandanplay.net/api/v2/match`
-- 弹幕搜索API: `https://api.dandanplay.net/api/v2/search/episodes`
-- 弹幕下载API: `https://api.dandanplay.net/api/v2/comment/*`
-
-</details>
-
-**说明**：使用弹弹play API需要在 `local.properties` 中配置AppId和AppSecret（详见[开发说明](#开发说明)）。
+📋 **查看详细API列表**: [第三方API使用说明](docs/third_party_api.md)
 
 ### 🔐 数据安全说明
 
-<details>
-<summary>B站登录功能</summary>
+应用采用 AES-256 加密保护登录凭证，所有数据仅存储在本地设备，不会上传到任何服务器。
 
-- 登录凭证使用 **AES-256 加密**存储在本地（详见[安全分析](docs/bilibili_security_analysis.md)）
-- 登录密钥由 Android KeyStore 硬件保护，**应用无法导出**
-- 登录信息仅用于调用B站API，**不会上传到其他地方**
-- 用户可随时在设置中**一键退出登录**，彻底清除所有数据
-- 应用卸载后，所有登录数据将**自动永久销毁**
-
-</details>
-
-<details>
-<summary>弹幕与视频数据</summary>
-
-- 弹幕和视频文件保存在**用户指定的本地文件夹**
-- 下载功能完全由**用户主动触发**
-- 数据仅存储在本地，**不会同步或备份到云端**
-- ⚠️ **重要**：视频下载功能仅供**个人学习使用**，严禁商业用途
-- 下载内容**版权归原作者所有**，使用者需遵守相关法律法规
-- 法律责任由用户自行承担，与本项目无关
-
-</details>
+🛡️ **查看详细安全说明**: [数据安全文档](docs/data_security.md)
 
 ### 🔑 权限说明
 
@@ -355,42 +222,11 @@
 
 ## 开发说明
 
-### 🔧 构建项目
+### 🔧 快速开始
 
-1. **克隆仓库**
-   ```bash
-   git clone https://github.com/azxcvn/mpv-android-anime4k.git
-   cd mpv-android-anime4k
-   ```
+想要参与开发或构建本项目？本项目使用 Android Studio 开发，需要配置 DanDanPlay API 凭证。
 
-2. **配置 DanDanPlay API 凭证**
-   ```bash
-   # 复制示例配置文件
-   cp local.properties.example local.properties
-   ```
-   
-   然后编辑 `local.properties`，填入你的 DanDanPlay API 凭证：
-   ```properties
-   dandanplay.appId=your_app_id_here
-   dandanplay.appSecret=your_app_secret_here
-   ```
-   
-   > 💡 **如何获取凭证？**
-   > 1. 前往 [DanDanPlay 开放平台](https://www.dandanplay.com/) 获取 AppId 和 AppSecret
-   > 2. 将凭证填入 `local.properties` 文件
-
-3. **使用 Android Studio 打开项目并构建**
-
-### 💻 AI 辅助开发
-
-**本项目全程由 AI 完成代码开发**，本人仅负责测试、反馈和方案设计等工作。
-
-由于 AI 生成代码的特殊性，项目中可能存在**代码冗余、结构不够精简**等问题。虽然项目已经历**三次大版本的代码结构优化**，对大部分代码进行了归类与重构，但仍可能存在以下情况：
-- 部分代码逻辑较为复杂
-- 存在已注释但未删除的废弃代码
-- 某些实现方式不够优雅
-
-对于优化不足之处，还望各位开发者见谅！项目仍在持续改进中，欢迎提出建议和反馈。
+📖 **查看指南**: [开发小TIPS](docs/development_guide.md)
 
 ---
 
@@ -403,4 +239,4 @@
 
 ---
 
-**Last Updated:** 2026-02-08
+**Last Updated:** 2026-03-22
