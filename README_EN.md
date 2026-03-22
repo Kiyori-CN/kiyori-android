@@ -2,27 +2,29 @@
 
 **[中文版本](README.md) | [English Version](README_EN.md)**
 
-An Android local video player based on libmpv, supporting multiple video formats, subtitle processing, gesture controls, and real-time upscaling features.
+An Android local video player based on libmpv. The core feature is the open-source implementation of Anime4K real-time upscaling algorithm, optimized for anime/animation/bangumi video styles, significantly enhancing the viewing experience of low-resolution anime.
 
-This project aims to optimize and upscale anime-style videos, though it can also be used as a regular video player.
+Also supports danmaku, subtitles, gesture controls, Bilibili bangumi online playback, and other features, and can be used as a general-purpose local video player.
 
 ## 📑 Table of Contents
 
-- [License](#license)
-- [⚠️ Important Notice](#️-important-notice)
-- [Quick Start](#quick-start)
-  - [📥 Download & Installation](#-download--installation)
-  - [⚙️ System Requirements](#️-system-requirements)
-  - [🚀 Getting Started](#-getting-started)
-- [Feature Highlights](#feature-highlights)
-- [Screenshots](#screenshots)
-- [Key Features](#key-features)
-- [Technical Architecture](#technical-architecture)
-- [Planned Features](#planned-features)
-- [Acknowledgments](#acknowledgments)
-- [Privacy & Third-Party Services](#privacy--third-party-services)
-- [Development Notes](#development-notes)
-- [Feedback & Suggestions](#feedback--suggestions)
+### 📋 Project Information
+- [License](#license) - Open Source License
+- [⚠️ Important Notice](#️-important-notice) - Usage Guidelines
+
+### 🚀 Getting Started
+- [Quick Start](#quick-start) - Download & Install
+- [Features](#features) - Core Features
+- [Screenshots](#screenshots) - App Interface Preview
+
+### 🔧 Technical
+- [Technical Architecture](#technical-architecture) - Tech Stack
+- [Acknowledgments](#acknowledgments) - Open Source Credits
+
+### 🔒 Privacy & Development
+- [Privacy & Third-Party Services](#privacy--third-party-services) - Privacy Policy & API Info
+- [Development](#development) - Build & Dev Guide
+- [Feedback & Suggestions](#feedback--suggestions) - Issue Reporting
 
 ---
 
@@ -53,125 +55,29 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
 
 ## Quick Start
 
-### 📥 Download & Install
+📥 **Download**: [GitHub Releases](https://github.com/azxcvn/mpv-android-anime4k/releases)
 
-- **Download APK**: [GitHub Releases](https://github.com/azxcvn/mpv-android-anime4k/releases)
-
-### ⚙️ System Requirements
-
-- **Android Version**: Android 12 (API 31) or higher
-- **RAM**: Recommended 8GB or more (super-resolution requires significant memory)
-- **Storage**: Recommended at least 64GB
-- **Processor**: Recommended mid to high-end processor for better super-resolution performance
-
-### 🚀 Quick Usage
-
-1. Download and install the APK file
-2. Grant **storage permission** (required) and **network permission** (granted by default) on first launch
-3. Select local video folders or add WebDAV servers on the main interface
-4. Click on a video to play, supports gesture controls and real-time super-resolution
+> **Requirements**: Android 12 (API 31) or higher, 8GB+ RAM recommended
 
 ---
 
-## Feature Highlights
+## Features
 
 ### Core Features
 
-- **Video Playback**: Support for mainstream video formats (MP4, MKV, AVI, etc.)
-- **Web Sniffing Feature**: Built-in WebView to sniff web videos and automatically select the best quality for one-click playback
-- **Bilibili Bangumi Support**: Login to Bilibili account and stream bangumi online
-  <details>
-  <summary>📖 View Details</summary>
-  
-  - [Login Implementation](docs/bilibili_login.md)
-  - [Bangumi Parsing Principle](docs/bilibili_bangumi.md)
-  
-  </details>
-- **Bilibili Video/Bangumi Download**: Download Bilibili videos and bangumi to local storage
-  <details>
-  <summary>📖 View Details</summary>
-  
-  - [Download Implementation Principle](docs/bilibili_download_principle.md)
-  
-  </details>
-  <details>
-  <summary>⬇️ Expand Features</summary>
-  
-  - Support for full URLs, short links (b23.tv), and text-embedded share links
-  - Automatic video information parsing, support for multi-episode bangumi selection
-  - Automatic audio-video merging into MP4 format
-  - Support for pause, resume, and cancel downloads
-  - Real-time download progress display
-  - ⚠️ **For personal learning use only, commercial use is strictly prohibited**
-  
-  </details>
-- **WebDAV Network Storage**: Connect to WebDAV servers and stream cloud-hosted videos directly
-  <details>
-  <summary>📖 View Details</summary>
-  
-  - [WebDAV Usage Guide](docs/webdav使用说明.md)
-  
-  </details>
-- **Playlist Management**: Automatic folder scanning, video sorting and categorization
-- **Subtitle Handling**: Built-in subtitle parsing, external subtitle import, subtitle position and size adjustment
-- **Auto-load Subtitles**: Automatically load subtitle files with the same name in the same folder
-- **Audio Tracks**: Multi-track audio switching
-- **Volume Boost**: Toggle volume boost feature with fine-grained 0.1% adjustment
-- **Danmaku Features**:
-  - Support for importing local XML format danmaku files
-  - **Support for DanDanPlay danmaku matching**
-    <details>
-    <summary>✨ Expand Features</summary>
-    
-    - Automatically match local video files to DanDanPlay danmaku library
-    - Intelligent filename recognition for anime/bangumi matching
-    - One-click download of matched danmaku
-    - Support for manual match selection
-    
-    </details>
-  - **Support for downloading danmaku from Bilibili**
-    <details>
-    <summary>📖 View Details</summary>
-    
-    - [Danmaku Download Principle](docs/bilibili_danmaku_download.md)
-    
-    </details>
-    <details>
-    <summary>✨ Expand Features</summary>
-    
-    - Uses Bilibili's segmented danmaku API for complete data retrieval
-    - Supports batch downloads for regular videos and entire bangumi seasons
-    - Concurrent download technology, 10-20x speed improvement
-    - Automatically includes login cookies to access premium danmaku
-    
-    </details>
-  - Danmaku Styling & Features
-    <details>
-    <summary>🎨 View Details</summary>
-    
-    - Customizable danmaku styles (size, speed, transparency, stroke, etc.)
-    - Danmaku track management, show/hide different types of danmaku
-    - Auto-remember danmaku files and display status
-    - High refresh rate screen adaptation (supports 90Hz/120Hz/144Hz)
-    - Danmaku synchronized with video progress, supports chapter jumping
-    
-    </details>
-- **Gesture Controls**:
-  <details>
-  <summary>👆 View Details</summary>
-  
-  - Left swipe: Adjust brightness
-  - Right swipe: Adjust volume
-  - Horizontal swipe: Fast forward/rewind
-  - Double tap: Pause/play (or forward/backward, configurable in settings)
-  - Long press: Speed playback
-  - Progress bar drag: Precise positioning
-  
-  </details>
-- **Playback Controls**: Fast forward/rewind, speed playback, subtitle delay adjustment
-- **Super Resolution**: Integrated Anime4K, supports real-time video upscaling
-- **Playback Progress Resume**: Automatically save playback progress, resume on next open
-- **Screenshot Feature**: Support for video screenshot saving
+- 🎬 **Video Playback**: Supports mainstream formats (MP4, MKV, AVI, etc.)
+- 🌐 **Web Sniffing**: Built-in WebView to sniff and play web videos
+- 📺 **Bilibili**: Login, online streaming, video/bangumi download
+- ☁️ **WebDAV**: Connect to cloud servers, stream network videos
+- 📂 **Playlists**: Auto scan, sort, and categorize
+- 📝 **Subtitles**: Embedded/external subtitles, auto-load, style adjustment
+- 🔊 **Audio**: Multi-track switching, volume boost (0.1% precision)
+- 💬 **Danmaku**: DanDanPlay matching, Bilibili danmaku download, style customization
+- 👆 **Gestures**: Brightness, volume, progress control, customizable
+- 🎨 **Upscaling**: Anime4K real-time video upscaling
+- 🖼️ **Others**: Screenshot saving, playback progress memory
+
+📖 **Full Feature Documentation**: [Feature Details](docs/features.md)
 
 ---
 
@@ -211,35 +117,33 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
   - Support for pause, resume, and cancel downloads
   - Real-time download progress display
   - ⚠️ **For personal learning use only, commercial use is strictly prohibited**
-- **WebDAV Network Storage**: Connect to WebDAV servers and stream cloud-hosted videos directly (see [WebDAV Usage Guide](docs/webdav使用说明.md))
-- **Playlist Management**: Automatic folder scanning, video sorting and categorization
-- **Subtitle Handling**: Built-in subtitle parsing, external subtitle import, subtitle position and size adjustment
-- **Auto-load Subtitles**: Automatically load subtitle files with the same name in the same folder
-- **Audio Tracks**: Multi-track audio switching
-- **Volume Boost**: Toggle volume boost feature with fine-grained 0.1% adjustment
-- **Danmaku Features**:
-  - Support for importing local XML format danmaku files
-  - **Support for downloading danmaku from Bilibili** (see [Danmaku Download Principle](docs/bilibili_danmaku_download.md))
-    - Uses Bilibili's segmented danmaku API for complete data retrieval
-    - Supports batch downloads for regular videos and entire bangumi seasons
-    - Concurrent download technology, 10-20x speed improvement
-    - Automatically includes login cookies to access premium danmaku
-  - Customizable danmaku styles (size, speed, transparency, stroke, etc.)
-  - Danmaku track management, show/hide different types of danmaku
-  - Auto-remember danmaku files and display status
-  - High refresh rate screen adaptation (supports 90Hz/120Hz/144Hz)
-  - Danmaku synchronized with video progress, supports chapter jumping
-- **Gesture Controls**:
-  - Left swipe: Adjust brightness
-  - Right swipe: Adjust volume
-  - Horizontal swipe: Fast forward/rewind
-  - Double tap: Pause/play
-  - Long press: Speed playback
-  - Progress bar drag: Precise positioning
-- **Playback Controls**: Fast forward/rewind, speed playback, subtitle delay adjustment
-- **Super Resolution**: Integrated Anime4K, supports real-time video upscaling
-- **Playback Progress Resume**: Automatically save playback progress, resume on next open
-- **Screenshot Feature**: Support for video screenshot saving
+📖 **Full Feature Documentation**: [Feature Details](docs/features.md)
+
+---
+
+## Screenshots
+
+### 📱 Application Interface (Portrait)
+
+| Home | Video List | Bangumi | Web Sniffing |
+|------|------------|---------|--------------|
+| <img src="docs/screenshots/软件首页.jpg" width="250"/> | <img src="docs/screenshots/视频列表界面.jpg" width="250"/> | <img src="docs/screenshots/哔哩哔哩番剧解析.jpg" width="250"/> | <img src="docs/screenshots/网页视频嗅探.jpg" width="250"/> |
+
+| WebDAV | WebDAV Details | Settings 1 | Settings 2 |
+|--------|----------------|------------|------------|
+| <img src="docs/screenshots/webdav支持.jpg" width="250"/> | <img src="docs/screenshots/webdav支持2.jpg" width="250"/> | <img src="docs/screenshots/设置界面1.jpg" width="250"/> | <img src="docs/screenshots/设置界面2.jpg" width="250"/> |
+
+### 🎬 Player Interface (Landscape)
+
+| Player | Danmaku | Danmaku Settings | Subtitle Settings |
+|--------|---------|------------------|-------------------|
+| <img src="docs/screenshots/播放器主界面.jpg" width="250"/> | <img src="docs/screenshots/弹幕支持.jpg" width="250"/> | <img src="docs/screenshots/弹幕设置.jpg" width="250"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="250"/> |
+
+| Progress | Resume Play | More Menu | Upscaling |
+|----------|-------------|-----------|-----------|
+| <img src="docs/screenshots/拖动缩略图.jpg" width="250"/> | <img src="docs/screenshots/记忆播放.jpg" width="250"/> | <img src="docs/screenshots/更多菜单.jpg" width="250"/> | <img src="docs/screenshots/超分功能.jpg" width="250"/> |
+
+---
 
 ## Technical Architecture
 
@@ -247,66 +151,77 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
 - **UI Framework**: Android AppCompat
 - **Programming Languages**: Kotlin + Java
 - **Minimum SDK**: 28 (Android 9.0)
-- **Target SDK**: 34 (Android 14)
-
-## Planned Features
-
-The following features are planned but not yet implemented:
-
-- Frame interpolation
+- **Compile SDK**: 34 (Android 14)
 
 ## Acknowledgments
 
-This project would not be possible without the support of the following open-source projects:
+This project would not be possible without the contributions of the following open-source projects and developers!
+
+### 🏗️ Core Foundation
+
+The following projects provide core technical support for this application:
 
 - **[mpv-player/mpv](https://github.com/mpv-player/mpv)**  
-  The core foundation of this project, a powerful multimedia player library
+  The core foundation of this project, a powerful open-source multimedia player library
 
 - **[mpv-android/mpv-android](https://github.com/mpv-android/mpv-android)**  
-  Reference implementation for Android mobile
+  Android platform porting reference
 
 - **[abdallahmehiz/mpv-android](https://github.com/abdallahmehiz/mpv-android/releases)**  
-  Provides ready-to-use libmpv library files
-
-- **[abdallahmehiz/mpvKt](https://github.com/abdallahmehiz/mpvKt)**  
-  Reference for gesture controls, swipe handling, and external subtitle import
-
-- **[bloc97/Anime4K](https://github.com/bloc97/Anime4K)**  
-  Source of super-resolution GLSL shader files
-
-- **[Predidit/Kazumi](https://github.com/Predidit/Kazumi)**  
-  Project development inspiration and original requirements
-
-- **[xyoye/DanDanPlayForAndroid](https://github.com/xyoye/DanDanPlayForAndroid)**  
-  Referenced danmaku implementation and refactoring, WebDAV functionality implementation, and many other features
+  Provides ready-to-use libmpv precompiled library files
 
 - **[bilibili/DanmakuFlameMaster](https://github.com/bilibili/DanmakuFlameMaster)**  
-  The danmaku core engine for this project is Bilibili's open-source danmaku parsing and rendering engine
+  Bilibili's open-source Android danmaku engine, the core of this project's danmaku functionality
 
-- **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
-  Provides danmaku API service, supporting intelligent matching and downloading of danmaku for local video files
+### 🔧 Algorithms & Feature Implementation
 
-- **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
-  Thanks for collecting public APIs and centralizing scattered APIs. This project referenced the usage methods
+The following projects provided important references for the implementation of this application's features:
+
+- **[bloc97/Anime4K](https://github.com/bloc97/Anime4K)**  
+  Real-time upscaling algorithm, provides GLSL shader files
+
+- **[marlboro-advance/mpvEx](https://github.com/marlboro-advance/mpvEx)**  
+  Referenced sliding algorithms and overall interaction logic
+
+- **[abdallahmehiz/mpvKt](https://github.com/abdallahmehiz/mpvKt)**  
+  Referenced gesture controls, external subtitle import, and other implementations
+
+- **[xyoye/DanDanPlayForAndroid](https://github.com/xyoye/DanDanPlayForAndroid)**  
+  Referenced danmaku system architecture, WebDAV functionality implementation, and many other features
 
 - **[the1812/Bilibili-Evolved](https://github.com/the1812/Bilibili-Evolved)**  
-  Bilibili enhancement script, referenced concurrent optimization strategies and API calling methods for danmaku downloads
+  Referenced concurrent optimization strategies for danmaku download and API calling methods
 
 - **[btjawa/BiliTools](https://github.com/btjawa/BiliTools)**  
-  Referenced the implementation principles of video/bangumi download from this project
+  Referenced the implementation principles of Bilibili video/bangumi download
 
 - **[qiusunshine/hikerView](https://github.com/qiusunshine/hikerView)**  
-  Referenced the sniffing feature implementation and specific anti-sniffing algorithm logic for certain scenarios
+  Referenced web video sniffing functionality and anti-sniffing algorithm logic
 
----
+### 🌐 API Services & Documentation
 
-### Asset Attribution
+Thanks to the following projects for providing API services and technical documentation:
+
+- **[DanDanPlay](https://www.dandanplay.com/)**  
+  Provides danmaku matching API service, supports intelligent matching and downloading of danmaku for local videos
+
+- **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
+  Collected and organized Bilibili's public APIs, provided valuable API reference documentation for this project
+
+### 💡 Inspiration
+
+- **[Predidit/Kazumi](https://github.com/Predidit/Kazumi)**  
+  The original inspiration and requirements for this project
+
+### 🎨 Assets
 
 - **App Icon**: Generated by AI
 - **Player Control Icons**: From [FLATICON](https://www.flaticon.com/)
-- **Other UI Icons**: Material Icons (provided by Google, following Apache License 2.0)
+- **Other UI Icons**: Material Icons (provided by Google, follows Apache License 2.0)
 
-Thanks to all the above open-source projects and developers for their selfless contributions. Without your efforts, this project would not have been possible!
+---
+
+**Special thanks to all the open-source projects and developers above!** Without your open-source contributions, this project would not exist.
 
 ---
 
@@ -324,116 +239,34 @@ This application highly values user privacy protection:
 
 **Commitment**: This application will never sell or share user data, because we don't collect any in the first place!
 
-### 🔌 Third-Party APIs Used
+### 🔌 Third-Party APIs
 
-This application uses the following third-party API services:
+This application uses Bilibili and DanDanPlay public API services for bangumi playback and danmaku matching/downloading.
 
-#### Bilibili
-
-For login, bangumi playback, danmaku downloads, and video downloads.
-
-<details>
-<summary>View API List</summary>
-
-- Login API: `https://passport.bilibili.com/x/passport-login/web/qrcode/*`
-- Bangumi Info API: `https://api.bilibili.com/pgc/view/web/season`
-- Bangumi Playback API: `https://api.bilibili.com/pgc/player/web/playurl`
-- Danmaku Download API: `https://api.bilibili.com/x/v1/dm/list.so`
-- Video Info API: `https://api.bilibili.com/x/web-interface/view`
-- Video Download API: `https://api.bilibili.com/x/player/playurl`
-- Bangumi Download API: `https://api.bilibili.com/pgc/player/web/playurl`
-
-</details>
-
-**Disclaimer**: This application has no official affiliation with Bilibili and only uses its public APIs.
-
-#### DanDanPlay
-
-For local video danmaku matching and download functionality.
-
-<details>
-<summary>View API List</summary>
-
-- Danmaku Match API: `https://api.dandanplay.net/api/v2/match`
-- Danmaku Search API: `https://api.dandanplay.net/api/v2/search/episodes`
-- Danmaku Download API: `https://api.dandanplay.net/api/v2/comment/*`
-
-</details>
-
-**Note**: Using DanDanPlay API requires configuring AppId and AppSecret in `local.properties` (see [Development Instructions](#development-instructions)).
+📋 **View Details**: [Third-Party API Documentation](docs/third_party_api.md)
 
 ### 🔐 Data Security
 
-<details>
-<summary>Bilibili Login Feature</summary>
+The application uses AES-256 encryption to protect login credentials. All data is stored only on local devices and is not uploaded to any servers.
 
-- Login credentials are encrypted with **AES-256 encryption** and stored locally (see [Security Analysis](docs/bilibili_security_analysis.md))
-- Login keys are protected by Android KeyStore hardware, **cannot be exported by the app**
-- Login information is only used for Bilibili API calls, **not uploaded anywhere else**
-- Users can **logout with one click** in settings to completely clear all data
-- After app uninstallation, all login data will be **automatically and permanently destroyed**
+🛡️ **View Details**: [Data Security Documentation](docs/data_security.md)
 
-</details>
-
-<details>
-<summary>Danmaku & Video Data</summary>
-
-- Danmaku and video files are saved in **user-specified local folders**
-- Download features are entirely **user-initiated**
-- Data is only stored locally, **not synced or backed up to cloud**
-- ⚠️ **Important**: Video download feature is **for personal learning use only**, commercial use is strictly prohibited
-- Downloaded content is **copyrighted by the original authors**, users must comply with relevant laws and regulations
-- Legal liability is borne by the user, not related to this project
-
-</details>
-
-### 🔑 Permission Statement
+### 🔑 Permissions
 
 The app only requests the following necessary permissions:
 
 - **Storage Permission (Manage All Files)**: Read and save local videos, subtitles, and danmaku files
-- **Network Permission**: For Bilibili bangumi online streaming, danmaku downloads, and video downloads (user-initiated)
+- **Network Permission**: For Bilibili bangumi streaming, danmaku downloads, and video downloads (user-initiated)
 
 ---
 
-## Development Notes
+## Development
 
-### 🔧 Building the Project
+### 🔧 Quick Start
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/azxcvn/mpv-android-anime4k.git
-   cd mpv-android-anime4k
-   ```
+Want to participate in development or build this project? This project uses Android Studio and requires DanDanPlay API credentials configuration.
 
-2. **Configure DanDanPlay API Credentials**
-   ```bash
-   # Copy the example configuration file
-   cp local.properties.example local.properties
-   ```
-   
-   Then edit `local.properties` and fill in your DanDanPlay API credentials:
-   ```properties
-   dandanplay.appId=your_app_id_here
-   dandanplay.appSecret=your_app_secret_here
-   ```
-   
-   > 💡 **How to get credentials?**
-   > 1. Visit [DanDanPlay Open Platform](https://www.dandanplay.com/) to get AppId and AppSecret
-   > 2. Fill the credentials into the `local.properties` file
-
-3. **Open the project in Android Studio and build**
-
-### 💻 AI-Assisted Development
-
-**This project was entirely developed by AI** for code implementation, with the author responsible for testing, feedback, and solution design.
-
-Due to the nature of AI-generated code, the project may contain issues such as **code redundancy and less streamlined structure**. Although the project has undergone **three major code structure optimizations** with comprehensive refactoring and reorganization, the following situations may still exist:
-- Some code logic may be complex
-- Deprecated code that has been commented out but not removed
-- Some implementation approaches may not be elegant
-
-We apologize for any optimization shortcomings! The project is still under continuous improvement, and suggestions and feedback are welcome.
+📖 **View Guide**: [Development Tips](docs/development_guide.md)
 
 ---
 
@@ -446,4 +279,4 @@ Encountered an issue or have improvement suggestions? Welcome to provide feedbac
 
 ---
 
-**Last Updated:** 2026-02-08
+**Last Updated:** 2026-03-22
