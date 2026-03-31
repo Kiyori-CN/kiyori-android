@@ -4,6 +4,9 @@
 *.ap_
 *.aab
 
+# Exception: Keep library files in app/libs
+!app/libs/*.aar
+
 # Files for the ART/Dalvik VM
 *.dex
 
