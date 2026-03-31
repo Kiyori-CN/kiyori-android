@@ -21,9 +21,9 @@ Also supports danmaku, subtitles, gesture controls, Bilibili bangumi online play
 - [Technical Architecture](#technical-architecture) - Tech Stack
 - [Acknowledgments](#acknowledgments) - Open Source Credits
 
-### 🔒 Privacy & Development
+### 🔒 Privacy & Documentation
 - [Privacy & Third-Party Services](#privacy--third-party-services) - Privacy Policy & API Info
-- [Development](#development) - Build & Dev Guide
+- [Technical Documentation](#technical-documentation) - Complete Technical Docs Index
 - [Feedback & Suggestions](#feedback--suggestions) - Issue Reporting
 
 ---
@@ -240,13 +240,18 @@ The app only requests the following necessary permissions:
 
 ---
 
-## Development
+## Technical Documentation
 
-### 🔧 Quick Start
-
-Want to participate in development or build this project? This project uses Android Studio and requires DanDanPlay API credentials configuration.
-
-📖 **View Guide**: [Development Tips](docs/development_guide.md)
+- **[Project Build Guide](docs/development_guide.md)** - Project build and DanDanPlay API configuration tutorial
+- **[.nomedia Support](docs/nomedia_support.md)** - .nomedia file handling mechanism
+- **[WebDAV Usage Guide](docs/webdav使用说明.md)** - WebDAV configuration and usage tutorial
+- **[Third-Party API Documentation](docs/third_party_api.md)** - Detailed list of third-party APIs used
+- **[Data Security Documentation](docs/data_security.md)** - Data encryption and security mechanism
+- **[Bilibili Login Mechanism](docs/bilibili_login.md)** - Bilibili login flow and implementation
+- **[Bilibili Bangumi Parsing](docs/bilibili_bangumi.md)** - Bangumi parsing and playback implementation
+- **[Bilibili Danmaku Download](docs/bilibili_danmaku_download.md)** - Danmaku download algorithm and optimization
+- **[Bilibili Download Principle](docs/bilibili_download_principle.md)** - Video/bangumi download implementation
+- **[Bilibili Security Analysis](docs/bilibili_security_analysis.md)** - Anti-crawler and security mechanism analysis
 
 ---
 
