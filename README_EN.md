@@ -207,36 +207,31 @@ Thanks to the following projects for providing API services and technical docume
 
 ## Privacy & Third-Party Services
 
-### 📱 Privacy Commitment
+### Privacy Statement
 
-This application highly values user privacy protection:
+- Does not collect any personal information
+- Does not upload any data to servers
+- All features run locally on device
+- Project is completely open source, code is auditable
 
-- ❌ **Does NOT collect** any user personal information
-- ❌ **Does NOT upload** any data to servers (we don't have servers)
-- ❌ **Does NOT share** user data with any third parties
-- ✅ All features run **locally on device**
-- ✅ Project is **completely open source**, all code is publicly auditable
+### Third-Party APIs
 
-**Commitment**: This application will never sell or share user data, because we don't collect any in the first place!
+Uses Bilibili and DanDanPlay public API services for bangumi playback and danmaku matching.
 
-### 🔌 Third-Party APIs
+API Details: [Third-Party API Documentation](docs/third_party_api.md)
 
-This application uses Bilibili and DanDanPlay public API services for bangumi playback and danmaku matching/downloading.
+### Data Security
 
-📋 **View Details**: [Third-Party API Documentation](docs/third_party_api.md)
+Login credentials are encrypted with AES-256 and stored locally on device, not uploaded to any servers.
 
-### 🔐 Data Security
+Security Details: [Data Security Documentation](docs/data_security.md)
 
-The application uses AES-256 encryption to protect login credentials. All data is stored only on local devices and is not uploaded to any servers.
+### Permissions
 
-🛡️ **View Details**: [Data Security Documentation](docs/data_security.md)
+The app requests the following permissions:
 
-### 🔑 Permissions
-
-The app only requests the following necessary permissions:
-
-- **Storage Permission (Manage All Files)**: Read and save local videos, subtitles, and danmaku files
-- **Network Permission**: For Bilibili bangumi streaming, danmaku downloads, and video downloads (user-initiated)
+- Storage Permission (Manage All Files): Read and save local videos, subtitles, and danmaku files
+- Network Permission: Bilibili bangumi streaming, danmaku downloads, and video downloads (user-initiated)
 
 ---
 
