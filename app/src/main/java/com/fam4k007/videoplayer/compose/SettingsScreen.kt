@@ -299,7 +299,7 @@ fun SettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsTopBar(onNavigateBack: () -> Unit) {
-    TopAppBar(
+    ImmersiveTopAppBar(
         title = {
             Text(
                 text = "设置",
@@ -314,12 +314,7 @@ fun SettingsTopBar(onNavigateBack: () -> Unit) {
                     contentDescription = "返回"
                 )
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-        )
+        }
     )
 }
 

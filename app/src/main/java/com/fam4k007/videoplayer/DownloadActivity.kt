@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -24,6 +25,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -34,6 +36,7 @@ import com.fam4k007.videoplayer.download.DownloadItem
 import com.fam4k007.videoplayer.download.MediaParseResult
 import com.fam4k007.videoplayer.download.MediaType
 import com.fam4k007.videoplayer.download.EpisodeInfo
+import com.fam4k007.videoplayer.compose.ImmersiveTopAppBar
 import com.fam4k007.videoplayer.ui.theme.getThemeColors
 import com.fam4k007.videoplayer.utils.ThemeManager
 import kotlinx.coroutines.launch
@@ -42,6 +45,10 @@ import android.util.Log
 class DownloadActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 启用边到边显示
+        enableEdgeToEdge()
+        
         setContent {
             val themeColors = getThemeColors(ThemeManager.getCurrentTheme(this).themeName)
 
@@ -109,7 +116,7 @@ fun DownloadScreen(viewModel: BilibiliDownloadViewModel = viewModel()) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            ImmersiveTopAppBar(
                 title = { 
                     Text(
                         "哔哩哔哩视频下载",
@@ -127,12 +134,7 @@ fun DownloadScreen(viewModel: BilibiliDownloadViewModel = viewModel()) {
                             tint = androidx.compose.ui.graphics.Color.White
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = androidx.compose.ui.graphics.Color.White,
-                    navigationIconContentColor = androidx.compose.ui.graphics.Color.White
-                )
+                }
             )
         }
     ) { padding ->

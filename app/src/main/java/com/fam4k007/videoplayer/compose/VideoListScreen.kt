@@ -91,7 +91,7 @@ fun VideoListScreen(
                     }
                 )
             } else {
-                TopAppBar(
+                ImmersiveTopAppBar(
                     title = {
                         Text(
                             folderName,
@@ -126,10 +126,7 @@ fun VideoListScreen(
                                 tint = Color.White
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+                    }
                 )
             }
         }
@@ -329,7 +326,7 @@ private fun SearchTopBar(
     onSearchQueryChange: (String) -> Unit,
     onCloseSearch: () -> Unit
 ) {
-    TopAppBar(
+    ImmersiveTopAppBar(
         title = {
             BasicTextField(
                 value = searchQuery,
@@ -372,10 +369,7 @@ private fun SearchTopBar(
                     )
                 }
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+        }
     )
 }
 

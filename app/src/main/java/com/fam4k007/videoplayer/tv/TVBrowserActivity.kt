@@ -13,6 +13,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fam4k007.videoplayer.VideoPlayerActivity
+import com.fam4k007.videoplayer.compose.ImmersiveTopAppBar
 import com.fam4k007.videoplayer.sniffer.DetectedVideo
 import com.fam4k007.videoplayer.sniffer.VideoSnifferManager
 import com.fam4k007.videoplayer.utils.ThemeManager
@@ -60,6 +63,9 @@ class TVBrowserActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 启用边到边显示
+        enableEdgeToEdge()
         
         val initialUrl = intent.getStringExtra(EXTRA_URL) ?: ""
         
@@ -151,8 +157,7 @@ fun TVBrowserScreen(
             Column(
                 modifier = Modifier.background(Color.White)
             ) {
-                // 标题栏
-                TopAppBar(
+                ImmersiveTopAppBar(
                     title = { 
                         Text(
                             text = if (showUrlBar) "输入网址" else currentTitle,
@@ -204,11 +209,7 @@ fun TVBrowserScreen(
                                 )
                             }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        titleContentColor = Color.White
-                    )
+                    }
                 )
                 
                 // 地址栏 - 卡片式设计

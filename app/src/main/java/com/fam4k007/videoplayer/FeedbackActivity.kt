@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import com.fam4k007.videoplayer.compose.FeedbackScreen
@@ -18,6 +19,10 @@ class FeedbackActivity : BaseActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 启用边到边显示
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        
         val email = "2297065843@qq.com"
         val githubUrl = AppConstants.URLs.GITHUB_ISSUES_URL
         val activity = this

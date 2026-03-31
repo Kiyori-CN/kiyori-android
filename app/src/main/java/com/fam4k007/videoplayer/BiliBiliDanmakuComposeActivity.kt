@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
@@ -29,6 +30,9 @@ class BiliBiliDanmakuComposeActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 启用边到边显示
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         downloadManager = BiliBiliDanmakuDownloadManager(this)
 
