@@ -8,3 +8,7 @@ sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 # 请前往 https://www.dandanplay.com/ 申请你自己的 AppId 和 AppSecret
 dandanplay.appId=your_app_id_here
 dandanplay.appSecret=your_app_secret_here
+
+# Wyzie 字幕 API 密钥
+# 请前往 https://sub.wyzie.io/redeem 免费申请你自己的 API Key
+wyzie.apiKey=your_wyzie_api_key_here

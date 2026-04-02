@@ -42,3 +42,27 @@
 1. 前往 [DanDanPlay 开放平台](https://www.dandanplay.com/)
 2. 注册并申请获取 AppId 和 AppSecret
 3. 将凭证填入项目根目录的 `local.properties` 文件
+
+---
+
+## Wyzie 字幕 (Wyzie Subs)
+
+用于在线搜索和下载影视作品的字幕文件。
+
+### API 列表
+
+- **媒体搜索API**: `https://sub.wyzie.io/api/tmdb/search`
+- **字幕搜索API**: `https://sub.wyzie.io/search`
+
+### 配置说明
+
+使用 Wyzie API 需要在 `local.properties` 中配置 API Key。
+
+获取 API Key 步骤：
+1. 前往 [Wyzie 密钥申请页](https://sub.wyzie.io/redeem)
+2. 免费申请获取 API Key
+3. 将密钥填入项目根目录的 `local.properties` 文件
+
+### 声明
+
+本应用与 Wyzie 无任何官方关联，仅使用其公开API服务。
