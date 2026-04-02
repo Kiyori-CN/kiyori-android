@@ -185,6 +185,9 @@ Thanks to the following projects for providing API services and technical docume
 - **[DanDanPlay](https://www.dandanplay.com/)**  
   Provides danmaku matching API service, supports intelligent matching and downloading of danmaku for local videos
 
+- **[wyziedevs/wyzie-subs](https://github.com/wyziedevs/wyzie-subs)**  
+  Provides subtitle search API service, supports online searching and downloading of subtitle files for movies and TV shows
+
 - **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
   Collected and organized Bilibili's public APIs, provided valuable API reference documentation for this project
 
@@ -259,4 +262,4 @@ Encountered an issue or have improvement suggestions? Welcome to provide feedbac
 
 ---
 
-**Last Updated:** 2026-03-22
+**Last Updated:** 2026-04-02

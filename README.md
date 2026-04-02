@@ -165,6 +165,9 @@
 - **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
   提供弹幕匹配 API 服务，支持本地视频智能匹配和弹幕下载
 
+- **[wyziedevs/wyzie-subs](https://github.com/wyziedevs/wyzie-subs)**  
+  提供字幕搜索 API 服务，支持在线搜索和下载影视作品字幕文件
+
 - **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
   收集整理了 B站公开 API，为本项目提供了宝贵的 API 参考文档
 
@@ -239,4 +242,4 @@
 
 ---
 
-**Last Updated:** 2026-03-22
+**Last Updated:** 2026-04-02
