@@ -21,9 +21,9 @@ Also supports danmaku, subtitles, gesture controls, Bilibili bangumi online play
 - [Technical Architecture](#technical-architecture) - Tech Stack
 - [Acknowledgments](#acknowledgments) - Open Source Credits
 
-### 🔒 Privacy & Development
+### 🔒 Privacy & Documentation
 - [Privacy & Third-Party Services](#privacy--third-party-services) - Privacy Policy & API Info
-- [Development](#development) - Build & Dev Guide
+- [Technical Documentation](#technical-documentation) - Complete Technical Docs Index
 - [Feedback & Suggestions](#feedback--suggestions) - Issue Reporting
 
 ---
@@ -207,46 +207,46 @@ Thanks to the following projects for providing API services and technical docume
 
 ## Privacy & Third-Party Services
 
-### 📱 Privacy Commitment
+### Privacy Statement
 
-This application highly values user privacy protection:
+- Does not collect any personal information
+- Does not upload any data to servers
+- All features run locally on device
+- Project is completely open source, code is auditable
 
-- ❌ **Does NOT collect** any user personal information
-- ❌ **Does NOT upload** any data to servers (we don't have servers)
-- ❌ **Does NOT share** user data with any third parties
-- ✅ All features run **locally on device**
-- ✅ Project is **completely open source**, all code is publicly auditable
+### Third-Party APIs
 
-**Commitment**: This application will never sell or share user data, because we don't collect any in the first place!
+Uses Bilibili and DanDanPlay public API services for bangumi playback and danmaku matching.
 
-### 🔌 Third-Party APIs
+API Details: [Third-Party API Documentation](docs/third_party_api.md)
 
-This application uses Bilibili and DanDanPlay public API services for bangumi playback and danmaku matching/downloading.
+### Data Security
 
-📋 **View Details**: [Third-Party API Documentation](docs/third_party_api.md)
+Login credentials are encrypted with AES-256 and stored locally on device, not uploaded to any servers.
 
-### 🔐 Data Security
+Security Details: [Data Security Documentation](docs/data_security.md)
 
-The application uses AES-256 encryption to protect login credentials. All data is stored only on local devices and is not uploaded to any servers.
+### Permissions
 
-🛡️ **View Details**: [Data Security Documentation](docs/data_security.md)
+The app requests the following permissions:
 
-### 🔑 Permissions
-
-The app only requests the following necessary permissions:
-
-- **Storage Permission (Manage All Files)**: Read and save local videos, subtitles, and danmaku files
-- **Network Permission**: For Bilibili bangumi streaming, danmaku downloads, and video downloads (user-initiated)
+- Storage Permission (Manage All Files): Read and save local videos, subtitles, and danmaku files
+- Network Permission: Bilibili bangumi streaming, danmaku downloads, and video downloads (user-initiated)
 
 ---
 
-## Development
+## Technical Documentation
 
-### 🔧 Quick Start
-
-Want to participate in development or build this project? This project uses Android Studio and requires DanDanPlay API credentials configuration.
-
-📖 **View Guide**: [Development Tips](docs/development_guide.md)
+- **[Project Build Guide](docs/development_guide.md)** - Project build and DanDanPlay API configuration tutorial
+- **[.nomedia Support](docs/nomedia_support.md)** - .nomedia file handling mechanism
+- **[WebDAV Usage Guide](docs/webdav使用说明.md)** - WebDAV configuration and usage tutorial
+- **[Third-Party API Documentation](docs/third_party_api.md)** - Detailed list of third-party APIs used
+- **[Data Security Documentation](docs/data_security.md)** - Data encryption and security mechanism
+- **[Bilibili Login Mechanism](docs/bilibili_login.md)** - Bilibili login flow and implementation
+- **[Bilibili Bangumi Parsing](docs/bilibili_bangumi.md)** - Bangumi parsing and playback implementation
+- **[Bilibili Danmaku Download](docs/bilibili_danmaku_download.md)** - Danmaku download algorithm and optimization
+- **[Bilibili Download Principle](docs/bilibili_download_principle.md)** - Video/bangumi download implementation
+- **[Bilibili Security Analysis](docs/bilibili_security_analysis.md)** - Anti-crawler and security mechanism analysis
 
 ---
 

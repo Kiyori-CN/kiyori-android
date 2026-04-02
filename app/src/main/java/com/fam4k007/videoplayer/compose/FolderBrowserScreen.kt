@@ -63,7 +63,7 @@ fun FolderBrowserScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            ImmersiveTopAppBar(
                 title = {
                     Text(
                         "文件夹",
@@ -91,10 +91,7 @@ fun FolderBrowserScreen(
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                }
             )
         }
     ) { paddingValues ->

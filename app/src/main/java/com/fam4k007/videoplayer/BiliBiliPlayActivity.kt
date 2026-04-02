@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -31,6 +33,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fam4k007.videoplayer.bilibili.auth.BiliBiliAuthManager
 import com.fam4k007.videoplayer.bilibili.model.BiliApiResponse
+import com.fam4k007.videoplayer.compose.ImmersiveTopAppBar
 import com.fanchen.fam4k007.manager.compose.BiliBiliLoginActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +60,9 @@ class BiliBiliPlayActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 启用边到边显示
+        enableEdgeToEdge()
         
         authManager = BiliBiliAuthManager.getInstance(this)
         
@@ -305,7 +311,7 @@ fun BiliBiliPlayScreen(
     
     Scaffold(
         topBar = {
-            TopAppBar(
+            ImmersiveTopAppBar(
                 title = { Text("B站番剧播放") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -344,10 +350,7 @@ fun BiliBiliPlayScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFF6699),
-                    titleContentColor = Color.White
-                )
+                gradientColors = Color(0xFFFF6699) to Color(0xFFFF99BB)  // B站粉色渐变
             )
         }
     ) { padding ->

@@ -28,7 +28,8 @@ class SubtitleDownloadManager(private val context: Context) {
         .build()
     
     private val gson = Gson()
-    private val baseUrl = "https://sub.wyzie.ru"
+    private val baseUrl = "https://sub.wyzie.io"
+    private val apiKey = com.fam4k007.videoplayer.BuildConfig.WYZIE_API_KEY
     
     companion object {
         private const val TAG = "SubtitleDownloadManager"
@@ -187,7 +188,7 @@ class SubtitleDownloadManager(private val context: Context) {
      */
     private fun searchTmdbId(query: String): String? {
         return try {
-            val url = "$baseUrl/api/tmdb/search?q=${URLEncoder.encode(query, "UTF-8")}"
+            val url = "$baseUrl/api/tmdb/search?q=${URLEncoder.encode(query, "UTF-8")}&key=${URLEncoder.encode(apiKey, "UTF-8")}"
             val request = Request.Builder().url(url).build()
             
             val response = client.newCall(request).execute()
@@ -225,7 +226,7 @@ class SubtitleDownloadManager(private val context: Context) {
         return try {
             // 构建 URL
             val url = buildString {
-                append("$baseUrl/search?id=${URLEncoder.encode(id, "UTF-8")}")
+                append("$baseUrl/search?id=${URLEncoder.encode(id, "UTF-8")}&key=${URLEncoder.encode(apiKey, "UTF-8")}")
                 
                 // 语言参数
                 if (!options.languages.contains("all") && options.languages.isNotEmpty()) {

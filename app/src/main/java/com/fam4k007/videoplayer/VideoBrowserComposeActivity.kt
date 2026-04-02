@@ -12,11 +12,13 @@ import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.fam4k007.videoplayer.compose.FolderBrowserScreen
 import com.fam4k007.videoplayer.ui.theme.getThemeColors
@@ -37,6 +39,9 @@ class VideoBrowserComposeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 启用边到边显示，让内容可以绘制到状态栏区域
+        enableEdgeToEdge()
         
         // 应用主题
         val currentTheme = ThemeManager.getCurrentTheme(this)
