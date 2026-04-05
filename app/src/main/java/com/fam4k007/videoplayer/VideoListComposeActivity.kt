@@ -70,6 +70,7 @@ class VideoListComposeActivity : ComponentActivity() {
                             com.fam4k007.videoplayer.database.VideoCacheEntity(
                                 uri = video.uri,
                                 name = video.name,
+                                nameSortKey = com.fam4k007.videoplayer.database.VideoCacheEntity.generateSortKey(video.name),
                                 path = video.path,
                                 folderPath = folderPath,
                                 folderName = folderName,
@@ -260,6 +261,7 @@ class VideoListComposeActivity : ComponentActivity() {
                         com.fam4k007.videoplayer.database.VideoCacheEntity(
                             uri = video.uri,
                             name = video.name,
+                            nameSortKey = com.fam4k007.videoplayer.database.VideoCacheEntity.generateSortKey(video.name),
                             path = video.path,
                             folderPath = folderPath,
                             folderName = folderPath.substringAfterLast("/"),
