@@ -15,7 +15,9 @@ import kotlinx.coroutines.withContext
  */
 class VideoPagingSource(
     private val dao: VideoCacheDao,
-    private val folderPath: String
+    private val folderPath: String,
+    private val sortType: String = "NAME",
+    private val sortOrder: String = "ASCENDING"
 ) : PagingSource<Int, VideoFileParcelable>() {
 
     companion object {
@@ -29,15 +31,22 @@ class VideoPagingSource(
             val pageSize = params.loadSize
             val offset = page * PAGE_SIZE
 
-            Logger.d(TAG, "Loading page $page, pageSize=$pageSize, offset=$offset, folder=$folderPath")
+            Logger.d(TAG, "Loading page $page, pageSize=$pageSize, offset=$offset, folder=$folderPath, sort=$sortType-$sortOrder")
 
-            // 从数据库分页查询（在IO线程执行）
+            // 从数据库分页查询（在IO线程执行），根据排序方式选择不同的查询方法
             val entities = withContext(Dispatchers.IO) {
-                dao.getVideosByFolderPaged(
-                    folderPath = folderPath,
-                    limit = pageSize,
-                    offset = offset
-                )
+                when {
+                    sortType == "NAME" && sortOrder == "ASCENDING" -> 
+                        dao.getVideosByFolderPagedByNameAsc(folderPath, pageSize, offset)
+                    sortType == "NAME" && sortOrder == "DESCENDING" -> 
+                        dao.getVideosByFolderPagedByNameDesc(folderPath, pageSize, offset)
+                    sortType == "DATE" && sortOrder == "ASCENDING" -> 
+                        dao.getVideosByFolderPagedByDateAsc(folderPath, pageSize, offset)
+                    sortType == "DATE" && sortOrder == "DESCENDING" -> 
+                        dao.getVideosByFolderPagedByDateDesc(folderPath, pageSize, offset)
+                    else -> 
+                        dao.getVideosByFolderPagedByNameAsc(folderPath, pageSize, offset)
+                }
             }
 
             // 转换为VideoFileParcelable

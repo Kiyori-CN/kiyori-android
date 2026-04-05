@@ -67,8 +67,12 @@ fun VideoListScreenPaging(
 ) {
     val context = LocalContext.current
     
-    // Paging数据流
-    val pager = remember(folderPath) {
+    // 排序状态
+    var sortType by remember { mutableStateOf(preferencesManager.getVideoSortType()) }
+    var sortOrder by remember { mutableStateOf(preferencesManager.getVideoSortOrder()) }
+    
+    // Paging数据流 - 依赖于sortType和sortOrder
+    val pager = remember(folderPath, sortType, sortOrder) {
         Pager(
             config = PagingConfig(
                 pageSize = VideoPagingSource.PAGE_SIZE,
@@ -79,7 +83,9 @@ fun VideoListScreenPaging(
             pagingSourceFactory = {
                 VideoPagingSource(
                     dao = VideoDatabase.getDatabase(context).videoCacheDao(),
-                    folderPath = folderPath
+                    folderPath = folderPath,
+                    sortType = sortType,
+                    sortOrder = sortOrder
                 )
             }
         ).flow.cachedIn(coroutineScope)
@@ -204,11 +210,23 @@ fun VideoListScreenPaging(
                                 VideoItem(
                                     video = video,
                                     onClick = { 
-                                        // 从数据库查询该文件夹的所有视频
+                                        // 从数据库查询该文件夹的所有视频（使用当前排序方式）
                                         coroutineScope.launch {
                                             val allVideos = withContext(Dispatchers.IO) {
                                                 val dao = VideoDatabase.getDatabase(context).videoCacheDao()
-                                                dao.getVideosByFolder(folderPath).map { entity ->
+                                                val entities = when {
+                                                    sortType == "NAME" && sortOrder == "ASCENDING" -> 
+                                                        dao.getVideosByFolderSortedByNameAsc(folderPath)
+                                                    sortType == "NAME" && sortOrder == "DESCENDING" -> 
+                                                        dao.getVideosByFolderSortedByNameDesc(folderPath)
+                                                    sortType == "DATE" && sortOrder == "ASCENDING" -> 
+                                                        dao.getVideosByFolderSortedByDateAsc(folderPath)
+                                                    sortType == "DATE" && sortOrder == "DESCENDING" -> 
+                                                        dao.getVideosByFolderSortedByDateDesc(folderPath)
+                                                    else -> 
+                                                        dao.getVideosByFolderSortedByNameAsc(folderPath)
+                                                }
+                                                entities.map { entity ->
                                                     VideoFileParcelable(
                                                         uri = entity.uri,
                                                         name = entity.name,
@@ -242,8 +260,18 @@ fun VideoListScreenPaging(
     }
 
     if (showSortDialog) {
-        Text("排序功能需要在数据库查询中实现，当前版本暂不支持动态排序")
-        // TODO: 需要修改VideoPagingSource支持动态排序
+        VideoSortDialog(
+            currentSortType = sortType,
+            currentSortOrder = sortOrder,
+            onDismiss = { showSortDialog = false },
+            onSortSelected = { newType, newOrder ->
+                sortType = newType
+                sortOrder = newOrder
+                preferencesManager.setVideoSortType(newType)
+                preferencesManager.setVideoSortOrder(newOrder)
+                showSortDialog = false
+            }
+        )
     }
 
     AnimatedVisibility(
@@ -530,5 +558,75 @@ private fun formatDuration(millis: Long): String {
     return when {
         hours > 0 -> String.format("%d:%02d:%02d", hours, minutes, seconds)
         else -> String.format("%d:%02d", minutes, seconds)
+    }
+}
+
+@Composable
+private fun VideoSortDialog(
+    currentSortType: String,
+    currentSortOrder: String,
+    onDismiss: () -> Unit,
+    onSortSelected: (String, String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("排序方式", fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column {
+                SortOption(
+                    text = "名称 (升序)",
+                    isSelected = currentSortType == "NAME" && currentSortOrder == "ASCENDING",
+                    onClick = { onSortSelected("NAME", "ASCENDING") }
+                )
+                SortOption(
+                    text = "名称 (降序)",
+                    isSelected = currentSortType == "NAME" && currentSortOrder == "DESCENDING",
+                    onClick = { onSortSelected("NAME", "DESCENDING") }
+                )
+                SortOption(
+                    text = "日期 (升序)",
+                    isSelected = currentSortType == "DATE" && currentSortOrder == "ASCENDING",
+                    onClick = { onSortSelected("DATE", "ASCENDING") }
+                )
+                SortOption(
+                    text = "日期 (降序)",
+                    isSelected = currentSortType == "DATE" && currentSortOrder == "DESCENDING",
+                    onClick = { onSortSelected("DATE", "DESCENDING") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+private fun SortOption(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = onClick
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            fontSize = 16.sp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF212121)
+        )
     }
 }

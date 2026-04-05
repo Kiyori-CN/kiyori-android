@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 @Database(
     entities = [VideoCacheEntity::class, PlaybackHistoryEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class VideoDatabase : RoomDatabase() {
@@ -73,6 +73,29 @@ abstract class VideoDatabase : RoomDatabase() {
             }
         }
         
+        /**
+         * 数据库版本3到4的迁移
+         * 为video_cache表添加nameSortKey字段，实现自然排序
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. 添加nameSortKey字段
+                database.execSQL("ALTER TABLE video_cache ADD COLUMN nameSortKey TEXT NOT NULL DEFAULT ''")
+                
+                // 2. 为现有数据生成nameSortKey值（使用SQLite的字符串函数进行简单处理）
+                // 注意：SQLite的LOWER()函数只能处理ASCII字符，不能完全实现自然排序
+                // 但由于新插入的数据会使用Kotlin的generateSortKey()，这里只需简单处理即可
+                database.execSQL("UPDATE video_cache SET nameSortKey = LOWER(name)")
+                
+                // 3. 删除旧索引
+                database.execSQL("DROP INDEX IF EXISTS index_video_cache_folderPath_name")
+                
+                // 4. 创建新索引（使用nameSortKey）
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_video_cache_folderPath_nameSortKey ON video_cache(folderPath, nameSortKey)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_video_cache_folderPath_dateAdded ON video_cache(folderPath, dateAdded)")
+            }
+        }
+        
         fun getDatabase(context: Context): VideoDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -80,7 +103,7 @@ abstract class VideoDatabase : RoomDatabase() {
                     VideoDatabase::class.java,
                     "video_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
                 INSTANCE = instance
                 instance

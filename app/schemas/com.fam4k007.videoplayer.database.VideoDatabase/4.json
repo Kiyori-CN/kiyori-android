@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
-    "identityHash": "b5d9f70242bf522c10686dbeff05d61a",
+    "version": 4,
+    "identityHash": "2f3edc99f4da4d77099af12693c1536d",
     "entities": [
       {
         "tableName": "video_cache",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uri` TEXT NOT NULL, `name` TEXT NOT NULL, `path` TEXT NOT NULL, `folderPath` TEXT NOT NULL, `folderName` TEXT NOT NULL, `size` INTEGER NOT NULL, `duration` INTEGER NOT NULL, `dateModified` INTEGER NOT NULL, `dateAdded` INTEGER NOT NULL, `lastScanned` INTEGER NOT NULL, PRIMARY KEY(`uri`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uri` TEXT NOT NULL, `name` TEXT NOT NULL, `nameSortKey` TEXT NOT NULL, `path` TEXT NOT NULL, `folderPath` TEXT NOT NULL, `folderName` TEXT NOT NULL, `size` INTEGER NOT NULL, `duration` INTEGER NOT NULL, `dateModified` INTEGER NOT NULL, `dateAdded` INTEGER NOT NULL, `lastScanned` INTEGER NOT NULL, PRIMARY KEY(`uri`))",
         "fields": [
           {
             "fieldPath": "uri",
@@ -17,6 +17,12 @@
           {
             "fieldPath": "name",
             "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nameSortKey",
+            "columnName": "nameSortKey",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -86,34 +92,14 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_video_cache_folderName` ON `${TABLE_NAME}` (`folderName`)"
           },
           {
-            "name": "index_video_cache_folderPath_name",
+            "name": "index_video_cache_folderPath_nameSortKey",
             "unique": false,
             "columnNames": [
               "folderPath",
-              "name"
+              "nameSortKey"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_video_cache_folderPath_name` ON `${TABLE_NAME}` (`folderPath`, `name`)"
-          },
-          {
-            "name": "index_video_cache_folderPath_size",
-            "unique": false,
-            "columnNames": [
-              "folderPath",
-              "size"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_video_cache_folderPath_size` ON `${TABLE_NAME}` (`folderPath`, `size`)"
-          },
-          {
-            "name": "index_video_cache_folderPath_duration",
-            "unique": false,
-            "columnNames": [
-              "folderPath",
-              "duration"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_video_cache_folderPath_duration` ON `${TABLE_NAME}` (`folderPath`, `duration`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_video_cache_folderPath_nameSortKey` ON `${TABLE_NAME}` (`folderPath`, `nameSortKey`)"
           },
           {
             "name": "index_video_cache_folderPath_dateAdded",
@@ -215,7 +201,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b5d9f70242bf522c10686dbeff05d61a')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2f3edc99f4da4d77099af12693c1536d')"
     ]
   }
 }
