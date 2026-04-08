@@ -6,6 +6,8 @@ An Android local video player based on libmpv. The core feature is the open-sour
 
 Also supports danmaku, subtitles, gesture controls, Bilibili bangumi online playback, and other features, and can be used as a general-purpose local video player.
 
+> **English Version Branch**: If you are looking for the English version of the app download or related information, please visit the [meow-player-en branch](https://github.com/azxcvn/mpv-android-anime4k/tree/meow-player-en?tab=readme-ov-file), which is dedicated to English version development.
+
 ## 📑 Table of Contents
 
 ### 📋 Project Information
@@ -77,26 +79,6 @@ We strongly oppose and do not condone any form of piracy, illegal distribution, 
 - 🎨 **Upscaling**: Anime4K real-time video upscaling
 - 🖼️ **Others**: Screenshot saving, playback progress memory
 
-📖 **Full Feature Documentation**: [Feature Details](docs/features.md)
-
----
-
-## Screenshots
-
-
-
-## Key Features
-
-- **Video Playback**: Support for mainstream video formats (MP4, MKV, AVI, etc.)
-- **Web Sniffing Feature**: Built-in WebView for sniffing web videos, automatically selecting the best quality, and one-click playback
-- **Bilibili Bangumi Support**: Login to Bilibili account, stream bangumi online (see [Login Implementation](docs/bilibili_login.md) and [Bangumi Parsing Principle](docs/bilibili_bangumi.md))
-- **Bilibili Video/Bangumi Download**: Download Bilibili videos and bangumi to local storage (see [Download Implementation Principle](docs/bilibili_download_principle.md))
-  - Support for full URLs, short links (b23.tv), and text-embedded share links
-  - Automatic video information parsing, support for multi-episode bangumi selection
-  - Automatic audio-video merging into MP4 format
-  - Support for pause, resume, and cancel downloads
-  - Real-time download progress display
-  - ⚠️ **For personal learning use only, commercial use is strictly prohibited**
 📖 **Full Feature Documentation**: [Feature Details](docs/features.md)
 
 ---
