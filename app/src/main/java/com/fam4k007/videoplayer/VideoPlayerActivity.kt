@@ -504,6 +504,11 @@ class VideoPlayerActivity : AppCompatActivity(),
             return
         }
         
+        // 应用用户保存的解码器设置
+        val savedHardwareDecoder = preferencesManager.getHardwareDecoder()
+        playbackEngine.setHardwareDecoding(savedHardwareDecoder)
+        Log.d(TAG, "Applied saved hardware decoder setting: $savedHardwareDecoder")
+        
         gestureHandler = GestureHandler(
             WeakReference(this),
             WeakReference(window),
