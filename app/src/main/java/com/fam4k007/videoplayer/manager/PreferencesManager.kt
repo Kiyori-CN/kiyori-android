@@ -817,6 +817,38 @@ class PreferencesManager private constructor(context: Context) {
         sharedPreferences.edit().remove("remote_debug_summary").apply()
     }
 
+    fun getBrowserLastInputUrl(): String {
+        return sharedPreferences.getString("browser_last_input_url", "") ?: ""
+    }
+
+    fun setBrowserLastInputUrl(value: String) {
+        sharedPreferences.edit().putString("browser_last_input_url", value).apply()
+    }
+
+    fun getBrowserHomeUrl(): String {
+        return sharedPreferences.getString("browser_home_url", "about:blank") ?: "about:blank"
+    }
+
+    fun setBrowserHomeUrl(value: String) {
+        sharedPreferences.edit().putString("browser_home_url", value).apply()
+    }
+
+    fun getBrowserSearchEngineId(): String {
+        return sharedPreferences.getString("browser_search_engine", "baidu") ?: "baidu"
+    }
+
+    fun setBrowserSearchEngineId(value: String) {
+        sharedPreferences.edit().putString("browser_search_engine", value).apply()
+    }
+
+    fun isBrowserDesktopModeEnabled(): Boolean {
+        return sharedPreferences.getBoolean("browser_desktop_mode", false)
+    }
+
+    fun setBrowserDesktopModeEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("browser_desktop_mode", enabled).apply()
+    }
+
     fun clearAll() {
         sharedPreferences.edit().clear().apply()
     }

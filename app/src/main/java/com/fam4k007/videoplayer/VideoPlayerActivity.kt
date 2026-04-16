@@ -45,10 +45,12 @@ import com.fam4k007.videoplayer.Anime4KManager
 import com.fam4k007.videoplayer.manager.PreferencesManager
 import com.fam4k007.videoplayer.manager.SubtitleManager
 import com.fam4k007.videoplayer.remote.RemotePlaybackHeaders
+import com.fam4k007.videoplayer.remote.RemotePlaybackHistoryRepository
 import com.fam4k007.videoplayer.remote.RemotePlaybackLauncher
 import com.fam4k007.videoplayer.remote.RemotePlaybackRequest
 import com.fam4k007.videoplayer.remote.RemotePlaybackResolver
 import com.fam4k007.videoplayer.remote.RemoteUrlParser
+import com.fam4k007.videoplayer.browser.ui.BrowserActivity
 import com.fam4k007.videoplayer.player.GestureHandler
 import com.fam4k007.videoplayer.player.PlaybackEngine
 import com.fam4k007.videoplayer.player.PlayerControlsManager
@@ -153,6 +155,8 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     // 当前文件夹的视频列表
     private var currentVideoList: List<VideoFileParcelable> = emptyList()
+    private var hasLoadedPlayableMedia = false
+    private var hasHandledStartupPlaybackFailure = false
 
     private var anime4KDialog: android.app.Dialog? = null
     private var anime4KEnabled = false
@@ -495,6 +499,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onFileLoaded() {
+                    hasLoadedPlayableMedia = true
                     isPlaying = true
                     controlsManager?.updatePlayPauseButton(true)
                     
@@ -527,6 +532,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                 
                 override fun onError(message: String) {
                     DialogUtils.showToastLong(this@VideoPlayerActivity, message)
+                    if (isOnlineVideo && !hasLoadedPlayableMedia) {
+                        handleStartupPlaybackFailure()
+                    }
                 }
                 
                 override fun onBufferingStateChanged(isBuffering: Boolean) {
@@ -1978,6 +1986,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             val result = RemotePlaybackResolver.resolve(request)
             val debugSummary = RemotePlaybackResolver.buildDebugSummary(result)
             preferencesManager.setLastRemoteDebugSummary(debugSummary)
+            RemotePlaybackHistoryRepository(this@VideoPlayerActivity).addDebugHistory(debugSummary)
             Logger.d(TAG, "Remote debug summary:\n$debugSummary")
             if (sequence != remoteResolveSequence) {
                 Logger.d(TAG, "Discarding stale remote resolve result for: ${request.url}")
@@ -2034,6 +2043,49 @@ class VideoPlayerActivity : AppCompatActivity(),
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         } else {
             // 正常返回
+            finish()
+            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+        }
+    }
+
+    private fun handleStartupPlaybackFailure() {
+        if (hasHandledStartupPlaybackFailure || isFinishing || isDestroyed) {
+            return
+        }
+        hasHandledStartupPlaybackFailure = true
+
+        window.decorView.post {
+            if (isFinishing || isDestroyed) {
+                return@post
+            }
+
+            if (!isTaskRoot) {
+                finish()
+                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                return@post
+            }
+
+            when (intent.getStringExtra(RemotePlaybackLauncher.EXTRA_RETURN_DESTINATION)) {
+                RemotePlaybackLauncher.RETURN_DESTINATION_BROWSER -> {
+                    BrowserActivity.start(
+                        this,
+                        intent.getStringExtra(RemotePlaybackLauncher.EXTRA_RETURN_URL).orEmpty()
+                    )
+                }
+                RemotePlaybackLauncher.RETURN_DESTINATION_REMOTE_INPUT -> {
+                    RemotePlaybackInputActivity.start(this)
+                }
+                RemotePlaybackLauncher.RETURN_DESTINATION_REMOTE_SEARCH_HISTORY -> {
+                    RemotePlaybackHistoryActivity.startSearch(this)
+                }
+                RemotePlaybackLauncher.RETURN_DESTINATION_REMOTE_DEBUG_HISTORY -> {
+                    RemotePlaybackHistoryActivity.startDebug(this)
+                }
+                RemotePlaybackLauncher.RETURN_DESTINATION_BILIBILI -> {
+                    startActivity(Intent(this, BiliBiliPlayActivity::class.java))
+                }
+            }
+
             finish()
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         }

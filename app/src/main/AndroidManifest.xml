@@ -50,6 +50,18 @@
         <activity 
             android:name=".VideoBrowserComposeActivity"
             android:exported="false" />
+        <activity
+            android:name=".RemotePlaybackInputActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VideoPlayer" />
+        <activity
+            android:name=".RemotePlaybackHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VideoPlayer" />
+        <activity
+            android:name=".browser.ui.BrowserActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VideoPlayer" />
         <activity 
             android:name=".VideoListComposeActivity"
             android:exported="false" />
@@ -59,10 +71,6 @@
         <activity 
             android:name=".webdav.WebDavBrowserComposeActivity"
             android:exported="false" />
-        <activity 
-            android:name=".tv.TVBrowserActivity"
-            android:exported="false"
-            android:theme="@style/Theme.VideoPlayer" />
         <activity 
             android:name=".VideoPlayerActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"

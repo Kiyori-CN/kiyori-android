@@ -17,9 +17,26 @@ object RemotePlaybackHeaders {
         "Accept"
     )
 
+    private val browserPlaybackHeaderNames = linkedSetOf(
+        "Referer",
+        "Cookie",
+        "Authorization"
+    )
+
     fun normalize(headers: Map<String, String>): LinkedHashMap<String, String> {
         val normalized = LinkedHashMap<String, String>()
         for (allowedName in allowedHeaderNames) {
+            val value = get(headers, allowedName)?.trim().orEmpty()
+            if (value.isNotEmpty()) {
+                normalized[allowedName] = value
+            }
+        }
+        return normalized
+    }
+
+    fun normalizeForBrowserPlayback(headers: Map<String, String>): LinkedHashMap<String, String> {
+        val normalized = LinkedHashMap<String, String>()
+        for (allowedName in browserPlaybackHeaderNames) {
             val value = get(headers, allowedName)?.trim().orEmpty()
             if (value.isNotEmpty()) {
                 normalized[allowedName] = value

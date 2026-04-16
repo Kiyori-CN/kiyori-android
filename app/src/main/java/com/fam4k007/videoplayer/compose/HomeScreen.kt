@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.fam4k007.videoplayer.R
 import com.fam4k007.videoplayer.PlaybackHistoryManager
+import com.fam4k007.videoplayer.RemotePlaybackInputActivity
 import com.fam4k007.videoplayer.VideoBrowserComposeActivity
 import com.fam4k007.videoplayer.VideoPlayerActivity
 import com.fam4k007.videoplayer.BiliBiliPlayActivity
@@ -47,6 +48,7 @@ import com.fam4k007.videoplayer.remote.RemotePlaybackHeaders
 import com.fam4k007.videoplayer.remote.RemotePlaybackLauncher
 import com.fam4k007.videoplayer.remote.RemotePlaybackRequest
 import com.fam4k007.videoplayer.remote.RemoteUrlParser
+import com.fam4k007.videoplayer.browser.ui.BrowserActivity
 import com.fam4k007.videoplayer.webdav.WebDavComposeActivity
 import com.fanchen.fam4k007.manager.compose.BiliBiliLoginActivity
 
@@ -123,23 +125,29 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            GradientButton(
+            if (false) GradientButton(
                 text = "播放网络视频",
-                onClick = {
-                    showRemoteUrlDialog = true
-                }
+                onClick = {}
             )
             
             Spacer(modifier = Modifier.weight(1f))
         }
         
         // 右下角展开/收起按钮和功能区
-        ExpandableActionButton(
+        ExpandableActionMenu(
             isExpanded = isExpanded,
             onToggle = { isExpanded = !isExpanded },
-            onTVClick = {
+            onBrowserClick = {
                 isExpanded = false
-                com.fam4k007.videoplayer.tv.TVBrowserActivity.start(context)
+                BrowserActivity.start(context)
+                (context as? android.app.Activity)?.overridePendingTransition(
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
+                )
+            },
+            onRemoteVideoClick = {
+                isExpanded = false
+                RemotePlaybackInputActivity.start(context)
                 (context as? android.app.Activity)?.overridePendingTransition(
                     R.anim.slide_in_right,
                     R.anim.slide_out_left
@@ -691,19 +699,101 @@ fun RemoteUrlDialog(
  * 可展开的操作按钮
  */
 @Composable
+fun ExpandableActionMenu(
+    isExpanded: Boolean,
+    onToggle: () -> Unit,
+    onBrowserClick: () -> Unit,
+    onRemoteVideoClick: () -> Unit,
+    onBiliBiliClick: () -> Unit,
+    onWebDavClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(animationSpec = tween(300)) +
+                    expandVertically(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300)) +
+                    shrinkVertically(animationSpec = tween(300))
+            ) {
+                Card(
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .widthIn(min = 304.dp, max = 336.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ActionItem(
+                            icon = Icons.Default.Language,
+                            label = "浏览器",
+                            onClick = onBrowserClick
+                        )
+                        ActionItem(
+                            icon = Icons.Default.PlayCircle,
+                            label = "播放网络视频",
+                            onClick = onRemoteVideoClick
+                        )
+                        ActionItem(
+                            icon = Icons.Default.VideoLibrary,
+                            label = "哔哩哔哩番剧",
+                            onClick = onBiliBiliClick
+                        )
+                        ActionItem(
+                            icon = Icons.Default.Cloud,
+                            label = "WebDAV",
+                            onClick = onWebDavClick
+                        )
+                    }
+                }
+            }
+
+            FloatingActionButton(
+                onClick = onToggle,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White,
+                modifier = Modifier.size(60.dp)
+            ) {
+                val rotation by animateFloatAsState(
+                    targetValue = if (isExpanded) 45f else 0f,
+                    animationSpec = tween(300),
+                    label = "rotation"
+                )
+
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = if (isExpanded) "收起" else "展开",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .rotate(rotation)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun ExpandableActionButton(
     isExpanded: Boolean,
     onToggle: () -> Unit,
+    onBrowserClick: () -> Unit,
     onBiliBiliClick: () -> Unit,
-    onWebDavClick: () -> Unit,
-    onTVClick: () -> Unit
+    onWebDavClick: () -> Unit
 ) {
-    var localIsExpanded by remember { mutableStateOf(isExpanded) }
-    
-    LaunchedEffect(isExpanded) {
-        localIsExpanded = isExpanded
-    }
-    
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.BottomEnd
@@ -725,7 +815,7 @@ fun ExpandableActionButton(
                 Card(
                     modifier = Modifier
                         .padding(bottom = 16.dp)
-                        .wrapContentSize(),
+                        .widthIn(min = 240.dp, max = 312.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White
@@ -733,15 +823,18 @@ fun ExpandableActionButton(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // TV浏览器（视频嗅探）
                         ActionItem(
-                            icon = Icons.Default.Tv,
-                            label = "TV",
-                            onClick = onTVClick
+                            icon = Icons.Default.Language,
+                            label = "浏览器",
+                            onClick = onBrowserClick
                         )
+
+                        // TV浏览器（视频嗅探）
                         
                         // 哔哩哔哩番剧
                         ActionItem(
@@ -800,13 +893,14 @@ fun ActionItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
+            .width(70.dp)
             .clickable(onClick = onClick)
-            .padding(8.dp)
+            .padding(horizontal = 1.dp, vertical = 6.dp)
     ) {
         // 图标背景（参考设置页样式）
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(42.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     brush = Brush.linearGradient(
@@ -822,16 +916,19 @@ fun ActionItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         
         Text(
             text = label,
-            fontSize = 12.sp,
-            color = Color(0xFF666666)
+            fontSize = 10.sp,
+            color = Color(0xFF666666),
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

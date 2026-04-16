@@ -90,6 +90,15 @@ fun VideoListDrawer(
     var showSortMenu by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val dismissDrawer = remember(onDismiss, coroutineScope) {
+        {
+            isVisible = false
+            coroutineScope.launch {
+                delay(300)
+                onDismiss()
+            }
+        }
+    }
     
     // 当排序改变时，保存到 SharedPreferences
     LaunchedEffect(sortBy) {
@@ -145,11 +154,7 @@ fun VideoListDrawer(
 
     // 处理返回键
     BackHandler(enabled = isVisible) {
-        isVisible = false
-        coroutineScope.launch {
-            delay(300)
-            onDismiss()
-        }
+        dismissDrawer()
     }
 
     // 点击背景关闭
@@ -159,148 +164,163 @@ fun VideoListDrawer(
             .clickable(
                 interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
                 indication = null
-            ) { 
-                isVisible = false
-                coroutineScope.launch {
-                    delay(300)
-                    onDismiss() 
-                }
-            }
+            ) { dismissDrawer() }
     ) {
-        // 右侧抽屉
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = slideInHorizontally(
-                initialOffsetX = { it },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            ) + fadeIn(animationSpec = tween(300)),
-            exit = slideOutHorizontally(
-                targetOffsetX = { it },
-                animationSpec = tween(250, easing = FastOutSlowInEasing)
-            ) + fadeOut(animationSpec = tween(250)),
-            modifier = Modifier.align(Alignment.CenterEnd)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(380.dp)  // 视频列表需要更宽一点
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val drawerWidth = if (maxWidth < 500.dp) {
+                maxWidth * 0.86f
+            } else {
+                380.dp
+            }
+
+            // 右侧抽屉
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = slideInHorizontally(
+                    initialOffsetX = { it },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(300)),
+                exit = slideOutHorizontally(
+                    targetOffsetX = { it },
+                    animationSpec = tween(250, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(250)),
+                modifier = Modifier.align(Alignment.CenterEnd)
             ) {
-                // 半透明背景层（高对比度，与字幕设置一致）
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color(0xCC121212), // 左边缘 80% 不透明
-                                    Color(0xE6121212)  // 右边缘 90% 不透明
-                                )
-                            )
-                        )
-                )
-                
-                // 内容层
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable(
-                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                            indication = null
-                        ) { /* 阻止点击穿透 */ }
+                        .fillMaxHeight()
+                        .width(drawerWidth)
                 ) {
-                    Column(
+                    // 半透明背景层（高对比度，与字幕设置一致）
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-                        // 标题栏
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "视频列表",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            
-                            // 排序按钮
-                            Box {
-                                IconButton(
-                                    onClick = { showSortMenu = !showSortMenu },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Sort,
-                                        contentDescription = "排序",
-                                        tint = Color(0xFF64B5F6),
-                                        modifier = Modifier.size(20.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xCC121212), // 左边缘 80% 不透明
+                                        Color(0xE6121212)  // 右边缘 90% 不透明
                                     )
+                                )
+                            )
+                    )
+                    
+                    // 内容层
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) { /* 阻止点击穿透 */ }
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                        ) {
+                            // 标题栏
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "视频列表",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    // 排序按钮
+                                    Box {
+                                        IconButton(
+                                            onClick = { showSortMenu = !showSortMenu },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Sort,
+                                                contentDescription = "排序",
+                                                tint = Color(0xFF64B5F6),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
+                                        // 排序菜单
+                                        DropdownMenuWithStyle(
+                                            expanded = showSortMenu,
+                                            onDismissRequest = { showSortMenu = false },
+                                            sortBy = sortBy,
+                                            sortOrder = sortOrder,
+                                            onSortByChange = { sortBy = it },
+                                            onSortOrderChange = { sortOrder = it }
+                                        )
+                                    }
+
+                                    TextButton(onClick = { dismissDrawer() }) {
+                                        Text(
+                                            text = "关闭",
+                                            color = Color(0xFF64B5F6),
+                                            fontSize = 13.sp
+                                        )
+                                    }
                                 }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // 视频计数和排序信息
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "共 ${sortedVideoList.size} 个视频",
+                                    fontSize = 13.sp,
+                                    color = Color(0xB3FFFFFF)
+                                )
                                 
-                                // 排序菜单
-                                DropdownMenuWithStyle(
-                                    expanded = showSortMenu,
-                                    onDismissRequest = { showSortMenu = false },
-                                    sortBy = sortBy,
-                                    sortOrder = sortOrder,
-                                    onSortByChange = { sortBy = it },
-                                    onSortOrderChange = { sortOrder = it }
+                                Text(
+                                    text = getSortText(sortBy, sortOrder),
+                                    fontSize = 11.sp,
+                                    color = Color(0x99FFFFFF)
                                 )
                             }
-                        }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
 
-                        // 视频计数和排序信息
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "共 ${sortedVideoList.size} 个视频",
-                                fontSize = 13.sp,
-                                color = Color(0xB3FFFFFF)
+                            Divider(
+                                color = Color(0x33FFFFFF),
+                                thickness = 1.dp,
+                                modifier = Modifier.padding(bottom = 16.dp)
                             )
-                            
-                            Text(
-                                text = getSortText(sortBy, sortOrder),
-                                fontSize = 11.sp,
-                                color = Color(0x99FFFFFF)
-                            )
-                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Divider(
-                            color = Color(0x33FFFFFF),
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-
-                        // 视频列表
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            itemsIndexed(sortedVideoList) { index, video ->
-                                VideoListItem(
-                                    video = video,
-                                    index = index,
-                                    isCurrentPlaying = index == currentIndex,
-                                    onClick = {
-                                        isVisible = false
-                                        coroutineScope.launch {
-                                            delay(200)
-                                            onVideoSelected(video, index)
-                                            onDismiss()
+                            // 视频列表
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                itemsIndexed(sortedVideoList) { index, video ->
+                                    VideoListItem(
+                                        video = video,
+                                        index = index,
+                                        isCurrentPlaying = index == currentIndex,
+                                        onClick = {
+                                            isVisible = false
+                                            coroutineScope.launch {
+                                                delay(200)
+                                                onVideoSelected(video, index)
+                                                onDismiss()
+                                            }
                                         }
-                                    }
-                                )
+                                    )
+                                }
                             }
                         }
                     }
