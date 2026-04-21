@@ -20,7 +20,7 @@ data class BrowserSearchRecord(
 data class BrowserPageState(
     val inputUrl: String = "",
     val currentUrl: String = BrowserSecurityPolicy.BLANK_HOME_URL,
-    val title: String = "内置浏览器",
+    val title: String = "Kiyori",
     val searchEngine: BrowserSearchEngine = BrowserSearchEngine.DEFAULT,
     val userAgentMode: BrowserUserAgentMode = BrowserUserAgentMode.ANDROID,
     val isIncognitoMode: Boolean = false,

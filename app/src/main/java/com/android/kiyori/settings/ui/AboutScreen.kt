@@ -100,7 +100,7 @@ fun AboutScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "基于 MPV 的 Anime4K 视频播放器",
+                        text = "浏览器优先的网页与媒体工具",
                         fontSize = 14.sp,
                         color = SettingsPalette.SecondaryText
                     )

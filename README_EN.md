@@ -1,17 +1,36 @@
-# Kiyori - Local Anime Video Real-time Upscaling Player
+# Kiyori
 
 **[中文版本](README.md) | [English Version](README_EN.md)**
 
----
-
 > [!IMPORTANT]
-> The current primary repository is
-> [Kiyori-CN/kiyori-android](https://github.com/Kiyori-CN/kiyori-android).
+> Primary repository: <https://github.com/Kiyori-CN/kiyori-android>
 
----
+Kiyori is an Android browser-first app with built-in media tools.
 
-An Android local video player based on libmpv. The core feature is the open-source implementation of Anime4K real-time upscaling algorithm, optimized for anime/animation/bangumi video styles, significantly enhancing the viewing experience of low-resolution anime.
+The current direction prioritizes the in-app browser, page navigation, search, bookmarks, browsing history, video sniffing, remote playback, WebDAV access, and Bilibili-related capabilities. The project still keeps its `libmpv` playback layer to handle local files, sniffed media links, and remote streams through a unified playback entry.
 
-Also supports danmaku, subtitles, gesture controls, Bilibili bangumi online playback, and other features, and can be used as a general-purpose local video player.
+## Positioning
 
-Repository layout and upload policy: [docs/repository_layout.md](docs/repository_layout.md)
+Kiyori is no longer documented as a standalone local video player. It is now positioned as a hybrid Android app with a browser core and optional media capabilities:
+
+- Built-in browser as the main entry point
+- Web video sniffing and remote media playback
+- WebDAV access and remote file opening
+- Local media browsing and playback history
+- Bilibili login, parsing, download, danmaku, and related integrations
+- Anime4K and other playback enhancements kept as media-side features
+
+## Documentation
+
+- [Development Guide](docs/development_guide.md)
+- [Repository Layout](docs/repository_layout.md)
+- [Feature Overview](docs/features.md)
+- [Internal Browser Design](docs/internal_browser_design.md)
+- [Architecture Analysis](docs/project_architecture_analysis.md)
+- [Remote URL Playback Design](docs/remote_url_playback_design.md)
+
+## Feedback
+
+- Issues: <https://github.com/Kiyori-CN/kiyori-android/issues>
+- Repository: <https://github.com/Kiyori-CN/kiyori-android>
+- Organization: <https://github.com/Kiyori-CN>

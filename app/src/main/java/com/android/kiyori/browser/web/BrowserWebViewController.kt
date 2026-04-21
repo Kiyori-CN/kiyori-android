@@ -151,7 +151,7 @@ class BrowserWebViewController(
 
             override fun onReceivedTitle(view: WebView?, title: String?) {
                 updateState {
-                    copy(title = title?.takeIf { it.isNotBlank() } ?: "内置浏览器")
+                    copy(title = title?.takeIf { it.isNotBlank() } ?: "Kiyori")
                 }
             }
 
@@ -319,7 +319,7 @@ class BrowserWebViewController(
                     copy(
                         currentUrl = currentUrl,
                         inputUrl = "",
-                        title = view?.title?.takeIf { it.isNotBlank() } ?: "内置浏览器",
+                        title = view?.title?.takeIf { it.isNotBlank() } ?: "Kiyori",
                         isLoading = false,
                         progress = 100,
                         showUrlBar = showUrlBar,

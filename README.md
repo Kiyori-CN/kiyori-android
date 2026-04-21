@@ -1,246 +1,103 @@
-# Kiyori - 本地动漫视频实时超分播放器
+# Kiyori
 
 **[中文版本](README.md) | [English Version](README_EN.md)**
 
-一个基于 libmpv 的 Android 本地视频播放器，核心特色是开源实现 Anime4K 实时超分算法，针对动漫/动画/番剧视频风格进行优化，显著提升低分辨率动漫的观看体验。
+> [!IMPORTANT]
+> 当前主仓库：<https://github.com/Kiyori-CN/kiyori-android>
 
-同时支持弹幕、字幕、手势控制、B站番剧在线播放等功能，也可作为通用本地视频播放器使用。
+Kiyori 是一个面向 Android 的浏览器与媒体工具应用。
 
-## 📑 目录
-
-### 📋 项目信息
-- [声明](#声明) - 开源协议
-- [⚠️ 重要声明](#️-重要声明) - 使用须知
-
-### 🚀 开始使用
-- [快速开始](#快速开始) - 下载与安装
-- [功能特性](#功能特性) - 核心功能介绍
-- [功能截图](#功能截图) - 应用界面预览
-
-### 🔧 技术相关
-- [技术架构](#技术架构) - 技术栈说明
-- [致谢](#致谢) - 开源项目致谢
-
-### 🔒 隐私与文档
-- [隐私与第三方服务](#隐私与第三方服务) - 隐私政策与 API 说明
-- [技术文档](#技术文档) - 完整技术文档索引
-- [反馈与建议](#反馈与建议) - 问题反馈渠道
-
----
+当前项目方向以浏览器体验为主，围绕内置浏览器、网页视频嗅探、远程播放、WebDAV、Bilibili 相关能力和本地媒体浏览构建；底层仍保留 `libmpv` 播放能力，用于承接网页嗅探、本地文件和远程媒体链接的统一播放入口。
 
 ## 声明
 
-> [!IMPORTANT]
-> 本项目遵守 [GPL-3.0-or-later](LICENSE) 开源协议，免费开源。
-> 
-> **任何形式的二次分发必须继续开源、遵守相同协议、保留原作者及版权信息。**
+本项目遵守 [GPL-3.0-or-later](LICENSE) 开源协议，免费开源。
 
----
+任何形式的二次分发都必须继续开源、遵守相同协议，并保留原作者及版权信息。
 
-## ⚠️ 重要声明
+本项目仅用于技术学习、产品验证和个人测试。请勿将其用于侵权、盗版、绕过付费机制或其他违法用途。
 
-**本项目旨在学习技术与测试代码，切勿滥用！**
+## 项目定位
 
-我们强烈反对且不纵容任何形式的盗版、非法转载、黑产及其他违法用途或行为。
+Kiyori 不是单一的“本地播放器”项目，而是一个浏览器优先的混合型 Android 应用：
 
-- 因使用本项目而产生的任何后果（包括但不限于非法用途、账号风控或其他损失），均由用户个人承担，与[本人](https://github.com/azxcvn)无关，概不负责
-- 本项目 **开源免费**，作者未从中获得经济收益
-- 本项目不会绕过身份验证机制、破解付费资源或实施其他非法行为
-- "哔哩哔哩" 及 "Bilibili" 名称、LOGO及相关图形是上海幻电信息科技有限公司的注册商标或商标。
-- 本项目为独立的第三方工具，与哔哩哔哩及其关联公司无任何关联、合作、授权或背书等关系。
-- 使用本项目获取的内容，其版权归原权利人所有，请遵守相关法律法规及平台服务协议。
-- 如有侵权，可随时[联系](https://github.com/azxcvn)处理。
+- 内置浏览器作为主入口，支持网页访问、搜索、历史记录、书签和 UA 切换。
+- 网页视频嗅探用于识别页面中的媒体资源，并转为统一播放请求。
+- 远程播放支持手动输入 URL、WebDAV 和网页来源链接。
+- 本地媒体模块继续保留，用于文件浏览、历史记录、字幕、弹幕和播放增强能力。
+- Bilibili 相关登录、解析、下载与弹幕能力仍作为扩展模块存在。
 
----
+## 核心能力
 
-## 快速开始
+- 浏览器主页、地址栏搜索、历史记录、书签、无痕模式
+- 网页视频嗅探与远程媒体链接播放
+- WebDAV 远程文件浏览与打开
+- 本地文件扫描、播放历史、字幕与弹幕支持
+- Bilibili 登录、番剧解析、下载与相关媒体能力
+- Anime4K、截图、播放进度记忆等媒体增强能力
 
-📥 **下载安装**：[GitHub Releases](https://github.com/Kiyori-CN/kiyori-android/releases)
+完整功能说明见 [docs/features.md](docs/features.md)。
 
-> **系统要求**：Android 12 (API 31) 及以上，建议 8GB+ RAM
+## 界面截图
 
----
+### 主界面与浏览能力
 
-## 功能特性
-
-### 核心功能
-
-- 🎬 **视频播放**：支持主流视频格式（MP4、MKV、AVI 等）
-- 🌐 **网页嗅探**：内置 WebView，嗅探网页视频并一键播放
-- 📺 **B站番剧**：支持登录、在线播放、视频/番剧下载
-- ☁️ **WebDAV**：连接云端服务器，直接播放网络视频
-- 📂 **播放列表**：自动扫描、排序、分类管理
-- 📝 **字幕**：内嵌/外部字幕、自动加载、样式调整
-- 🔊 **音频**：多音轨切换、音量增强（精细到 0.1%）
-- 💬 **弹幕**：弹弹play 匹配、B站弹幕下载、样式自定义
-- 👆 **手势控制**：亮度、音量、进度调节，支持自定义
-- 🎨 **超分辨率**：Anime4K 实时视频超分
-- 🖼️ **其他**：截图保存、播放进度记忆
-
-📖 **查看完整功能说明**：[功能特性详细文档](docs/features.md)
-
----
-
-## 功能截图
-
-### 📱 应用主界面（竖屏）
-
-| 软件首页 | 视频列表 | 番剧解析 | 网页嗅探 |
-|----------|----------|----------|----------|
+| 首页 | 文件管理 | 番剧解析 | 网页视频嗅探 |
+| --- | --- | --- | --- |
 | <img src="docs/screenshots/软件首页.jpg" width="250"/> | <img src="docs/screenshots/视频列表界面.jpg" width="250"/> | <img src="docs/screenshots/哔哩哔哩番剧解析.jpg" width="250"/> | <img src="docs/screenshots/网页视频嗅探.jpg" width="250"/> |
 
-| WebDAV支持 | WebDAV详情 | 设置页面1 | 设置页面2 |
-|------------|------------|-----------|-----------|
+| WebDAV | WebDAV 详情 | 设置 1 | 设置 2 |
+| --- | --- | --- | --- |
 | <img src="docs/screenshots/webdav支持.jpg" width="250"/> | <img src="docs/screenshots/webdav支持2.jpg" width="250"/> | <img src="docs/screenshots/设置界面1.jpg" width="250"/> | <img src="docs/screenshots/设置界面2.jpg" width="250"/> |
 
-### 🎬 播放器界面（横屏）
+### 媒体播放与增强
 
-| 播放器主界面 | 弹幕功能 | 弹幕设置 | 字幕设置 |
-|--------------|----------|----------|----------|
+| 播放界面 | 弹幕 | 弹幕设置 | 字幕设置 |
+| --- | --- | --- | --- |
 | <img src="docs/screenshots/播放器主界面.jpg" width="250"/> | <img src="docs/screenshots/弹幕支持.jpg" width="250"/> | <img src="docs/screenshots/弹幕设置.jpg" width="250"/> | <img src="docs/screenshots/字幕样式设置.jpg" width="250"/> |
 
-| 进度控制 | 记忆播放 | 更多菜单 | 超分功能 |
-|----------|----------|----------|----------|
+| 缩略图拖动 | 记忆播放 | 更多菜单 | 超分功能 |
+| --- | --- | --- | --- |
 | <img src="docs/screenshots/拖动缩略图.jpg" width="250"/> | <img src="docs/screenshots/记忆播放.jpg" width="250"/> | <img src="docs/screenshots/更多菜单.jpg" width="250"/> | <img src="docs/screenshots/超分功能.jpg" width="250"/> |
-
----
 
 ## 技术架构
 
-- **视频引擎**：libmpv（开源多媒体播放器库）
-- **UI 框架**：Android AppCompat
-- **编程语言**：Kotlin + Java
-- **最低 SDK**：28 (Android 9.0)
-- **编译 SDK**：34 (Android 14)
-
-## 致谢
-
-本项目的诞生离不开以下开源项目和开发者的贡献，特此致谢！
-
-### 🏗️ 核心基础
-
-以下项目为本应用提供了核心技术支撑：
-
-- **[mpv-player/mpv](https://github.com/mpv-player/mpv)**  
-  本项目的核心基础，强大的开源多媒体播放器库
-
-- **[mpv-android/mpv-android](https://github.com/mpv-android/mpv-android)**  
-  Android 平台移植参考
-
-- **[abdallahmehiz/mpv-android](https://github.com/abdallahmehiz/mpv-android/releases)**  
-  提供现成可用的 libmpv 预编译库文件
-
-- **[bilibili/DanmakuFlameMaster](https://github.com/bilibili/DanmakuFlameMaster)**  
-  B站开源的 Android 弹幕引擎，本项目弹幕功能的核心
-
-### 🔧 算法与功能实现
-
-以下项目为本应用的功能实现提供了重要参考：
-
-- **[bloc97/Anime4K](https://github.com/bloc97/Anime4K)**  
-  实时超分辨率算法，提供 GLSL 着色器文件
-
-- **[marlboro-advance/mpvEx](https://github.com/marlboro-advance/mpvEx)**  
-  参考了滑动算法以及整体交互逻辑
-
-- **[abdallahmehiz/mpvKt](https://github.com/abdallahmehiz/mpvKt)**  
-  参考了手势控制、外部字幕导入等实现
-
-- **[xyoye/DanDanPlayForAndroid](https://github.com/xyoye/DanDanPlayForAndroid)**  
-  参考了弹幕系统架构、WebDAV 功能实现及其他诸多功能
-
-- **[the1812/Bilibili-Evolved](https://github.com/the1812/Bilibili-Evolved)**  
-  参考了弹幕下载的并发优化策略和 API 调用方式
-
-- **[btjawa/BiliTools](https://github.com/btjawa/BiliTools)**  
-  参考了 B站视频/番剧下载的实现原理
-
-- **[qiusunshine/hikerView](https://github.com/qiusunshine/hikerView)**  
-  参考了网页视频嗅探功能及反嗅探算法逻辑
-
-### 🌐 API 服务与文档
-
-感谢以下项目提供 API 服务和技术文档：
-
-- **[弹弹play/DanDanPlay](https://www.dandanplay.com/)**  
-  提供弹幕匹配 API 服务，支持本地视频智能匹配和弹幕下载
-
-- **[wyziedevs/wyzie-subs](https://github.com/wyziedevs/wyzie-subs)**  
-  提供字幕搜索 API 服务，支持在线搜索和下载影视作品字幕文件
-
-- **[SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)**  
-  收集整理了 B站公开 API，为本项目提供了宝贵的 API 参考文档
-
-### 💡 灵感来源
-
-- **[Predidit/Kazumi](https://github.com/Predidit/Kazumi)**  
-  项目的最初灵感和需求来源
-
-### 🎨 素材资源
-
-- **应用图标**：由 AI 生成
-- **播放器控制图标**：来自 [FLATICON](https://www.flaticon.com/)
-- **其他 UI 图标**：Material Icons（Google 提供，遵循 Apache License 2.0）
-
----
-
-**特别感谢以上所有开源项目和开发者的无私贡献！** 没有以上项目的开源就没有这个项目的诞生。
-
----
-
-## 隐私与第三方服务
-
-### 隐私说明
-
-- 不收集任何个人信息
-- 不上传任何数据到服务器
-- 所有功能在本地设备运行
-- 项目完全开源，代码可审查
-
-### 第三方API
-
-使用哔哩哔哩和弹弹play的公开API服务，用于番剧播放和弹幕匹配功能。
-
-详细API列表：[第三方API使用说明](docs/third_party_api.md)
-
-### 数据安全
-
-登录凭证采用 AES-256 加密存储在本地设备，不上传到任何服务器。
-
-详细安全说明：[数据安全文档](docs/data_security.md)
-
-### 权限说明
-
-应用请求以下权限：
-
-- 存储权限（管理所有文件）：读取和保存本地视频、字幕、弹幕文件
-- 网络权限：B站番剧在线播放、弹幕下载、视频下载（用户主动触发）
-
----
+- 浏览器层：Android WebView，预留 X5 扩展能力
+- 媒体播放层：`libmpv`
+- 语言：Kotlin + Java
+- 数据存储：Room + SharedPreferences
+- 网络层：OkHttp
+- 远程文件：WebDAV
+- 最低 SDK：Android 8.0+（`minSdk 26`）
+- 编译 / 目标 SDK：34
 
 ## 技术文档
 
-- **[项目构建引导](docs/development_guide.md)** - 项目构建和 DanDanPlay API 配置教程
-- **[仓库目录规范](docs/repository_layout.md)** - 仓库分层、提交边界和推送策略说明
-- **[.nomedia 支持说明](docs/nomedia_support.md)** - .nomedia 文件处理机制
-- **[WebDAV 使用说明](docs/webdav使用说明.md)** - WebDAV 配置和使用教程
-- **[第三方 API 使用说明](docs/third_party_api.md)** - 使用的第三方API详细列表
-- **[数据安全文档](docs/data_security.md)** - 数据加密和安全机制说明
-- **[B站登录机制](docs/bilibili_login.md)** - B站登录流程和实现原理
-- **[B站番剧解析](docs/bilibili_bangumi.md)** - 番剧解析和播放实现
-- **[B站弹幕下载](docs/bilibili_danmaku_download.md)** - 弹幕下载算法和优化策略
-- **[B站下载原理](docs/bilibili_download_principle.md)** - 视频/番剧下载实现原理
-- **[B站安全分析](docs/bilibili_security_analysis.md)** - 反爬虫和安全机制分析
+- [项目构建引导](docs/development_guide.md)
+- [仓库目录规范](docs/repository_layout.md)
+- [功能特性详细说明](docs/features.md)
+- [内置浏览器详细设计](docs/internal_browser_design.md)
+- [项目架构分析](docs/project_architecture_analysis.md)
+- [远程 URL 播放设计](docs/remote_url_playback_design.md)
+- [第三方 API 使用说明](docs/third_party_api.md)
+- [数据安全文档](docs/data_security.md)
+- [WebDAV 使用说明](docs/webdav使用说明.md)
+- [.nomedia 支持说明](docs/nomedia_support.md)
 
----
+## 依赖与参考
 
-## 反馈与建议
+项目当前仍依赖或参考以下核心开源能力：
 
-遇到问题或有改进建议？欢迎通过以下方式反馈：
+- [mpv-player/mpv](https://github.com/mpv-player/mpv)
+- [mpv-android/mpv-android](https://github.com/mpv-android/mpv-android)
+- [bloc97/Anime4K](https://github.com/bloc97/Anime4K)
+- [bilibili/DanmakuFlameMaster](https://github.com/bilibili/DanmakuFlameMaster)
+- [SocialSisterYi/bilibili-API-collect](https://github.com/SocialSisterYi/bilibili-API-collect)
 
-- 💡 **功能建议与反馈**：[提交 Issue](https://github.com/Kiyori-CN/kiyori-android/issues)
-- 📧 **联系作者**：[GitHub Profile](https://github.com/azxcvn)
+第三方依赖和版权信息以 [LICENSE](LICENSE) 为准。
 
----
+## 反馈
 
-**Last Updated:** 2026-04-02
+- 问题反馈与功能建议：<https://github.com/Kiyori-CN/kiyori-android/issues>
+- 项目主页：<https://github.com/Kiyori-CN/kiyori-android>
+- 组织主页：<https://github.com/Kiyori-CN>

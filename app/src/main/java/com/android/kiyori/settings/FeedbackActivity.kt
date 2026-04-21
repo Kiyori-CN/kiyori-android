@@ -81,7 +81,7 @@ class FeedbackActivity : BaseActivity() {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:$email")
                 putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-                putExtra(Intent.EXTRA_SUBJECT, "Kiyori 播放器反馈")
+                putExtra(Intent.EXTRA_SUBJECT, "Kiyori 反馈")
             }
             startActivity(intent)
         } catch (e: Exception) {

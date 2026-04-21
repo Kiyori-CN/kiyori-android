@@ -379,7 +379,7 @@ fun BrowserScreen(
                 onAddBookmark = {
                     showToolboxSheet = false
                     addBookmarkDraft = BrowserBookmarkDraft(
-                        title = state.title.takeUnless { state.isBlankPage || it == "内置浏览器" }.orEmpty(),
+                        title = state.title.takeUnless { state.isBlankPage || it == "Kiyori" }.orEmpty(),
                         url = state.currentUrl.takeUnless { it == "about:blank" }.orEmpty(),
                         iconUrl = buildDefaultBookmarkIconUrl(state.currentUrl),
                         folderId = null
