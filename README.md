@@ -221,6 +221,7 @@
 ## 技术文档
 
 - **[项目构建引导](docs/development_guide.md)** - 项目构建和 DanDanPlay API 配置教程
+- **[仓库目录规范](docs/repository_layout.md)** - 仓库分层、提交边界和推送策略说明
 - **[.nomedia 支持说明](docs/nomedia_support.md)** - .nomedia 文件处理机制
 - **[WebDAV 使用说明](docs/webdav使用说明.md)** - WebDAV 配置和使用教程
 - **[第三方 API 使用说明](docs/third_party_api.md)** - 使用的第三方API详细列表
