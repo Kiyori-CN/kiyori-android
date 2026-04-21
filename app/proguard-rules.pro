@@ -1,5 +1,7 @@
 # ProGuard rules for release build
 
+-dontwarn dalvik.system.VMStack
+
 # ============================================
 # 日志优化：Release版本移除DEBUG/INFO日志
 # ============================================

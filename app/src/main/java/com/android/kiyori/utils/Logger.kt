@@ -1,6 +1,7 @@
 package com.android.kiyori.utils
 
 import android.util.Log
+import com.android.kiyori.BuildConfig
 
 /**
  * 统一日志管理工具
@@ -9,7 +10,7 @@ import android.util.Log
 object Logger {
     
     // Debug模式：始终开启日志（生产环境可通过ProGuard移除）
-    private const val isDebugMode = true
+    private val isDebugMode = BuildConfig.DEBUG
     
     /**
      * Debug级别日志

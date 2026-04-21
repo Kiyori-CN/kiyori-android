@@ -294,10 +294,10 @@ class PlaybackHistoryManager(private val context: Context) {
                             duration = jsonObject.getLong("duration"),
                             lastPlayed = jsonObject.getLong("lastPlayed"),
                             folderName = jsonObject.optString("folderName", "未知文件夹"),
-                            danmuPath = jsonObject.optString("danmuPath", null).takeIf { it?.isNotEmpty() == true },
+                            danmuPath = jsonObject.optionalNonEmptyString("danmuPath"),
                             danmuVisible = jsonObject.optBoolean("danmuVisible", true),
                             danmuOffsetTime = jsonObject.optLong("danmuOffsetTime", 0L),
-                            thumbnailPath = jsonObject.optString("thumbnailPath", null).takeIf { it?.isNotEmpty() == true }
+                            thumbnailPath = jsonObject.optionalNonEmptyString("thumbnailPath")
                         )
                         entities.add(entity)
                     } catch (e: Exception) {
@@ -319,6 +319,14 @@ class PlaybackHistoryManager(private val context: Context) {
                 Logger.e(TAG, "Failed to migrate data from SharedPreferences: ${e.message}", e)
             }
         }
+    }
+
+    private fun JSONObject.optionalNonEmptyString(key: String): String? {
+        if (isNull(key)) {
+            return null
+        }
+
+        return optString(key).takeIf { it.isNotEmpty() }
     }
 }
 
