@@ -282,4 +282,8 @@
 
     <!-- ==================== 默认主题别名 ==================== -->
     <style name="Theme.VideoPlayer" parent="Theme.VideoPlayer.BluePurple" />
+
+    <style name="Theme.VideoPlayer.Launcher" parent="Theme.VideoPlayer">
+        <item name="android:windowDisablePreview">true</item>
+    </style>
 </resources>

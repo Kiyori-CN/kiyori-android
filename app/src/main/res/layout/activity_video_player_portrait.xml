@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
@@ -12,7 +13,7 @@
       so controls no longer cover the video area in portrait.
     -->
 
-    <com.fam4k007.videoplayer.player.CustomMPVView
+    <com.android.kiyori.player.CustomMPVView
         android:id="@+id/surfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -21,7 +22,7 @@
         android:fitsSystemWindows="false" />
 
     <!-- 弹幕视图 - 覆盖在视频播放器上方 -->
-    <com.fam4k007.videoplayer.danmaku.DanmakuPlayerView
+    <com.android.kiyori.danmaku.DanmakuPlayerView
         android:id="@+id/danmakuView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -48,7 +49,7 @@
         android:visibility="gone" />
 
     <!-- 双击跳转指示器 - 左侧（快退） -->
-    <com.fam4k007.videoplayer.player.DoubleTapSeekIndicator
+    <com.android.kiyori.player.DoubleTapSeekIndicator
         android:id="@+id/doubleTapSeekLeft"
         android:layout_width="180dp"
         android:layout_height="wrap_content"
@@ -59,7 +60,7 @@
         android:visibility="gone" />
 
     <!-- 双击跳转指示器 - 右侧（快进） -->
-    <com.fam4k007.videoplayer.player.DoubleTapSeekIndicator
+    <com.android.kiyori.player.DoubleTapSeekIndicator
         android:id="@+id/doubleTapSeekRight"
         android:layout_width="180dp"
         android:layout_height="wrap_content"
@@ -75,7 +76,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_unlock"
-        android:tint="#FFFFFF"
+        app:tint="#FFFFFF"
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true"
@@ -92,7 +93,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:src="@drawable/ic_unlock"
-        android:tint="#FFFFFF"
+        app:tint="#FFFFFF"
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true"
@@ -139,7 +140,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:src="@drawable/arrow_left"
-                android:tint="#FFFFFF"
+                app:tint="#FFFFFF"
                 android:padding="8dp"
                 android:clickable="true"
                 android:focusable="true"
@@ -217,7 +218,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_subtitle"
-                    android:tint="#FFFFFF"
+                    app:tint="#FFFFFF"
                     android:padding="6dp"
                     android:clickable="true"
                     android:focusable="true"
@@ -230,7 +231,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_danmaku_new"
-                    android:tint="#FFFFFF"
+                    app:tint="#FFFFFF"
                     android:padding="6dp"
                     android:clickable="true"
                     android:focusable="true"
@@ -243,7 +244,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_aspect_ratio"
-                    android:tint="#FFFFFF"
+                    app:tint="#FFFFFF"
                     android:padding="6dp"
                     android:clickable="true"
                     android:focusable="true"
@@ -256,7 +257,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_lock"
-                    android:tint="#FFFFFF"
+                    app:tint="#FFFFFF"
                     android:padding="6dp"
                     android:clickable="true"
                     android:focusable="true"
@@ -269,7 +270,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/menudotsvertical"
-                    android:tint="#FFFFFF"
+                    app:tint="#FFFFFF"
                     android:padding="6dp"
                     android:clickable="true"
                     android:focusable="true"
@@ -380,7 +381,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:src="@drawable/ic_danmaku_visible"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -392,7 +393,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:src="@drawable/previous_square"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="8dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -407,7 +408,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:src="@drawable/ic_rewind_new"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="8dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -420,7 +421,7 @@
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:src="@drawable/pause"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -434,7 +435,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:src="@drawable/ic_forward_new"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="8dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -447,7 +448,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:src="@drawable/next_square"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="8dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -462,7 +463,7 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         android:src="@drawable/tachometer_alt_fastest"
-                        android:tint="#FFFFFF"
+                        app:tint="#FFFFFF"
                         android:padding="8dp"
                         android:clickable="true"
                         android:focusable="true"
@@ -651,7 +652,7 @@
             android:layout_width="16dp"
             android:layout_height="16dp"
             android:src="@drawable/ic_fast_forward"
-            android:tint="#FFFFFF"
+            app:tint="#FFFFFF"
             android:layout_marginEnd="6dp" />
 
         <TextView
@@ -719,3 +720,6 @@
     </LinearLayout>
 
 </RelativeLayout>
+
+
+

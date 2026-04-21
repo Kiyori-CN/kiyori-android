@@ -419,12 +419,11 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 ### 7.4 包与命名空间混杂
 
-仓库中同时存在：
+当前源码已基本统一到：
 
-- `com.fam4k007.videoplayer.*`
-- `com.fanchen.fam4k007.*`
+- `com.android.kiyori.*`
 
-这说明部分新功能是后续拼接进来的，后续继续扩展时容易让依赖关系越来越隐式。
+后续继续扩展时，应继续保持这一命名空间，避免重新引入历史包名前缀。
 
 ### 7.5 主题体系重复
 
@@ -704,27 +703,27 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 ## 附：本次分析重点参考文件
 
-- `app/src/main/java/com/fam4k007/videoplayer/AppApplication.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/MainActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/VideoBrowserComposeActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/VideoListComposeActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/VideoPlayerActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/player/PlaybackEngine.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/player/CustomMPVView.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/danmaku/DanmakuManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/Anime4KManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/PlaybackHistoryManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/database/VideoDatabase.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/database/VideoCacheDao.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/paging/VideoPagingSource.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/bilibili/auth/BiliBiliAuthManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/download/BilibiliDownloadManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/download/BilibiliDownloadViewModel.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/subtitle/SubtitleDownloadManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/webdav/WebDavClient.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/webdav/WebDavBrowserComposeActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/tv/TVBrowserActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/VideoSnifferManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/utils/SecureStorage.kt`
+- `app/src/main/java/com/android/kiyori/app/AppApplication.kt`
+- `app/src/main/java/com/android/kiyori/app/MainActivity.kt`
+- `app/src/main/java/com/android/kiyori/media/ui/VideoBrowserComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/media/ui/VideoListComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/player/ui/VideoPlayerActivity.kt`
+- `app/src/main/java/com/android/kiyori/player/PlaybackEngine.kt`
+- `app/src/main/java/com/android/kiyori/player/CustomMPVView.kt`
+- `app/src/main/java/com/android/kiyori/danmaku/DanmakuManager.kt`
+- `app/src/main/java/com/android/kiyori/player/Anime4KManager.kt`
+- `app/src/main/java/com/android/kiyori/history/PlaybackHistoryManager.kt`
+- `app/src/main/java/com/android/kiyori/database/VideoDatabase.kt`
+- `app/src/main/java/com/android/kiyori/media/data/VideoCacheDao.kt`
+- `app/src/main/java/com/android/kiyori/media/paging/VideoPagingSource.kt`
+- `app/src/main/java/com/android/kiyori/bilibili/auth/BiliBiliAuthManager.kt`
+- `app/src/main/java/com/android/kiyori/download/BilibiliDownloadManager.kt`
+- `app/src/main/java/com/android/kiyori/download/BilibiliDownloadViewModel.kt`
+- `app/src/main/java/com/android/kiyori/subtitle/SubtitleDownloadManager.kt`
+- `app/src/main/java/com/android/kiyori/webdav/WebDavClient.kt`
+- `app/src/main/java/com/android/kiyori/webdav/WebDavBrowserComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/browser/ui/BrowserActivity.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/VideoSnifferManager.kt`
+- `app/src/main/java/com/android/kiyori/utils/SecureStorage.kt`
 - `app/build.gradle`
 - `app/src/main/AndroidManifest.xml`

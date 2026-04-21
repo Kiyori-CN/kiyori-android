@@ -12,7 +12,7 @@
 }
 
 # 移除自定义Logger的调试日志
--assumenosideeffects class com.fam4k007.videoplayer.utils.Logger {
+-assumenosideeffects class com.android.kiyori.utils.Logger {
     public static *** d(...);
     public static *** v(...);
     public static *** i(...);
@@ -62,20 +62,20 @@
 }
 
 # 5. 保护项目中的关键类
--keep class com.fam4k007.videoplayer.player.CustomMPVView { *; }
--keep class com.fam4k007.videoplayer.player.PlaybackEngine { *; }
--keep class com.fam4k007.videoplayer.player.PlayerControlsManager { *; }
--keep class com.fam4k007.videoplayer.player.GestureHandler { *; }
+-keep class com.android.kiyori.player.CustomMPVView { *; }
+-keep class com.android.kiyori.player.PlaybackEngine { *; }
+-keep class com.android.kiyori.player.PlayerControlsManager { *; }
+-keep class com.android.kiyori.player.GestureHandler { *; }
 
 # 6. 保护设置管理和常量类（防止 SharedPreferences 键名被混淆）
--keep class com.fam4k007.videoplayer.AppConstants { *; }
--keep class com.fam4k007.videoplayer.AppConstants$** { *; }
--keep class com.fam4k007.videoplayer.manager.PreferencesManager { *; }
+-keep class com.android.kiyori.app.AppConstants { *; }
+-keep class com.android.kiyori.app.AppConstants$** { *; }
+-keep class com.android.kiyori.manager.PreferencesManager { *; }
 
 # 7. 保护数据类
--keep class com.fam4k007.videoplayer.VideoFolder { *; }
--keep class com.fam4k007.videoplayer.VideoFile { *; }
--keep class com.fam4k007.videoplayer.VideoFileParcelable { *; }
+-keep class com.android.kiyori.media.VideoFolder { *; }
+-keep class com.android.kiyori.media.VideoFile { *; }
+-keep class com.android.kiyori.media.VideoFileParcelable { *; }
 
 # ============================================
 # 其他库规则
@@ -111,8 +111,8 @@
 -dontwarn javax.xml.stream.**
 
 # 保护 WebDAV 相关类
--keep class com.fam4k007.videoplayer.webdav.** { *; }
--keepclassmembers class com.fam4k007.videoplayer.webdav.** { *; }
+-keep class com.android.kiyori.webdav.** { *; }
+-keepclassmembers class com.android.kiyori.webdav.** { *; }
 
 # OkHttp (WebDAV 依赖)
 -keep class okhttp3.** { *; }
@@ -145,24 +145,24 @@
 }
 
 # 保护 Bilibili 相关数据类（完整保护，防止混淆）
--keep class com.fam4k007.videoplayer.bilibili.** { *; }
--keepclassmembers class com.fam4k007.videoplayer.bilibili.** { *; }
+-keep class com.android.kiyori.bilibili.** { *; }
+-keepclassmembers class com.android.kiyori.bilibili.** { *; }
 
 # 保护 Bilibili 下载功能（新增）
--keep class com.fam4k007.videoplayer.download.** { *; }
--keepclassmembers class com.fam4k007.videoplayer.download.** { *; }
+-keep class com.android.kiyori.download.** { *; }
+-keepclassmembers class com.android.kiyori.download.** { *; }
 
 # 保护下载相关的数据类和枚举
--keep class com.fam4k007.videoplayer.download.DownloadItem { *; }
--keep class com.fam4k007.videoplayer.download.MediaParseResult { *; }
--keep class com.fam4k007.videoplayer.download.EpisodeInfo { *; }
--keep class com.fam4k007.videoplayer.download.VideoInfo { *; }
--keep class com.fam4k007.videoplayer.download.DownloadFragment { *; }
--keep enum com.fam4k007.videoplayer.download.MediaType { *; }
--keep enum com.fam4k007.videoplayer.download.DownloadStatus { *; }
+-keep class com.android.kiyori.download.DownloadItem { *; }
+-keep class com.android.kiyori.download.MediaParseResult { *; }
+-keep class com.android.kiyori.download.EpisodeInfo { *; }
+-keep class com.android.kiyori.download.VideoInfo { *; }
+-keep class com.android.kiyori.download.DownloadFragment { *; }
+-keep enum com.android.kiyori.download.MediaType { *; }
+-keep enum com.android.kiyori.download.DownloadStatus { *; }
 
 # 保护下载管理器的关键方法（防止被内联或移除）
--keep class com.fam4k007.videoplayer.download.BilibiliDownloadManager {
+-keep class com.android.kiyori.download.BilibiliDownloadManager {
     public <methods>;
     private ** parseMediaUrl(...);
     private ** getVideoDetail(...);
@@ -172,17 +172,16 @@
 }
 
 # 保护 ViewModel（Compose 和 Activity 需要反射访问）
--keep class com.fam4k007.videoplayer.download.BilibiliDownloadViewModel {
+-keep class com.android.kiyori.download.BilibiliDownloadViewModel {
     public <methods>;
 }
 
 # 保护 DownloadActivity（Compose 使用）
--keep class com.fam4k007.videoplayer.DownloadActivity { *; }
--keep class com.fam4k007.videoplayer.DownloadActivityKt { *; }
+-keep class com.android.kiyori.download.ui.DownloadActivity { *; }
 
 # 保护 CookieManager（SharedPreferences 键名不能混淆）
--keep class com.fam4k007.videoplayer.utils.CookieManager { *; }
--keepclassmembers class com.fam4k007.videoplayer.utils.CookieManager { *; }
+-keep class com.android.kiyori.utils.CookieManager { *; }
+-keepclassmembers class com.android.kiyori.utils.CookieManager { *; }
 
 # JSON 解析需要的类（org.json）
 -keep class org.json.** { *; }
@@ -193,11 +192,11 @@
 # ============================================
 
 # 保护 DanDanPlay 数据模型类（Gson 反序列化需要）
--keep class com.fam4k007.videoplayer.dandanplay.** { *; }
--keepclassmembers class com.fam4k007.videoplayer.dandanplay.** { *; }
+-keep class com.android.kiyori.dandanplay.** { *; }
+-keepclassmembers class com.android.kiyori.dandanplay.** { *; }
 
 # 特别保护数据类的字段和构造函数（防止被混淆）
--keepclassmembers class com.fam4k007.videoplayer.dandanplay.** {
+-keepclassmembers class com.android.kiyori.dandanplay.** {
     <init>(...);
     <fields>;
     public ** get*();
@@ -205,12 +204,12 @@
 }
 
 # 保护 @SerializedName 注解的字段
--keepclassmembers class com.fam4k007.videoplayer.dandanplay.** {
+-keepclassmembers class com.android.kiyori.dandanplay.** {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
 # 防止 data class 的方法被移除
--keepclassmembers class com.fam4k007.videoplayer.dandanplay.** {
+-keepclassmembers class com.android.kiyori.dandanplay.** {
     public ** copy(...);
     public ** component*();
 }
@@ -220,35 +219,35 @@
 -keepclassmembers class org.json.** { *; }
 
 # 保护所有 sealed class 和它们的子类（防止反射和序列化问题）
--keep class com.fam4k007.videoplayer.bilibili.model.LoginResult { *; }
--keep class com.fam4k007.videoplayer.bilibili.model.LoginResult$** { *; }
+-keep class com.android.kiyori.bilibili.model.LoginResult { *; }
+-keep class com.android.kiyori.bilibili.model.LoginResult$** { *; }
 
 # 保护 BiliBiliPlayActivity 中的所有内部类和数据类
--keep class com.fam4k007.videoplayer.BiliBiliPlayActivity$** { *; }
--keep class com.fam4k007.videoplayer.PlayUiState { *; }
--keep class com.fam4k007.videoplayer.PlayUiState$** { *; }
--keep class com.fam4k007.videoplayer.SimpleBangumiInfo { *; }
--keep class com.fam4k007.videoplayer.SimpleEpisode { *; }
--keep class com.fam4k007.videoplayer.BangumiDetailResponse { *; }
--keep class com.fam4k007.videoplayer.BangumiDetailResult { *; }
--keep class com.fam4k007.videoplayer.EpisodeItem { *; }
+-keep class com.android.kiyori.bilibili.ui.BiliBiliPlayActivity$** { *; }
+-keep class com.android.kiyori.bilibili.ui.PlayUiState { *; }
+-keep class com.android.kiyori.bilibili.ui.PlayUiState$** { *; }
+-keep class com.android.kiyori.bilibili.ui.SimpleBangumiInfo { *; }
+-keep class com.android.kiyori.bilibili.ui.SimpleEpisode { *; }
+-keep class com.android.kiyori.bilibili.ui.BangumiDetailResponse { *; }
+-keep class com.android.kiyori.bilibili.ui.BangumiDetailResult { *; }
+-keep class com.android.kiyori.bilibili.ui.EpisodeItem { *; }
 
 # 保护 BiliBiliLoginActivity 中的 sealed class
--keep class com.fanchen.fam4k007.manager.compose.LoginUiState { *; }
--keep class com.fanchen.fam4k007.manager.compose.LoginUiState$** { *; }
+-keep class com.android.kiyori.manager.compose.LoginUiState { *; }
+-keep class com.android.kiyori.manager.compose.LoginUiState$** { *; }
 
 # 保护弹幕下载管理器中的 sealed class
--keep class com.fam4k007.videoplayer.danmaku.BiliBiliDanmakuDownloadManager$DownloadResult { *; }
--keep class com.fam4k007.videoplayer.danmaku.BiliBiliDanmakuDownloadManager$DownloadResult$** { *; }
+-keep class com.android.kiyori.danmaku.BiliBiliDanmakuDownloadManager$DownloadResult { *; }
+-keep class com.android.kiyori.danmaku.BiliBiliDanmakuDownloadManager$DownloadResult$** { *; }
 
 # 保护所有数据类的构造函数和字段（Gson 需要）
--keepclassmembers class com.fam4k007.videoplayer.bilibili.model.** {
+-keepclassmembers class com.android.kiyori.bilibili.model.** {
     <init>(...);
     <fields>;
 }
 
 # 防止 data class 的 copy 方法被移除
--keepclassmembers class com.fam4k007.videoplayer.bilibili.model.** {
+-keepclassmembers class com.android.kiyori.bilibili.model.** {
     public ** copy(...);
     public ** component*();
 }
@@ -277,8 +276,8 @@
 # ============================================
 
 # 保护字幕下载管理器及其内部私有数据类（SubtitleApiResponse 用于 Gson TypeToken 解析）
--keep class com.fam4k007.videoplayer.subtitle.** { *; }
--keepclassmembers class com.fam4k007.videoplayer.subtitle.** {
+-keep class com.android.kiyori.subtitle.** { *; }
+-keepclassmembers class com.android.kiyori.subtitle.** {
     <init>(...);
     <fields>;
     public ** get*();
@@ -287,9 +286,10 @@
 }
 
 # SubtitleDownloadManager 中的私有内部类也必须保护
--keep class com.fam4k007.videoplayer.subtitle.SubtitleDownloadManager { *; }
--keep class com.fam4k007.videoplayer.subtitle.SubtitleDownloadManager$* { *; }
+-keep class com.android.kiyori.subtitle.SubtitleDownloadManager { *; }
+-keep class com.android.kiyori.subtitle.SubtitleDownloadManager$* { *; }
 
 # 保护 SubtitleSearchActivity 和 SubtitleSearchScreen
--keep class com.fam4k007.videoplayer.SubtitleSearchActivity { *; }
--keep class com.fam4k007.videoplayer.compose.SubtitleSearchScreen { *; }
+-keep class com.android.kiyori.subtitle.ui.SubtitleSearchActivity { *; }
+-keep class com.android.kiyori.subtitle.ui.SubtitleSearchScreen { *; }
+

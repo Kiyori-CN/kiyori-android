@@ -15,7 +15,7 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace 'com.fam4k007.videoplayer'
+    namespace 'com.android.kiyori'
     compileSdk 34
     ndkVersion versions.ndk
 
@@ -29,11 +29,11 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.fam4k007.videoplayer"
+        applicationId "com.android.kiyori"
         minSdk 26
         targetSdk 34
-        versionCode 22
-        versionName "1.2.2"
+        versionCode 1
+        versionName "1.0.0"
 
         buildConfigField "String", "DANDANPLAY_APP_ID", "\"${localProperties.getProperty('dandanplay.appId', '')}\""
         buildConfigField "String", "DANDANPLAY_APP_SECRET", "\"${localProperties.getProperty('dandanplay.appSecret', '')}\""
@@ -140,6 +140,7 @@ dependencies {
     implementation(name: 'DanmakuFlameMaster', ext: 'aar')
     implementation files('libs/sardine-1.0.2.jar')
     implementation files('libs/simple-xml-2.7.1.jar')
+    implementation files('libs/tbs_sdk_thirdapp_v4.3.0.236_44136_sharewithdownloadwithfile_withoutGame_obfs_20211203_185750.jar')
 
     implementation "com.github.bumptech.glide:glide:${versions.glide}"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:${versions.lifecycle}"
@@ -156,9 +157,11 @@ dependencies {
     implementation "io.coil-kt:coil-compose:${versions.coil}"
     implementation "io.coil-kt:coil-video:${versions.coil}"
     implementation "com.google.code.gson:gson:${versions.gson}"
+    implementation "androidx.webkit:webkit:${versions.webkit}"
     implementation "androidx.security:security-crypto:${versions.securityCrypto}"
     implementation "com.mikepenz:aboutlibraries-core:${versions.aboutLibraries}"
     implementation "com.mikepenz:aboutlibraries-compose:${versions.aboutLibraries}"
 
     testImplementation 'junit:junit:4.13.2'
 }
+

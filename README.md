@@ -1,4 +1,4 @@
-# 小喵player - 本地动漫视频实时超分播放器
+# Kiyori - 本地动漫视频实时超分播放器
 
 **[中文版本](README.md) | [English Version](README_EN.md)**
 
@@ -55,7 +55,7 @@
 
 ## 快速开始
 
-📥 **下载安装**：[GitHub Releases](https://github.com/azxcvn/mpv-android-anime4k/releases)
+📥 **下载安装**：[GitHub Releases](https://github.com/Kiyori-CN/kiyori-android/releases)
 
 > **系统要求**：Android 12 (API 31) 及以上，建议 8GB+ RAM
 
@@ -237,7 +237,7 @@
 
 遇到问题或有改进建议？欢迎通过以下方式反馈：
 
-- 💡 **功能建议与反馈**：[提交 Issue](https://github.com/azxcvn/mpv-android-anime4k/issues)
+- 💡 **功能建议与反馈**：[提交 Issue](https://github.com/Kiyori-CN/kiyori-android/issues)
 - 📧 **联系作者**：[GitHub Profile](https://github.com/azxcvn)
 
 ---

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -23,7 +24,7 @@
             android:alpha="0"
             android:contentDescription="@null"
             android:src="@drawable/ic_play_triangle"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
 
         <!-- 第二个三角形 -->
         <ImageView
@@ -34,7 +35,7 @@
             android:alpha="0"
             android:contentDescription="@null"
             android:src="@drawable/ic_play_triangle"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
 
         <!-- 第三个三角形 -->
         <ImageView
@@ -45,7 +46,7 @@
             android:alpha="0"
             android:contentDescription="@null"
             android:src="@drawable/ic_play_triangle"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
 
     </LinearLayout>
 
@@ -66,3 +67,5 @@
         tools:text="+10秒" />
 
 </merge>
+
+

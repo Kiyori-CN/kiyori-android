@@ -30,8 +30,8 @@
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/azxcvn/mpv-android-anime4k.git
-cd mpv-android-anime4k
+git clone https://github.com/Kiyori-CN/kiyori-android.git kiyori-android
+cd kiyori-android
 ```
 
 ### 2. 安装 Android Studio 和 SDK

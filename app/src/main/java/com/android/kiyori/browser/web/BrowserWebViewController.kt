@@ -1,0 +1,1159 @@
+package com.android.kiyori.browser.web
+
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.os.Message
+import android.text.InputType
+import android.util.Log
+import android.view.View
+import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.android.kiyori.browser.data.BrowserHistoryRepository
+import com.android.kiyori.browser.data.BrowserPreferencesRepository
+import com.android.kiyori.browser.data.BrowserSearchHistoryRepository
+import com.android.kiyori.browser.domain.BrowserHistoryEntry
+import com.android.kiyori.browser.domain.BrowserPageState
+import com.android.kiyori.browser.domain.BrowserSearchEngine
+import com.android.kiyori.browser.domain.BrowserSearchRecord
+import com.android.kiyori.browser.domain.BrowserUserAgentMode
+import com.android.kiyori.browser.security.BrowserSecurityPolicy
+import com.android.kiyori.sniffer.VideoSnifferManager
+import com.tencent.smtt.export.external.interfaces.ConsoleMessage
+import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback
+import com.tencent.smtt.export.external.interfaces.HttpAuthHandler
+import com.tencent.smtt.export.external.interfaces.IX5WebChromeClient
+import com.tencent.smtt.export.external.interfaces.JsPromptResult
+import com.tencent.smtt.export.external.interfaces.JsResult
+import com.tencent.smtt.export.external.interfaces.PermissionRequest
+import com.tencent.smtt.export.external.interfaces.SslError
+import com.tencent.smtt.export.external.interfaces.SslErrorHandler
+import com.tencent.smtt.export.external.interfaces.WebResourceError
+import com.tencent.smtt.export.external.interfaces.WebResourceRequest
+import com.tencent.smtt.export.external.interfaces.WebResourceResponse
+import com.tencent.smtt.sdk.ValueCallback
+import com.tencent.smtt.sdk.CookieManager
+import com.tencent.smtt.sdk.WebChromeClient
+import com.tencent.smtt.sdk.WebView
+import com.tencent.smtt.sdk.WebViewClient
+import org.json.JSONArray
+
+data class BrowserWebViewCallbacks(
+    val onStateChanged: (BrowserPageState) -> Unit,
+    val onExternalUrlBlocked: (String) -> Unit = {},
+    val onDownloadRequested: (
+        url: String,
+        userAgent: String,
+        contentDisposition: String,
+        mimeType: String,
+        contentLength: Long,
+        sourcePageUrl: String
+    ) -> Unit = { _, _, _, _, _, _ -> },
+    val onShowFileChooser: (
+        fileChooserParams: WebChromeClient.FileChooserParams?,
+        filePathCallback: ValueCallback<Array<android.net.Uri>>?
+    ) -> Boolean = { _, callback ->
+        callback?.onReceiveValue(null)
+        false
+    }
+)
+
+class BrowserWebViewController(
+    private val preferencesRepository: BrowserPreferencesRepository,
+    private val historyRepository: BrowserHistoryRepository,
+    private val searchHistoryRepository: BrowserSearchHistoryRepository,
+    private val callbacks: BrowserWebViewCallbacks,
+    private val initialShowUrlBar: Boolean = false
+) {
+    private var webView: WebView? = null
+    private var defaultUserAgent: String = ""
+    private var customView: View? = null
+    private var customViewCallback: IX5WebChromeClient.CustomViewCallback? = null
+    private var fullscreenContainer: FrameLayout? = null
+    private var previousOrientation: Int = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    private val preferredHomeUrl: String
+        get() = preferencesRepository.getHomeUrl()
+    private val x5ClientExtension = BrowserX5ClientExtension(
+        pageStateProvider = ::currentState,
+        onMainFrameContentReady = ::onMainFrameContentReady
+    )
+    private var navigationGeneration = 0
+
+    private var pageState = BrowserPageState(
+        inputUrl = preferencesRepository.getLastInputUrl(),
+        currentUrl = if (initialShowUrlBar) {
+            BrowserSecurityPolicy.BLANK_HOME_URL
+        } else {
+            preferencesRepository.getHomeUrl()
+        },
+        searchEngine = preferencesRepository.getSearchEngine(),
+        userAgentMode = preferencesRepository.getUserAgentMode(),
+        isIncognitoMode = preferencesRepository.isIncognitoModeEnabled(),
+        isDesktopMode = preferencesRepository.getUserAgentMode() == BrowserUserAgentMode.PC_DESKTOP,
+        showUrlBar = initialShowUrlBar,
+        historyEntries = historyRepository.getHistory().map { it.toEntry() },
+        searchRecords = searchHistoryRepository.getSearchHistory().map { it.toRecord() }
+    )
+
+    init {
+        callbacks.onStateChanged(pageState)
+    }
+
+    fun currentState(): BrowserPageState = pageState
+
+    fun attach(webView: WebView) {
+        if (this.webView === webView) {
+            return
+        }
+
+        this.webView = webView
+        BrowserWebViewFactory.configure(webView)
+        defaultUserAgent = webView.settings.userAgentString.orEmpty()
+        Log.i(
+            LOG_TAG,
+            "WebView package=${WebView.getCurrentWebViewPackage()?.packageName} " +
+                "version=${WebView.getCurrentWebViewPackage()?.versionName} " +
+                "isX5Core=${webView.isX5Core}"
+        )
+        applyUserAgent()
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimeType, contentLength ->
+            callbacks.onDownloadRequested(
+                url.orEmpty(),
+                userAgent.orEmpty(),
+                contentDisposition.orEmpty(),
+                mimeType.orEmpty(),
+                contentLength,
+                pageState.currentUrl
+            )
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                val safeProgress = newProgress.coerceIn(0, 100)
+                if (safeProgress >= 100 && view != null) {
+                    completePageLoad(view = view, url = view.url, captureHistory = false)
+                } else {
+                    updateState {
+                        copy(
+                            progress = safeProgress,
+                            isLoading = safeProgress in 1..99 || isLoading
+                        )
+                    }
+                    syncNavigationState()
+                }
+            }
+
+            override fun onReceivedTitle(view: WebView?, title: String?) {
+                updateState {
+                    copy(title = title?.takeIf { it.isNotBlank() } ?: "内置浏览器")
+                }
+            }
+
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                consoleMessage ?: return false
+                val messageLevel = consoleMessage.messageLevel()
+                if (messageLevel == ConsoleMessage.MessageLevel.ERROR ||
+                    messageLevel == ConsoleMessage.MessageLevel.WARNING
+                ) {
+                    Log.w(
+                        LOG_TAG,
+                        "JS ${messageLevel.name}: ${consoleMessage.message()} " +
+                            "@${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}"
+                    )
+                }
+                return super.onConsoleMessage(consoleMessage)
+            }
+
+            override fun onPermissionRequest(request: PermissionRequest?) {
+                request?.grant(request.resources)
+            }
+
+            override fun onGeolocationPermissionsShowPrompt(
+                origin: String?,
+                callback: GeolocationPermissionsCallback?
+            ) {
+                callback?.invoke(origin, true, false)
+            }
+
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                val sourceView = view ?: return false
+                val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
+                val popupWebView = WebView(sourceView.context)
+                BrowserWebViewFactory.configure(popupWebView)
+                popupWebView.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?
+                    ): Boolean {
+                        val popupUrl = request?.url?.toString().orEmpty()
+                        if (popupUrl.isNotBlank()) {
+                            loadUrl(popupUrl)
+                        }
+                        view?.destroy()
+                        return true
+                    }
+
+                    override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                        if (!url.isNullOrBlank() && url != BrowserSecurityPolicy.BLANK_HOME_URL) {
+                            loadUrl(url)
+                        }
+                        view?.stopLoading()
+                        view?.destroy()
+                    }
+                }
+                transport.webView = popupWebView
+                resultMsg.sendToTarget()
+                return true
+            }
+
+            override fun onJsAlert(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult?
+            ): Boolean {
+                return showJavaScriptAlert(
+                    view = view,
+                    title = view?.title?.takeIf { it.isNotBlank() },
+                    message = message.orEmpty(),
+                    onConfirm = { result?.confirm() },
+                    onCancel = { result?.cancel() }
+                )
+            }
+
+            override fun onJsConfirm(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult?
+            ): Boolean {
+                return showJavaScriptConfirm(
+                    view = view,
+                    title = view?.title?.takeIf { it.isNotBlank() },
+                    message = message.orEmpty(),
+                    onConfirm = { result?.confirm() },
+                    onCancel = { result?.cancel() }
+                )
+            }
+
+            override fun onJsPrompt(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                defaultValue: String?,
+                result: JsPromptResult?
+            ): Boolean {
+                return showJavaScriptPrompt(
+                    view = view,
+                    title = view?.title?.takeIf { it.isNotBlank() },
+                    message = message.orEmpty(),
+                    defaultValue = defaultValue.orEmpty(),
+                    onConfirm = { value -> result?.confirm(value) },
+                    onCancel = { result?.cancel() }
+                )
+            }
+
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<android.net.Uri>>?,
+                fileChooserParams: WebChromeClient.FileChooserParams?
+            ): Boolean {
+                return callbacks.onShowFileChooser(fileChooserParams, filePathCallback)
+            }
+
+            override fun onShowCustomView(
+                view: View?,
+                callback: IX5WebChromeClient.CustomViewCallback?
+            ) {
+                showCustomView(view, callback)
+            }
+
+            override fun onHideCustomView() {
+                hideCustomView()
+            }
+        }
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val url = request?.url?.toString().orEmpty()
+                if (url.isBlank()) {
+                    return true
+                }
+                if (BrowserSecurityPolicy.shouldLoadInsideWebView(url)) {
+                    applyUserAgent()
+                    return false
+                }
+                updateState { copy(blockedExternalUrl = url) }
+                callbacks.onExternalUrlBlocked(url)
+                return true
+            }
+
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                val safeUrl = url ?: BrowserSecurityPolicy.BLANK_HOME_URL
+                VideoSnifferManager.startNewPage()
+                beginNavigation(targetUrl = safeUrl)
+                syncNavigationState()
+            }
+
+            override fun onPageFinished(view: WebView?, url: String?) {
+                if (view != null) {
+                    completePageLoad(view = view, url = url, captureHistory = true)
+                    return
+                }
+                val currentUrl = url ?: BrowserSecurityPolicy.BLANK_HOME_URL
+                updateState {
+                    copy(
+                        currentUrl = currentUrl,
+                        inputUrl = "",
+                        title = view?.title?.takeIf { it.isNotBlank() } ?: "内置浏览器",
+                        isLoading = false,
+                        progress = 100,
+                        showUrlBar = showUrlBar,
+                        blockedExternalUrl = null
+                    )
+                }
+                syncNavigationState()
+            }
+
+            override fun onReceivedError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                error: WebResourceError?
+            ) {
+                if (request?.isForMainFrame == true) {
+                    Log.w(
+                        LOG_TAG,
+                        "Page load error ${error?.errorCode}: ${error?.description} @${request.url}"
+                    )
+                }
+                super.onReceivedError(view, request, error)
+            }
+
+            override fun onReceivedHttpError(
+                view: WebView?,
+                request: WebResourceRequest?,
+                errorResponse: WebResourceResponse?
+            ) {
+                if (request?.isForMainFrame == true) {
+                    Log.w(
+                        LOG_TAG,
+                        "HTTP ${errorResponse?.statusCode ?: -1} @${request.url}"
+                    )
+                }
+                super.onReceivedHttpError(view, request, errorResponse)
+            }
+
+            override fun onReceivedSslError(
+                view: WebView?,
+                handler: SslErrorHandler?,
+                error: SslError?
+            ) {
+                Log.w(LOG_TAG, "SSL error on ${view?.url.orEmpty()}, proceeding for compatibility")
+                handler?.proceed()
+            }
+
+            override fun onReceivedHttpAuthRequest(
+                view: WebView?,
+                handler: HttpAuthHandler?,
+                host: String?,
+                realm: String?
+            ) {
+                if (view == null || handler == null) {
+                    handler?.cancel()
+                    return
+                }
+
+                val savedCredentials = if (handler.useHttpAuthUsernamePassword()) {
+                    view.getHttpAuthUsernamePassword(host.orEmpty(), realm.orEmpty())
+                } else {
+                    null
+                }
+
+                if (savedCredentials != null && savedCredentials.size == 2 &&
+                    !savedCredentials[0].isNullOrBlank() && !savedCredentials[1].isNullOrBlank()
+                ) {
+                    handler.proceed(savedCredentials[0], savedCredentials[1])
+                    return
+                }
+
+                showHttpAuthDialog(
+                    view = view,
+                    handler = handler,
+                    host = host.orEmpty(),
+                    realm = realm.orEmpty()
+                )
+            }
+
+            override fun onRenderProcessGone(
+                view: WebView?,
+                detail: WebViewClient.RenderProcessGoneDetail?
+            ): Boolean {
+                Log.e(
+                    LOG_TAG,
+                    "WebView render process gone. didCrash=${detail?.didCrash()}"
+                )
+                view?.destroy()
+                return true
+            }
+
+            override fun shouldInterceptRequest(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): WebResourceResponse? {
+                request?.let { req ->
+                    VideoSnifferManager.processRequest(
+                        url = req.url.toString(),
+                        headers = req.requestHeaders,
+                        pageUrl = pageState.currentUrl,
+                        pageTitle = pageState.title
+                    )
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+        }
+
+        runCatching {
+            webView.x5WebViewExtension?.setWebViewClientExtension(x5ClientExtension)
+            Log.i(LOG_TAG, "Installed X5 WebViewClientExtension")
+        }.onFailure { error ->
+            Log.w(LOG_TAG, "Failed to install X5 WebViewClientExtension", error)
+        }
+
+        if (initialShowUrlBar) {
+            preferencesRepository.setLastInputUrl("")
+            updateState {
+                copy(
+                    currentUrl = BrowserSecurityPolicy.BLANK_HOME_URL,
+                    inputUrl = "",
+                    isLoading = false,
+                    progress = 0,
+                    blockedExternalUrl = null
+                )
+            }
+            syncNavigationState()
+        } else {
+            loadHome(closeUrlBar = true)
+        }
+    }
+
+    fun onResume() {
+        webView?.onResume()
+        webView?.resumeTimers()
+    }
+
+    fun onPause() {
+        webView?.onPause()
+        webView?.pauseTimers()
+    }
+
+    fun exitCustomViewIfNeeded(): Boolean {
+        if (customView == null) {
+            return false
+        }
+        hideCustomView()
+        return true
+    }
+
+    fun destroy() {
+        hideCustomView()
+        runCatching {
+            webView?.x5WebViewExtension?.setWebViewClientExtension(null)
+        }
+        webView?.apply {
+            stopLoading()
+            destroy()
+        }
+        webView = null
+    }
+
+    fun updateInputUrl(value: String) {
+        preferencesRepository.setLastInputUrl(value)
+        updateState { copy(inputUrl = value) }
+    }
+
+    fun setUrlBarVisible(visible: Boolean) {
+        updateState { copy(showUrlBar = visible) }
+    }
+
+    fun submitInputUrl() {
+        val rawInput = pageState.inputUrl.trim()
+        val normalizedUrl = BrowserSecurityPolicy.normalizeUserInput(
+            input = rawInput,
+            searchEngine = pageState.searchEngine
+        ) ?: return
+        if (!pageState.isIncognitoMode && normalizedUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
+            searchHistoryRepository.addSearchHistory(
+                query = rawInput,
+                targetUrl = normalizedUrl
+            )
+            syncSearchRecords()
+        }
+        preferencesRepository.setLastInputUrl("")
+        updateState { copy(inputUrl = "") }
+        loadUrl(normalizedUrl)
+    }
+
+    fun loadUrl(url: String) {
+        loadUrl(url = url, closeUrlBar = true)
+    }
+
+    private fun loadUrl(url: String, closeUrlBar: Boolean) {
+        val normalizedInputUrl = BrowserSecurityPolicy.normalizeUserInput(
+            input = url,
+            searchEngine = pageState.searchEngine
+        ) ?: return
+        val normalizedUrl = if (
+            normalizedInputUrl == BrowserSecurityPolicy.BLANK_HOME_URL &&
+            preferredHomeUrl != BrowserSecurityPolicy.BLANK_HOME_URL
+        ) {
+            preferredHomeUrl
+        } else {
+            normalizedInputUrl
+        }
+        if (normalizedUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
+            navigationGeneration += 1
+            updateState {
+                copy(
+                    currentUrl = normalizedUrl,
+                    inputUrl = "",
+                    showUrlBar = if (closeUrlBar) false else showUrlBar,
+                    isLoading = false,
+                    progress = 0,
+                    blockedExternalUrl = null
+                )
+            }
+            webView?.loadUrl(normalizedUrl, COMPATIBILITY_REQUEST_HEADERS)
+            syncNavigationState()
+            return
+        }
+        beginNavigation(
+            targetUrl = normalizedUrl,
+            closeUrlBar = closeUrlBar
+        )
+        updateState {
+            copy(
+                currentUrl = normalizedUrl,
+                inputUrl = "",
+                showUrlBar = if (closeUrlBar) false else showUrlBar
+            )
+        }
+        applyUserAgent()
+        webView?.loadUrl(normalizedUrl, COMPATIBILITY_REQUEST_HEADERS)
+    }
+
+    fun selectSearchEngine(engine: BrowserSearchEngine) {
+        preferencesRepository.setSearchEngine(engine)
+        updateState { copy(searchEngine = engine) }
+    }
+
+    fun toggleIncognitoMode() {
+        val enabled = !pageState.isIncognitoMode
+        preferencesRepository.setIncognitoModeEnabled(enabled)
+        updateState { copy(isIncognitoMode = enabled) }
+    }
+
+    fun loadHome() {
+        loadHome(closeUrlBar = true)
+    }
+
+    private fun loadHome(closeUrlBar: Boolean) {
+        preferencesRepository.setLastInputUrl("")
+        loadUrl(
+            url = preferredHomeUrl,
+            closeUrlBar = closeUrlBar
+        )
+        updateState {
+            copy(
+                showUrlBar = if (closeUrlBar) false else showUrlBar,
+                inputUrl = ""
+            )
+        }
+    }
+
+    fun clearSearchHistory() {
+        searchHistoryRepository.clearSearchHistory()
+        syncSearchRecords()
+    }
+
+    fun deleteSearchRecord(id: Long) {
+        searchHistoryRepository.deleteSearchHistory(id)
+        syncSearchRecords()
+    }
+
+    fun goBack() {
+        val targetWebView = webView
+        if (targetWebView?.canGoBack() == true) {
+            applyUserAgent()
+            targetWebView.goBack()
+            scheduleNavigationStateSync(targetWebView)
+        }
+    }
+
+    fun goForward() {
+        val targetWebView = webView
+        if (targetWebView?.canGoForward() == true) {
+            applyUserAgent()
+            targetWebView.goForward()
+            scheduleNavigationStateSync(targetWebView)
+        }
+    }
+
+    fun reload() {
+        if (pageState.currentUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
+            loadHome()
+            return
+        }
+        applyUserAgent()
+        beginNavigation(targetUrl = pageState.currentUrl)
+        webView?.reload()
+    }
+
+    fun toggleDesktopMode() {
+        val nextMode = if (pageState.userAgentMode == BrowserUserAgentMode.PC_DESKTOP) {
+            BrowserUserAgentMode.ANDROID
+        } else {
+            BrowserUserAgentMode.PC_DESKTOP
+        }
+        setUserAgentMode(nextMode)
+    }
+
+    fun setUserAgentMode(mode: BrowserUserAgentMode) {
+        preferencesRepository.setUserAgentMode(mode)
+        updateState {
+            copy(
+                userAgentMode = mode,
+                isDesktopMode = mode == BrowserUserAgentMode.PC_DESKTOP
+            )
+        }
+        applyUserAgent()
+        if (pageState.currentUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
+            beginNavigation(targetUrl = pageState.currentUrl)
+            webView?.reload()
+        }
+    }
+
+    fun clearCookiesForCurrentPage() {
+        val currentUrl = pageState.currentUrl
+        if (currentUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
+            return
+        }
+        CookieManager.getInstance().setCookie(currentUrl, "Max-Age=0")
+        CookieManager.getInstance().flush()
+    }
+
+    fun deleteHistoryItem(id: Long) {
+        historyRepository.deleteHistory(id)
+        syncHistoryEntries()
+    }
+
+    fun clearHistory() {
+        historyRepository.clearHistory()
+        syncHistoryEntries()
+    }
+
+    fun requestPageSource(onResult: (String) -> Unit) {
+        val targetWebView = webView
+        if (targetWebView == null || pageState.currentUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
+            onResult("")
+            return
+        }
+
+        targetWebView.evaluateJavascript(
+            "(function(){return document.documentElement ? document.documentElement.outerHTML : '';})();"
+        ) { rawResult ->
+            onResult(decodeJavaScriptStringResult(rawResult))
+        }
+    }
+
+    private fun applyUserAgent() {
+        val targetWebView = webView ?: return
+        BrowserWebViewFactory.applyIdentity(
+            webView = targetWebView,
+            mode = pageState.userAgentMode,
+            defaultUserAgent = defaultUserAgent
+        )
+    }
+
+    private fun showJavaScriptAlert(
+        view: WebView?,
+        title: String?,
+        message: String,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val context = view?.context ?: return false
+        AlertDialog.Builder(context)
+            .setTitle(title ?: "网页提示")
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                onConfirm()
+                dialog.dismiss()
+            }
+            .setOnCancelListener { onCancel() }
+            .show()
+        return true
+    }
+
+    private fun showJavaScriptConfirm(
+        view: WebView?,
+        title: String?,
+        message: String,
+        onConfirm: () -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val context = view?.context ?: return false
+        AlertDialog.Builder(context)
+            .setTitle(title ?: "网页确认")
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                onConfirm()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel) { dialog, _ ->
+                onCancel()
+                dialog.dismiss()
+            }
+            .setOnCancelListener { onCancel() }
+            .show()
+        return true
+    }
+
+    private fun showJavaScriptPrompt(
+        view: WebView?,
+        title: String?,
+        message: String,
+        defaultValue: String,
+        onConfirm: (String) -> Unit,
+        onCancel: () -> Unit
+    ): Boolean {
+        val context = view?.context ?: return false
+        val input = EditText(context).apply {
+            setText(defaultValue)
+            setSelection(text.length)
+        }
+        AlertDialog.Builder(context)
+            .setTitle(title ?: "网页输入")
+            .setMessage(message)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                onConfirm(input.text?.toString().orEmpty())
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel) { dialog, _ ->
+                onCancel()
+                dialog.dismiss()
+            }
+            .setOnCancelListener { onCancel() }
+            .show()
+        return true
+    }
+
+    private fun showHttpAuthDialog(
+        view: WebView,
+        handler: HttpAuthHandler,
+        host: String,
+        realm: String
+    ) {
+        val context = view.context
+        val usernameInput = EditText(context).apply {
+            hint = "用户名"
+            inputType = InputType.TYPE_CLASS_TEXT
+        }
+        val passwordInput = EditText(context).apply {
+            hint = "密码"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 16, 48, 0)
+            addView(
+                usernameInput,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+            addView(
+                passwordInput,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+        AlertDialog.Builder(context)
+            .setTitle("网页登录")
+            .setMessage("$host${if (realm.isNotBlank()) "\n$realm" else ""}")
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                val username = usernameInput.text?.toString().orEmpty()
+                val password = passwordInput.text?.toString().orEmpty()
+                if (username.isNotBlank() && password.isNotBlank()) {
+                    view.setHttpAuthUsernamePassword(host, realm, username, password)
+                    handler.proceed(username, password)
+                } else {
+                    handler.cancel()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel) { dialog, _ ->
+                handler.cancel()
+                dialog.dismiss()
+            }
+            .setOnCancelListener { handler.cancel() }
+            .show()
+    }
+
+    private fun showCustomView(
+        view: View?,
+        callback: IX5WebChromeClient.CustomViewCallback?
+    ) {
+        if (view == null || callback == null) {
+            callback?.onCustomViewHidden()
+            return
+        }
+        if (customView != null) {
+            callback.onCustomViewHidden()
+            return
+        }
+
+        val activity = webView?.context as? Activity ?: run {
+            callback.onCustomViewHidden()
+            return
+        }
+        val decor = activity.window.decorView as? FrameLayout ?: run {
+            callback.onCustomViewHidden()
+            return
+        }
+
+        previousOrientation = activity.requestedOrientation
+        val container = FrameLayout(activity).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            addView(
+                view,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+        decor.addView(
+            container,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        fullscreenContainer = container
+        customView = view
+        customViewCallback = callback
+        webView?.visibility = View.INVISIBLE
+        WindowInsetsControllerCompat(activity.window, decor).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    private fun hideCustomView() {
+        val targetCustomView = customView ?: return
+        val targetWebView = webView
+        val activity = targetWebView?.context as? Activity
+        val decor = activity?.window?.decorView as? FrameLayout
+
+        fullscreenContainer?.removeView(targetCustomView)
+        fullscreenContainer?.let { container ->
+            decor?.removeView(container)
+            container.removeAllViews()
+        }
+        fullscreenContainer = null
+        customView = null
+        customViewCallback?.onCustomViewHidden()
+        customViewCallback = null
+        targetWebView?.visibility = View.VISIBLE
+        if (activity != null && decor != null) {
+            WindowInsetsControllerCompat(activity.window, decor)
+                .show(WindowInsetsCompat.Type.systemBars())
+            activity.requestedOrientation = previousOrientation
+            activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    private fun syncNavigationState() {
+        val targetWebView = webView ?: return
+        val webProgress = targetWebView.progress.coerceIn(0, 100)
+        val resolvedUrl = targetWebView.url ?: pageState.currentUrl
+        updateState {
+            copy(
+                canGoBack = targetWebView.canGoBack(),
+                canGoForward = targetWebView.canGoForward(),
+                currentUrl = resolvedUrl,
+                progress = when {
+                    isLoading && webProgress == 0 -> progress
+                    webProgress > 0 -> webProgress
+                    else -> progress
+                },
+                isLoading = when {
+                    webProgress in 1..99 -> true
+                    resolvedUrl == BrowserSecurityPolicy.BLANK_HOME_URL -> false
+                    isLoading && webProgress >= 100 -> false
+                    else -> isLoading
+                }
+            )
+        }
+    }
+
+    private fun beginNavigation(
+        targetUrl: String? = null,
+        closeUrlBar: Boolean? = null
+    ) {
+        navigationGeneration += 1
+        val generation = navigationGeneration
+        updateState {
+            copy(
+                currentUrl = targetUrl ?: currentUrl,
+                inputUrl = "",
+                showUrlBar = closeUrlBar?.let { shouldClose ->
+                    if (shouldClose) false else showUrlBar
+                } ?: showUrlBar,
+                isLoading = true,
+                progress = 0,
+                blockedExternalUrl = null
+            )
+        }
+        scheduleLoadStateRecovery(generation)
+    }
+
+    private fun scheduleLoadStateRecovery(
+        generation: Int,
+        attempt: Int = 0
+    ) {
+        val targetWebView = webView ?: return
+        targetWebView.postDelayed({
+            if (generation != navigationGeneration || this.webView !== targetWebView) {
+                return@postDelayed
+            }
+
+            val resolvedUrl = targetWebView.url ?: pageState.currentUrl
+            val currentProgress = targetWebView.progress.coerceIn(0, 100)
+            if (pageState.isLoading && currentProgress >= 100 &&
+                resolvedUrl != BrowserSecurityPolicy.BLANK_HOME_URL
+            ) {
+                completePageLoad(
+                    view = targetWebView,
+                    url = resolvedUrl,
+                    captureHistory = false
+                )
+                return@postDelayed
+            }
+
+            if (pageState.isLoading && attempt < MAX_LOAD_RECOVERY_ATTEMPTS) {
+                scheduleLoadStateRecovery(generation, attempt + 1)
+            }
+        }, LOAD_RECOVERY_DELAY_MS)
+    }
+
+    private fun scheduleNavigationStateSync(
+        targetWebView: WebView,
+        attempt: Int = 0
+    ) {
+        targetWebView.postDelayed({
+            if (this.webView !== targetWebView) {
+                return@postDelayed
+            }
+
+            syncNavigationState()
+            val webProgress = targetWebView.progress.coerceIn(0, 100)
+            if (pageState.isLoading && webProgress >= 100) {
+                completePageLoad(
+                    view = targetWebView,
+                    url = targetWebView.url,
+                    captureHistory = false
+                )
+                return@postDelayed
+            }
+
+            if (attempt < NAVIGATION_STATE_SYNC_ATTEMPTS &&
+                (targetWebView.progress == 0 || pageState.currentUrl != (targetWebView.url ?: pageState.currentUrl))
+            ) {
+                scheduleNavigationStateSync(targetWebView, attempt + 1)
+            }
+        }, NAVIGATION_STATE_SYNC_DELAY_MS)
+    }
+
+    private fun onMainFrameContentReady(urlHint: String?) {
+        val targetWebView = webView ?: return
+        targetWebView.post {
+            if (!pageState.isLoading) {
+                return@post
+            }
+
+            val resolvedUrl = targetWebView.url ?: urlHint ?: pageState.currentUrl
+            val resolvedProgress = maxOf(targetWebView.progress, pageState.progress)
+            if (resolvedUrl == BrowserSecurityPolicy.BLANK_HOME_URL ||
+                resolvedProgress < VISUAL_READY_PROGRESS_THRESHOLD
+            ) {
+                return@post
+            }
+
+            completePageLoad(
+                view = targetWebView,
+                url = resolvedUrl,
+                captureHistory = false
+            )
+        }
+    }
+
+    private fun completePageLoad(
+        view: WebView,
+        url: String?,
+        captureHistory: Boolean
+    ) {
+        val currentUrl = url ?: view.url ?: BrowserSecurityPolicy.BLANK_HOME_URL
+        navigationGeneration += 1
+        updateState {
+            copy(
+                currentUrl = currentUrl,
+                inputUrl = "",
+                title = view.title?.takeIf { it.isNotBlank() } ?: title,
+                isLoading = false,
+                progress = if (currentUrl == BrowserSecurityPolicy.BLANK_HOME_URL) 0 else 100,
+                canGoBack = view.canGoBack(),
+                canGoForward = view.canGoForward(),
+                blockedExternalUrl = null
+            )
+        }
+        if (captureHistory) {
+            scheduleHistoryCapture(view, currentUrl)
+        }
+    }
+
+    private fun syncHistoryEntries() {
+        updateState {
+            copy(
+                historyEntries = historyRepository.getHistory().map { it.toEntry() }
+            )
+        }
+    }
+
+    private fun syncSearchRecords() {
+        updateState {
+            copy(
+                searchRecords = searchHistoryRepository.getSearchHistory().map { it.toRecord() }
+            )
+        }
+    }
+
+    private fun scheduleHistoryCapture(targetWebView: WebView, currentUrl: String) {
+        if (pageState.isIncognitoMode || currentUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
+            return
+        }
+
+        targetWebView.postDelayed({
+            if (targetWebView.url != currentUrl) {
+                return@postDelayed
+            }
+
+            val previewBitmap = capturePreviewBitmap(targetWebView)
+            val title = targetWebView.title?.takeIf { it.isNotBlank() } ?: pageState.title
+            Thread {
+                historyRepository.upsertHistory(
+                    title = title,
+                    url = currentUrl,
+                    previewBitmap = previewBitmap
+                )
+                previewBitmap?.recycle()
+                targetWebView.post { syncHistoryEntries() }
+            }.start()
+        }, CAPTURE_DELAY_MS)
+    }
+
+    private fun capturePreviewBitmap(targetWebView: WebView): Bitmap? {
+        val sourceWidth = targetWebView.width
+        val sourceHeight = targetWebView.height
+        if (sourceWidth <= 0 || sourceHeight <= 0) {
+            return null
+        }
+
+        return runCatching {
+            val bitmap = Bitmap.createBitmap(
+                PREVIEW_WIDTH,
+                PREVIEW_HEIGHT,
+                Bitmap.Config.RGB_565
+            )
+            val canvas = Canvas(bitmap)
+            canvas.drawColor(android.graphics.Color.WHITE)
+            val scale = minOf(
+                PREVIEW_WIDTH.toFloat() / sourceWidth.toFloat(),
+                PREVIEW_HEIGHT.toFloat() / sourceHeight.toFloat()
+            )
+            val dx = (PREVIEW_WIDTH - sourceWidth * scale) / 2f
+            val dy = (PREVIEW_HEIGHT - sourceHeight * scale) / 2f
+            canvas.translate(dx, dy)
+            canvas.scale(scale, scale)
+            targetWebView.draw(canvas)
+            bitmap
+        }.getOrNull()
+    }
+
+    private fun BrowserHistoryRepository.HistoryItem.toEntry(): BrowserHistoryEntry {
+        return BrowserHistoryEntry(
+            id = id,
+            title = title,
+            url = url,
+            previewPath = previewPath,
+            createdAt = createdAt
+        )
+    }
+
+    private fun BrowserSearchHistoryRepository.SearchRecordItem.toRecord(): BrowserSearchRecord {
+        return BrowserSearchRecord(
+            id = id,
+            query = query,
+            targetUrl = targetUrl,
+            createdAt = createdAt
+        )
+    }
+
+    private fun updateState(transform: BrowserPageState.() -> BrowserPageState) {
+        pageState = pageState.transform()
+        callbacks.onStateChanged(pageState)
+    }
+
+    private fun decodeJavaScriptStringResult(rawResult: String?): String {
+        if (rawResult.isNullOrBlank() || rawResult == "null") {
+            return ""
+        }
+        return runCatching {
+            JSONArray("[$rawResult]").getString(0)
+        }.getOrDefault(rawResult)
+    }
+
+    companion object {
+        private const val LOG_TAG = "KiyoriBrowser"
+        private const val PREVIEW_WIDTH = 432
+        private const val PREVIEW_HEIGHT = 912
+        private const val CAPTURE_DELAY_MS = 220L
+        private const val LOAD_RECOVERY_DELAY_MS = 240L
+        private const val MAX_LOAD_RECOVERY_ATTEMPTS = 18
+        private const val NAVIGATION_STATE_SYNC_DELAY_MS = 120L
+        private const val NAVIGATION_STATE_SYNC_ATTEMPTS = 8
+        private const val VISUAL_READY_PROGRESS_THRESHOLD = 85
+        private val COMPATIBILITY_REQUEST_HEADERS = mapOf("X-Requested-With" to "")
+    }
+}

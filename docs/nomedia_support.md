@@ -8,7 +8,7 @@
 
 ### 1. 新增工具类：`NoMediaChecker.kt`
 
-位置：`app/src/main/java/com/fam4k007/videoplayer/utils/NoMediaChecker.kt`
+位置：`app/src/main/java/com/android/kiyori/utils/NoMediaChecker.kt`
 
 提供三个主要方法：
 - `containsNoMedia(path: String?)`: 检查路径或其任何父目录是否包含 .nomedia 文件
@@ -17,11 +17,11 @@
 
 ### 2. 修改的文件
 
-#### VideoBrowserActivity.kt
+#### VideoBrowserComposeActivity.kt
 - 在 `scanVideoFiles()` 方法中添加 .nomedia 检测
 - 扫描视频时会自动跳过包含 .nomedia 的文件夹
 
-#### VideoListActivity.kt
+#### VideoListComposeActivity.kt
 - 在 `refreshVideoList()` 方法中添加 .nomedia 检测
 - 在 `scanFolderVideos()` 方法中添加 .nomedia 检测
 - 刷新视频列表时会跳过包含 .nomedia 的文件夹

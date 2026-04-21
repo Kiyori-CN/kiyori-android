@@ -16,12 +16,12 @@
 
 当前工程已经具备部分浏览器与远程播放基础能力：
 
-- `app/src/main/java/com/fam4k007/videoplayer/tv/TVBrowserActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/VideoSnifferManager.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/UrlDetector.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/remote/RemotePlaybackLauncher.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/remote/RemotePlaybackHeaders.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/remote/RemotePlaybackResolver.kt`
+- `app/src/main/java/com/android/kiyori/browser/ui/BrowserActivity.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/VideoSnifferManager.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/UrlDetector.kt`
+- `app/src/main/java/com/android/kiyori/remote/RemotePlaybackLauncher.kt`
+- `app/src/main/java/com/android/kiyori/remote/RemotePlaybackHeaders.kt`
+- `app/src/main/java/com/android/kiyori/remote/RemotePlaybackResolver.kt`
 
 现状问题：
 
@@ -98,7 +98,7 @@
 建议新增浏览器域目录：
 
 ```text
-app/src/main/java/com/fam4k007/videoplayer/browser/
+app/src/main/java/com/android/kiyori/browser/
   data/
   domain/
   playback/

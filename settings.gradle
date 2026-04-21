@@ -25,5 +25,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FAM4K007"
+rootProject.name = "kiyori-android"
 include(":app")

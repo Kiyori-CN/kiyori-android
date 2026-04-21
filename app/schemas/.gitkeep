@@ -4,7 +4,7 @@
 
 ## 说明
 - Room 会在编译时自动生成每个版本的数据库结构 JSON 文件
-- 文件路径格式: `com.fam4k007.videoplayer.database.VideoDatabase/{version}.json`
+- 文件路径格式: `com.android.kiyori.database.VideoDatabase/{version}.json`
 - 这些文件应该提交到版本控制，用于：
   - 追踪数据库结构变更历史
   - 对比不同版本的差异

@@ -27,6 +27,7 @@ ext.versions = [
     zxing            : '3.5.1',
     coil             : '2.5.0',
     gson             : '2.10.1',
+    webkit           : '1.15.0',
     securityCrypto   : '1.1.0-alpha06',
     aboutLibraries   : '10.10.0'
 ]

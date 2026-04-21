@@ -83,4 +83,4 @@
 
 ---
 
-**安全反馈**：[GitHub Issues](https://github.com/azxcvn/mpv-android-anime4k/issues)
+**安全反馈**：[GitHub Issues](https://github.com/Kiyori-CN/kiyori-android/issues)

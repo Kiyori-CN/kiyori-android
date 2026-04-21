@@ -1,6 +1,6 @@
 # 功能特性详细说明
 
-本文档详细介绍小喵player的所有功能特性。
+本文档详细介绍 Kiyori 的所有功能特性。
 
 ---
 
@@ -263,4 +263,4 @@
 
 本项目持续更新中，更多功能敬请期待！
 
-如果你有功能建议或需求，欢迎[提交 Issue](https://github.com/azxcvn/mpv-android-anime4k/issues)。
+如果你有功能建议或需求，欢迎[提交 Issue](https://github.com/Kiyori-CN/kiyori-android/issues)。

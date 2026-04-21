@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>浏览器图标库</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; padding: 32px; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f6f7f9; color: #1a1a1a; transition: background .2s, color .2s; }
+body.dark { background: #141414; color: #e0e0e0; }
+.header { max-width: 1400px; margin: 0 auto 24px; }
+.header h1 { margin: 0 0 6px; font-size: 28px; font-weight: 600; }
+.header p { color: #666; margin: 4px 0; }
+body.dark .header p { color: #999; }
+.controls { max-width: 1400px; margin: 0 auto 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: white; padding: 14px 18px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+body.dark .controls { background: #1f1f1f; }
+.controls button, .controls select, .controls input { padding: 8px 14px; border: 1px solid #e1e4e8; border-radius: 8px; background: white; cursor: pointer; font-size: 14px; color: #1a1a1a; }
+body.dark .controls button, body.dark .controls select, body.dark .controls input { background: #2a2a2a; color: #e0e0e0; border-color: #444; }
+.controls button.active { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+body.dark .controls button.active { background: #fff; color: #000; border-color: #fff; }
+.controls input { min-width: 220px; }
+.container { max-width: 1400px; margin: 0 auto; }
+.group { background: white; border-radius: 14px; padding: 20px 24px 24px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+body.dark .group { background: #1f1f1f; }
+.group h2 { margin: 0 0 18px; font-size: 15px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 10px; }
+body.dark .group h2 { color: #e0e0e0; }
+.group h2 .count { font-size: 12px; color: #999; font-weight: 400; background: #f0f2f5; padding: 2px 8px; border-radius: 10px; }
+body.dark .group h2 .count { background: #333; color: #aaa; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.cell { display: flex; flex-direction: column; align-items: center; padding: 16px 6px 10px; border-radius: 10px; cursor: pointer; transition: background .15s; text-align: center; }
+.cell:hover { background: #f0f2f5; }
+body.dark .cell:hover { background: #2a2a2a; }
+.cell svg { width: 30px; height: 30px; color: #1a1a1a; margin-bottom: 10px; }
+body.dark .cell svg { color: #e0e0e0; }
+.cell .cn { font-size: 11px; color: #333; line-height: 1.3; margin-bottom: 2px; }
+body.dark .cell .cn { color: #ccc; }
+.cell .en { font-size: 10px; color: #999; font-family: "SF Mono", Consolas, monospace; word-break: break-all; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: white; padding: 10px 20px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 100; font-size: 13px; }
+.toast.show { opacity: 1; }
+.modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 14px; padding: 24px; max-width: 600px; width: 90%; max-height: 90vh; overflow: auto; }
+body.dark .modal-content { background: #1f1f1f; color: #e0e0e0; }
+.modal h3 { margin: 0 0 12px; font-size: 18px; }
+.modal .icon-preview { display: flex; justify-content: center; padding: 24px; background: #f6f7f9; border-radius: 10px; margin-bottom: 16px; }
+body.dark .modal .icon-preview { background: #141414; }
+.modal .icon-preview svg { width: 80px; height: 80px; }
+.modal .info-row { padding: 8px 0; border-bottom: 1px solid #eee; display: flex; gap: 16px; }
+body.dark .modal .info-row { border-bottom-color: #333; }
+.modal .info-row .k { flex: 0 0 100px; color: #666; font-size: 13px; }
+.modal .info-row .v { flex: 1; font-size: 13px; font-family: "SF Mono", monospace; word-break: break-all; }
+.modal .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+.modal .btn-row button { flex: 1; padding: 10px; border: 1px solid #e1e4e8; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; }
+body.dark .modal .btn-row button { background: #2a2a2a; color: #e0e0e0; border-color: #444; }
+.modal .btn-row button.primary { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+.modal code { background: #f0f2f5; padding: 2px 5px; border-radius: 3px; font-size: 12px; }
+body.dark .modal code { background: #333; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>浏览器图标库</h1>
+  <p>共 <b>174</b> 个图标 · 覆盖截图中全部图标 · 19 个分类 · 24×24 viewBox · 1.75px 描边 · currentColor 主题色</p>
+  <p style="font-size:13px;color:#888;">点击任意图标查看详情并复制代码</p>
+</div>
+<div class="controls">
+  <input type="text" id="search" placeholder="🔍 搜索图标 (中英文/关键词)">
+  <button onclick="setSize(20, this)">20px</button>
+  <button onclick="setSize(30, this)" class="active">30px</button>
+  <button onclick="setSize(44, this)">44px</button>
+  <button onclick="setSize(64, this)">64px</button>
+  <select onchange="setColor(this.value)">
+    <option value="#1a1a1a">黑色</option>
+    <option value="#2563eb">蓝色</option>
+    <option value="#dc2626">红色</option>
+    <option value="#16a34a">绿色</option>
+    <option value="#f59e0b">橙色</option>
+    <option value="#8b5cf6">紫色</option>
+  </select>
+  <button onclick="toggleDark()">🌓 主题</button>
+</div>
+<div class="container">
+<div class="group" data-cat="nav"><h2>核心导航<span class="count">22</span></h2><div class="grid"><div class="cell" data-name="search" data-cn="搜索" data-keywords="search find lookup 搜索 查找 搜 magnifier" onclick="showDetail('search')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.35-4.35"/>
+</svg>
+<div class="cn">搜索</div><div class="en">search</div></div><div class="cell" data-name="home" data-cn="首页(房子)" data-keywords="home house 首页 主页" onclick="showDetail('home')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3.5 11 12 4l8.5 7v8a1.5 1.5 0 0 1-1.5 1.5h-4v-6h-6v6H5A1.5 1.5 0 0 1 3.5 19z"/>
+</svg>
+<div class="cn">首页(房子)</div><div class="en">home</div></div><div class="cell" data-name="home-pentagon" data-cn="首页(五边形款)" data-keywords="home pentagon 首页 logo" onclick="showDetail('home-pentagon')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 20h14a1 1 0 0 0 1-1v-7.5L12 4 4 11.5V19a1 1 0 0 0 1 1z"/>
+</svg>
+<div class="cn">首页(五边形款)</div><div class="en">home-pentagon</div></div><div class="cell" data-name="home-q" data-cn="首页(Q标识)" data-keywords="home q logo tencent 首页" onclick="showDetail('home-q')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="M14 14l3 3" stroke-width="2.5"/>
+</svg>
+<div class="cn">首页(Q标识)</div><div class="en">home-q</div></div><div class="cell" data-name="back" data-cn="后退" data-keywords="back 后退 上一步 左箭头" onclick="showDetail('back')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M19 12H5"/><polyline points="12 5 5 12 12 19"/>
+</svg>
+<div class="cn">后退</div><div class="en">back</div></div><div class="cell" data-name="forward" data-cn="前进" data-keywords="forward 前进 下一步 右箭头" onclick="showDetail('forward')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
+</svg>
+<div class="cn">前进</div><div class="en">forward</div></div><div class="cell" data-name="refresh" data-cn="刷新" data-keywords="refresh reload 刷新 重新加载" onclick="showDetail('refresh')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 11A8 8 0 1 1 17.66 6.34"/><polyline points="20 4 20 11 13 11"/>
+</svg>
+<div class="cn">刷新</div><div class="en">refresh</div></div><div class="cell" data-name="refresh-disc" data-cn="刷新(圆盘款)" data-keywords="refresh disc 刷新 唱片" onclick="showDetail('refresh-disc')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">刷新(圆盘款)</div><div class="en">refresh-disc</div></div><div class="cell" data-name="refresh-cw" data-cn="刷新(顺时针)" data-keywords="refresh reload 刷新" onclick="showDetail('refresh-cw')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 11A8 8 0 1 1 17.66 6.34"/><polyline points="20 4 20 11 13 11"/>
+</svg>
+<div class="cn">刷新(顺时针)</div><div class="en">refresh-cw</div></div><div class="cell" data-name="close" data-cn="关闭" data-keywords="close x cancel 关闭 取消 叉" onclick="showDetail('close')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+</svg>
+<div class="cn">关闭</div><div class="en">close</div></div><div class="cell" data-name="close-circle" data-cn="关闭(圆圈)" data-keywords="close cancel 关闭 圆叉" onclick="showDetail('close-circle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/>
+</svg>
+<div class="cn">关闭(圆圈)</div><div class="en">close-circle</div></div><div class="cell" data-name="menu" data-cn="菜单" data-keywords="menu hamburger 菜单 三横" onclick="showDetail('menu')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>
+</svg>
+<div class="cn">菜单</div><div class="en">menu</div></div><div class="cell" data-name="more-horizontal" data-cn="更多(横向)" data-keywords="more dots 更多 三点" onclick="showDetail('more-horizontal')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">更多(横向)</div><div class="en">more-horizontal</div></div><div class="cell" data-name="more-vertical" data-cn="更多(纵向)" data-keywords="more dots 更多 三点" onclick="showDetail('more-vertical')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">更多(纵向)</div><div class="en">more-vertical</div></div><div class="cell" data-name="arrow-up" data-cn="向上箭头" data-keywords="arrow up 向上" onclick="showDetail('arrow-up')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/>
+</svg>
+<div class="cn">向上箭头</div><div class="en">arrow-up</div></div><div class="cell" data-name="arrow-down" data-cn="向下箭头" data-keywords="arrow down 向下" onclick="showDetail('arrow-down')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 5v14"/><polyline points="5 12 12 19 19 12"/>
+</svg>
+<div class="cn">向下箭头</div><div class="en">arrow-down</div></div><div class="cell" data-name="arrow-left" data-cn="向左箭头" data-keywords="arrow left 向左" onclick="showDetail('arrow-left')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M19 12H5"/><polyline points="12 5 5 12 12 19"/>
+</svg>
+<div class="cn">向左箭头</div><div class="en">arrow-left</div></div><div class="cell" data-name="arrow-right" data-cn="向右箭头" data-keywords="arrow right 向右" onclick="showDetail('arrow-right')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
+</svg>
+<div class="cn">向右箭头</div><div class="en">arrow-right</div></div><div class="cell" data-name="chevron-up" data-cn="尖角向上" data-keywords="chevron up 向上 折叠" onclick="showDetail('chevron-up')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="6 15 12 9 18 15"/>
+</svg>
+<div class="cn">尖角向上</div><div class="en">chevron-up</div></div><div class="cell" data-name="chevron-down" data-cn="尖角向下" data-keywords="chevron down 向下 展开" onclick="showDetail('chevron-down')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="6 9 12 15 18 9"/>
+</svg>
+<div class="cn">尖角向下</div><div class="en">chevron-down</div></div><div class="cell" data-name="chevron-left" data-cn="尖角向左" data-keywords="chevron left 向左" onclick="showDetail('chevron-left')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="15 6 9 12 15 18"/>
+</svg>
+<div class="cn">尖角向左</div><div class="en">chevron-left</div></div><div class="cell" data-name="chevron-right" data-cn="尖角向右" data-keywords="chevron right 向右" onclick="showDetail('chevron-right')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="9 6 15 12 9 18"/>
+</svg>
+<div class="cn">尖角向右</div><div class="en">chevron-right</div></div></div></div><div class="group" data-cat="tab"><h2>标签页/窗口<span class="count">8</span></h2><div class="grid"><div class="cell" data-name="tab" data-cn="标签页(带数字)" data-keywords="tab window 标签页" onclick="showDetail('tab')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2.5"/><text x="12" y="16" font-family="Arial,sans-serif" font-size="9" font-weight="600" text-anchor="middle" fill="currentColor" stroke="none">1</text>
+</svg>
+<div class="cn">标签页(带数字)</div><div class="en">tab</div></div><div class="cell" data-name="tab-multi" data-cn="多标签页" data-keywords="tab multi windows 多标签 叠加" onclick="showDetail('tab-multi')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="7" y="7" width="13" height="13" rx="2"/><path d="M16 7V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H7"/>
+</svg>
+<div class="cn">多标签页</div><div class="en">tab-multi</div></div><div class="cell" data-name="tab-new" data-cn="新建标签页" data-keywords="tab new add 新建标签" onclick="showDetail('tab-new')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M12 9v6"/><path d="M9 12h6"/>
+</svg>
+<div class="cn">新建标签页</div><div class="en">tab-new</div></div><div class="cell" data-name="tab-close" data-cn="关闭标签页" data-keywords="tab close 关闭标签" onclick="showDetail('tab-close')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/>
+</svg>
+<div class="cn">关闭标签页</div><div class="en">tab-close</div></div><div class="cell" data-name="picture-in-picture" data-cn="画中画" data-keywords="pip picture-in-picture 画中画 小窗" onclick="showDetail('picture-in-picture')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><rect x="12" y="11" width="6.5" height="5.5" rx="1"/><text x="15.25" y="15.5" font-family="Arial,sans-serif" font-size="4.5" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">i</text>
+</svg>
+<div class="cn">画中画</div><div class="en">picture-in-picture</div></div><div class="cell" data-name="fullscreen" data-cn="全屏" data-keywords="fullscreen expand 全屏" onclick="showDetail('fullscreen')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="4 9 4 4 9 4"/><polyline points="20 9 20 4 15 4"/><polyline points="4 15 4 20 9 20"/><polyline points="20 15 20 20 15 20"/>
+</svg>
+<div class="cn">全屏</div><div class="en">fullscreen</div></div><div class="cell" data-name="fullscreen-corners" data-cn="全屏模式" data-keywords="fullscreen mode 全屏模式" onclick="showDetail('fullscreen-corners')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><polyline points="7 10 7 7 10 7"/><polyline points="17 10 17 7 14 7"/>
+</svg>
+<div class="cn">全屏模式</div><div class="en">fullscreen-corners</div></div><div class="cell" data-name="fullscreen-exit" data-cn="退出全屏" data-keywords="fullscreen exit compress 退出全屏" onclick="showDetail('fullscreen-exit')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="9 4 9 9 4 9"/><polyline points="15 4 15 9 20 9"/><polyline points="4 15 9 15 9 20"/><polyline points="15 20 15 15 20 15"/>
+</svg>
+<div class="cn">退出全屏</div><div class="en">fullscreen-exit</div></div></div></div><div class="group" data-cat="bookmark"><h2>书签<span class="count">8</span></h2><div class="grid"><div class="cell" data-name="bookmark" data-cn="书签" data-keywords="bookmark 书签 收藏" onclick="showDetail('bookmark')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3.5L6 21z"/>
+</svg>
+<div class="cn">书签</div><div class="en">bookmark</div></div><div class="cell" data-name="bookmark-add" data-cn="加书签" data-keywords="bookmark add 加书签 添加书签" onclick="showDetail('bookmark-add')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5v7L12 9 6 11.5z"/><path d="M12 15v6"/><path d="M9 18h6"/>
+</svg>
+<div class="cn">加书签</div><div class="en">bookmark-add</div></div><div class="cell" data-name="bookmark-filled" data-cn="书签(实心)" data-keywords="bookmark filled 书签实心" onclick="showDetail('bookmark-filled')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3.5L6 21z" fill="currentColor"/>
+</svg>
+<div class="cn">书签(实心)</div><div class="en">bookmark-filled</div></div><div class="cell" data-name="bookmarks-stacked" data-cn="书签(双层叠)" data-keywords="bookmarks stacked 书签 双层" onclick="showDetail('bookmarks-stacked')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 7.5v11l3-2 3 2v-11"/><path d="M13 5.5v11l3-2 3 2v-11"/><path d="M5 7.5a1.5 1.5 0 0 1 1.5-1.5h3a1.5 1.5 0 0 1 1.5 1.5"/><path d="M13 5.5A1.5 1.5 0 0 1 14.5 4h3A1.5 1.5 0 0 1 19 5.5"/>
+</svg>
+<div class="cn">书签(双层叠)</div><div class="en">bookmarks-stacked</div></div><div class="cell" data-name="bookmark-square" data-cn="书签收藏(方形)" data-keywords="bookmark square 书签收藏 方形" onclick="showDetail('bookmark-square')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M10 9v6l2-1.5 2 1.5V9z" fill="currentColor"/>
+</svg>
+<div class="cn">书签收藏(方形)</div><div class="en">bookmark-square</div></div><div class="cell" data-name="star" data-cn="星标(线)" data-keywords="star favorite 收藏 星" onclick="showDetail('star')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="12 3 14.7 9.5 21.5 10 16.3 14.4 18 21 12 17.2 6 21 7.7 14.4 2.5 10 9.3 9.5"/>
+</svg>
+<div class="cn">星标(线)</div><div class="en">star</div></div><div class="cell" data-name="star-filled" data-cn="星标(实)" data-keywords="star filled 收藏 实星" onclick="showDetail('star-filled')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="12 3 14.7 9.5 21.5 10 16.3 14.4 18 21 12 17.2 6 21 7.7 14.4 2.5 10 9.3 9.5" fill="currentColor"/>
+</svg>
+<div class="cn">星标(实)</div><div class="en">star-filled</div></div><div class="cell" data-name="star-add" data-cn="收藏该网页" data-keywords="star add 收藏 加星" onclick="showDetail('star-add')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="9.5 4 11.4 8.4 16 8.8 12.4 11.7 13.5 16.3 9.5 13.8 5.5 16.3 6.6 11.7 3 8.8 7.6 8.4"/><circle cx="18" cy="17" r="3.5"/><line x1="18" y1="15.5" x2="18" y2="18.5"/><line x1="16.5" y1="17" x2="19.5" y2="17"/>
+</svg>
+<div class="cn">收藏该网页</div><div class="en">star-add</div></div></div></div><div class="group" data-cat="history"><h2>历史<span class="count">3</span></h2><div class="grid"><div class="cell" data-name="history" data-cn="历史记录(时钟)" data-keywords="history clock 历史 时钟" onclick="showDetail('history')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><polyline points="12 7 12 12 15.5 14"/>
+</svg>
+<div class="cn">历史记录(时钟)</div><div class="en">history</div></div><div class="cell" data-name="history-filled" data-cn="历史记录(实心)" data-keywords="history filled 历史记录" onclick="showDetail('history-filled')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8" fill="currentColor"/><polyline points="12 7.5 12 12 15 13.5" stroke="#fff"/>
+</svg>
+<div class="cn">历史记录(实心)</div><div class="en">history-filled</div></div><div class="cell" data-name="clock" data-cn="时钟" data-keywords="clock time 时钟 时间" onclick="showDetail('clock')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><polyline points="12 7 12 12 15 14"/>
+</svg>
+<div class="cn">时钟</div><div class="en">clock</div></div></div></div><div class="group" data-cat="download"><h2>下载<span class="count">4</span></h2><div class="grid"><div class="cell" data-name="download" data-cn="下载" data-keywords="download 下载" onclick="showDetail('download')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 20h14"/><path d="M12 4v12"/><polyline points="7 11 12 16 17 11"/>
+</svg>
+<div class="cn">下载</div><div class="en">download</div></div><div class="cell" data-name="download-box" data-cn="下载(方框)" data-keywords="download box 下载" onclick="showDetail('download-box')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M12 8v7"/><polyline points="9 12 12 15 15 12"/>
+</svg>
+<div class="cn">下载(方框)</div><div class="en">download-box</div></div><div class="cell" data-name="download-filled" data-cn="下载管理(实心)" data-keywords="download manage 下载管理" onclick="showDetail('download-filled')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="3" fill="currentColor"/><path d="M12 8v7" stroke="#fff"/><polyline points="9 12 12 15 15 12" stroke="#fff"/>
+</svg>
+<div class="cn">下载管理(实心)</div><div class="en">download-filled</div></div><div class="cell" data-name="upload" data-cn="上传" data-keywords="upload 上传" onclick="showDetail('upload')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 20h14"/><path d="M12 16V4"/><polyline points="7 9 12 4 17 9"/>
+</svg>
+<div class="cn">上传</div><div class="en">upload</div></div></div></div><div class="group" data-cat="user"><h2>用户/账户<span class="count">8</span></h2><div class="grid"><div class="cell" data-name="user" data-cn="用户" data-keywords="user person 用户 人" onclick="showDetail('user')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6"/>
+</svg>
+<div class="cn">用户</div><div class="en">user</div></div><div class="cell" data-name="user-filled" data-cn="用户(实心)" data-keywords="user filled 用户实心" onclick="showDetail('user-filled')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="8" r="4" fill="currentColor"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" fill="currentColor"/>
+</svg>
+<div class="cn">用户(实心)</div><div class="en">user-filled</div></div><div class="cell" data-name="user-placeholder" data-cn="用户占位" data-keywords="avatar placeholder 头像 占位" onclick="showDetail('user-placeholder')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3"/><path d="M6 19c0-3 2.5-5 6-5s6 2 6 5"/>
+</svg>
+<div class="cn">用户占位</div><div class="en">user-placeholder</div></div><div class="cell" data-name="login" data-cn="登录" data-keywords="login signin 登录 立即登录" onclick="showDetail('login')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/><polyline points="10 8 14 12 10 16"/><line x1="14" y1="12" x2="4" y2="12"/>
+</svg>
+<div class="cn">登录</div><div class="en">login</div></div><div class="cell" data-name="logout" data-cn="退出登录" data-keywords="logout signout 退出" onclick="showDetail('logout')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><polyline points="16 8 20 12 16 16"/><line x1="20" y1="12" x2="9" y2="12"/>
+</svg>
+<div class="cn">退出登录</div><div class="en">logout</div></div><div class="cell" data-name="smile" data-cn="我的(微笑)" data-keywords="smile face 我的 微笑脸" onclick="showDetail('smile')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14s1.5 2 3.5 2 3.5-2 3.5-2"/><circle cx="9" cy="10" r="0.7" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="0.7" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">我的(微笑)</div><div class="en">smile</div></div><div class="cell" data-name="bell" data-cn="铃铛/通知" data-keywords="bell notification 铃铛 通知" onclick="showDetail('bell')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 14V10a6 6 0 0 1 12 0v4l2 2.5H4z"/><path d="M10 19a2 2 0 0 0 4 0"/>
+</svg>
+<div class="cn">铃铛/通知</div><div class="en">bell</div></div><div class="cell" data-name="bell-off" data-cn="关闭通知" data-keywords="bell off mute 静音" onclick="showDetail('bell-off')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="m4 4 16 16"/><path d="M18 14.5V10a6 6 0 0 0-9.3-5"/><path d="M6 10v4l-2 2.5h13"/><path d="M10 19a2 2 0 0 0 4 0"/>
+</svg>
+<div class="cn">关闭通知</div><div class="en">bell-off</div></div></div></div><div class="group" data-cat="settings"><h2>设置/工具<span class="count">5</span></h2><div class="grid"><div class="cell" data-name="settings" data-cn="设置(六边形)" data-keywords="settings hexagon 设置 六边形" onclick="showDetail('settings')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="12 3 19.5 7 19.5 16 12 20 4.5 16 4.5 7"/><circle cx="12" cy="11.5" r="1.8" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">设置(六边形)</div><div class="en">settings</div></div><div class="cell" data-name="settings-gear" data-cn="设置(齿轮)" data-keywords="settings gear 设置 齿轮" onclick="showDetail('settings-gear')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1.03H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.56 1.03z"/>
+</svg>
+<div class="cn">设置(齿轮)</div><div class="en">settings-gear</div></div><div class="cell" data-name="toolbox" data-cn="工具箱(公文包)" data-keywords="toolbox briefcase 工具箱 公文包" onclick="showDetail('toolbox')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8"/><path d="M3 13h18"/>
+</svg>
+<div class="cn">工具箱(公文包)</div><div class="en">toolbox</div></div><div class="cell" data-name="toolbox-package" data-cn="工具箱(包裹盒)" data-keywords="toolbox package box 工具箱 包裹" onclick="showDetail('toolbox-package')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 8.5 12 5l8 3.5V17L12 20.5 4 17z"/><path d="M4 8.5 12 12l8-3.5"/><path d="M12 12v8.5"/>
+</svg>
+<div class="cn">工具箱(包裹盒)</div><div class="en">toolbox-package</div></div><div class="cell" data-name="plugin" data-cn="插件" data-keywords="plugin addon extension 插件 扩展" onclick="showDetail('plugin')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="6" width="16" height="14" rx="1.5"/><path d="M14 6V4.5A1.5 1.5 0 0 0 12.5 3h-1A1.5 1.5 0 0 0 10 4.5V6"/><path d="M4 11h5"/><path d="M9 8v6"/>
+</svg>
+<div class="cn">插件</div><div class="en">plugin</div></div></div></div><div class="group" data-cat="media"><h2>媒体/影视<span class="count">10</span></h2><div class="grid"><div class="cell" data-name="camera" data-cn="相机" data-keywords="camera photo 相机 拍照" onclick="showDetail('camera')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 8h3l2-3h4l2 3h3a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-14A1.5 1.5 0 0 1 3.5 18.5v-9A1.5 1.5 0 0 1 5 8z"/><circle cx="12" cy="13.5" r="3.5"/>
+</svg>
+<div class="cn">相机</div><div class="en">camera</div></div><div class="cell" data-name="video" data-cn="摄像机" data-keywords="video camcorder 摄像机" onclick="showDetail('video')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="6.5" width="12.5" height="11" rx="1.5"/><polygon points="15.5 10 21 7 21 17 15.5 14"/>
+</svg>
+<div class="cn">摄像机</div><div class="en">video</div></div><div class="cell" data-name="video-dot" data-cn="热搜好剧(摄像机带点)" data-keywords="video dot hot trending 热搜 好剧" onclick="showDetail('video-dot')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="6.5" width="12.5" height="11" rx="1.5"/><polygon points="15.5 10 21 7 21 17 15.5 14"/><circle cx="6" cy="10" r="1.3" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">热搜好剧(摄像机带点)</div><div class="en">video-dot</div></div><div class="cell" data-name="play" data-cn="播放" data-keywords="play 播放" onclick="showDetail('play')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><polygon points="10 8.5 16 12 10 15.5" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">播放</div><div class="en">play</div></div><div class="cell" data-name="play-circle" data-cn="播放(圆圈)" data-keywords="play circle 播放" onclick="showDetail('play-circle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><polygon points="10.5 9 15.5 12 10.5 15"/>
+</svg>
+<div class="cn">播放(圆圈)</div><div class="en">play-circle</div></div><div class="cell" data-name="cinema-vr" data-cn="观影模式(VR眼镜)" data-keywords="cinema vr mode 观影 眼镜" onclick="showDetail('cinema-vr')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 10.5A2 2 0 0 1 5 8.5h3.5A2 2 0 0 1 10.5 10.5v1A2 2 0 0 1 8.5 13.5H5A2 2 0 0 1 3 11.5z"/><path d="M13.5 10.5A2 2 0 0 1 15.5 8.5H19A2 2 0 0 1 21 10.5v1A2 2 0 0 1 19 13.5h-3.5A2 2 0 0 1 13.5 11.5z"/><path d="M10.5 11h3"/>
+</svg>
+<div class="cn">观影模式(VR眼镜)</div><div class="en">cinema-vr</div></div><div class="cell" data-name="headphones" data-cn="耳机(网页朗读)" data-keywords="headphones audio read-aloud 耳机 朗读" onclick="showDetail('headphones')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 14a8 8 0 0 1 16 0"/><path d="M4 14v3a2 2 0 0 0 2 2h1v-6H6a2 2 0 0 0-2 1z"/><path d="M20 14v3a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 1z"/>
+</svg>
+<div class="cn">耳机(网页朗读)</div><div class="en">headphones</div></div><div class="cell" data-name="music" data-cn="音乐" data-keywords="music song 音乐" onclick="showDetail('music')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>
+</svg>
+<div class="cn">音乐</div><div class="en">music</div></div><div class="cell" data-name="follow-drama" data-cn="影视追剧" data-keywords="follow drama video 追剧 影视 追" onclick="showDetail('follow-drama')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="6.5" width="11" height="11" rx="1.5"/><polygon points="14 9.5 19.5 7 19.5 17 14 14.5"/><circle cx="18" cy="7" r="3.5" fill="#fff"/><circle cx="18" cy="7" r="3.5"/><line x1="18" y1="5.5" x2="18" y2="8.5"/><line x1="16.5" y1="7" x2="19.5" y2="7"/>
+</svg>
+<div class="cn">影视追剧</div><div class="en">follow-drama</div></div><div class="cell" data-name="ai-video-search" data-cn="AI搜影视" data-keywords="ai search video AI搜影视 智能搜索" onclick="showDetail('ai-video-search')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="10.5" cy="10.5" r="6.5"/><path d="m19.5 19.5-4.35-4.35"/><path d="m10.5 6 .8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7L8 8.5l1.7-.8z" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">AI搜影视</div><div class="en">ai-video-search</div></div></div></div><div class="group" data-cat="ai"><h2>AI相关<span class="count">7</span></h2><div class="grid"><div class="cell" data-name="ai-search" data-cn="AI搜索" data-keywords="ai search smart AI搜索" onclick="showDetail('ai-search')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="10.5" cy="10.5" r="6.5"/><path d="m19.5 19.5-4.35-4.35"/><path d="m10.5 6 .8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7L8 8.5l1.7-.8z" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">AI搜索</div><div class="en">ai-search</div></div><div class="cell" data-name="ai-summary" data-cn="AI总结" data-keywords="ai summary summarize AI总结 总结" onclick="showDetail('ai-summary')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V9z"/><polyline points="13 3 13 9 19 9"/><text x="12" y="17.5" font-family="Arial,sans-serif" font-size="5" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">AI</text>
+</svg>
+<div class="cn">AI总结</div><div class="en">ai-summary</div></div><div class="cell" data-name="sort-sparkle" data-cn="智能排序(带星)" data-keywords="sort sparkle ai smart AI排序 智能排序" onclick="showDetail('sort-sparkle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="4" y1="7" x2="16" y2="7"/><line x1="4" y1="12" x2="13" y2="12"/><line x1="4" y1="17" x2="10" y2="17"/><path d="m19 4 .6 1.4 1.4.6-1.4.6L19 8l-.6-1.4L17 6l1.4-.6z" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">智能排序(带星)</div><div class="en">sort-sparkle</div></div><div class="cell" data-name="sparkle" data-cn="星火" data-keywords="sparkle magic ai 星 魔法" onclick="showDetail('sparkle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3 13.5 9 19.5 10.5 13.5 12 12 18 10.5 12 4.5 10.5 10.5 9z" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">星火</div><div class="en">sparkle</div></div><div class="cell" data-name="robot" data-cn="机器人" data-keywords="robot ai bot 机器人" onclick="showDetail('robot')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 4v4"/><circle cx="12" cy="3.5" r="1"/><circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/><line x1="9" y1="16.5" x2="15" y2="16.5"/><line x1="3" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21" y2="12"/>
+</svg>
+<div class="cn">机器人</div><div class="en">robot</div></div><div class="cell" data-name="qbot" data-cn="QBot(云+点)" data-keywords="qbot bot cloud ai" onclick="showDetail('qbot')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17.5 17a4.5 4.5 0 0 0 0-9 6.5 6.5 0 0 0-12.4 2.5A3.5 3.5 0 0 0 6 17z"/><circle cx="12.5" cy="13" r="1.3" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">QBot(云+点)</div><div class="en">qbot</div></div><div class="cell" data-name="chat-bubble" data-cn="聊天气泡" data-keywords="chat bubble message 对话 气泡" onclick="showDetail('chat-bubble')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8A2.5 2.5 0 0 1 17.5 17H9l-4 4v-4.5a2.5 2.5 0 0 1-1-2z"/>
+</svg>
+<div class="cn">聊天气泡</div><div class="en">chat-bubble</div></div></div></div><div class="group" data-cat="browser-tool"><h2>浏览器工具<span class="count">28</span></h2><div class="grid"><div class="cell" data-name="resource-sniffer" data-cn="资源嗅探" data-keywords="sniffer resource download 资源嗅探" onclick="showDetail('resource-sniffer')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 10a11 11 0 0 1 16 0"/><path d="M7 12.5a7 7 0 0 1 10 0"/><path d="M10 15a3 3 0 0 1 4 0"/><line x1="12" y1="17" x2="12" y2="20.5"/><polyline points="9.5 18.5 12 20.5 14.5 18.5"/>
+</svg>
+<div class="cn">资源嗅探</div><div class="en">resource-sniffer</div></div><div class="cell" data-name="float-sniffer" data-cn="悬浮嗅探" data-keywords="float sniffer 悬浮嗅探" onclick="showDetail('float-sniffer')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="M8 16s2-1 2-4-2-4-2-4 4-1 6 1 1 6 1 6-4-1-6-1-1 2-1 2z"/>
+</svg>
+<div class="cn">悬浮嗅探</div><div class="en">float-sniffer</div></div><div class="cell" data-name="ad-block" data-cn="屏蔽广告" data-keywords="ad block 屏蔽广告 广告屏蔽" onclick="showDetail('ad-block')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="5" width="18" height="14" rx="2"/><text x="11" y="15" font-family="Arial,sans-serif" font-size="6.5" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none">AD</text><line x1="5" y1="7" x2="19" y2="17"/>
+</svg>
+<div class="cn">屏蔽广告</div><div class="en">ad-block</div></div><div class="cell" data-name="ad-layers" data-cn="标记广告(层叠)" data-keywords="ad mark layers 标记广告" onclick="showDetail('ad-layers')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="12 3 21 8 12 13 3 8"/><polyline points="3 12 12 17 21 12"/><polyline points="3 16 12 21 21 16"/>
+</svg>
+<div class="cn">标记广告(层叠)</div><div class="en">ad-layers</div></div><div class="cell" data-name="no-image" data-cn="无图模式" data-keywords="no image off 无图模式" onclick="showDetail('no-image')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><line x1="4" y1="4" x2="20" y2="20"/><circle cx="9" cy="9" r="1.3"/><path d="m20 15-3.5-3.5L9 19"/>
+</svg>
+<div class="cn">无图模式</div><div class="en">no-image</div></div><div class="cell" data-name="image" data-cn="图片" data-keywords="image picture 图片" onclick="showDetail('image')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.5"/><path d="m4 16 4.5-4.5 5 5 3-3L20 17"/>
+</svg>
+<div class="cn">图片</div><div class="en">image</div></div><div class="cell" data-name="desktop-mode" data-cn="访问电脑版" data-keywords="desktop mode pc 访问电脑版 电脑版" onclick="showDetail('desktop-mode')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="4.5" width="18" height="12" rx="1.5"/><line x1="8" y1="20" x2="16" y2="20"/><line x1="12" y1="16.5" x2="12" y2="20"/>
+</svg>
+<div class="cn">访问电脑版</div><div class="en">desktop-mode</div></div><div class="cell" data-name="mobile-mode" data-cn="移动端模式" data-keywords="mobile phone 移动端" onclick="showDetail('mobile-mode')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="7" y="3" width="10" height="18" rx="2"/><line x1="10.5" y1="18" x2="13.5" y2="18"/>
+</svg>
+<div class="cn">移动端模式</div><div class="en">mobile-mode</div></div><div class="cell" data-name="tablet-mode" data-cn="平板模式" data-keywords="tablet 平板" onclick="showDetail('tablet-mode')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="3" width="16" height="18" rx="2"/><line x1="10.5" y1="18" x2="13.5" y2="18"/>
+</svg>
+<div class="cn">平板模式</div><div class="en">tablet-mode</div></div><div class="cell" data-name="novel-mode" data-cn="小说模式" data-keywords="novel book mode 小说模式" onclick="showDetail('novel-mode')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 5.5h6.5a3 3 0 0 1 2.5 1.4 3 3 0 0 1 2.5-1.4H21v12.5h-6.5a3 3 0 0 0-2.5 1.4 3 3 0 0 0-2.5-1.4H3z"/><path d="M12 6.9v11.5"/>
+</svg>
+<div class="cn">小说模式</div><div class="en">novel-mode</div></div><div class="cell" data-name="reader-mode" data-cn="阅读模式" data-keywords="reader mode 阅读模式" onclick="showDetail('reader-mode')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="1.5"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="12.5" x2="16" y2="12.5"/><line x1="8" y1="16" x2="13" y2="16"/>
+</svg>
+<div class="cn">阅读模式</div><div class="en">reader-mode</div></div><div class="cell" data-name="reader-page" data-cn="阅读(单页)" data-keywords="reader page 阅读 单页" onclick="showDetail('reader-page')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M7 3h6l4 4v13a1.5 1.5 0 0 1-1.5 1.5h-8.5A1.5 1.5 0 0 1 5.5 20V4.5A1.5 1.5 0 0 1 7 3z"/><polyline points="13 3 13 7 17 7"/>
+</svg>
+<div class="cn">阅读(单页)</div><div class="en">reader-page</div></div><div class="cell" data-name="incognito" data-cn="无痕(幽灵)" data-keywords="incognito ghost private 无痕 幽灵" onclick="showDetail('incognito')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 8.5A3 3 0 0 1 8 5.5h8a3 3 0 0 1 3 3v6A3 3 0 0 1 16 17.5H8a3 3 0 0 1-3-3z"/><path d="M8 17.5 7 21"/><path d="M16 17.5l1 3.5"/><circle cx="9.5" cy="10.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="10.5" r="0.8" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">无痕(幽灵)</div><div class="en">incognito</div></div><div class="cell" data-name="incognito-doc" data-cn="无痕(文档款)" data-keywords="incognito doc 无痕模式" onclick="showDetail('incognito-doc')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 4h14v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><line x1="9" y1="11" x2="15" y2="11"/>
+</svg>
+<div class="cn">无痕(文档款)</div><div class="en">incognito-doc</div></div><div class="cell" data-name="ua-tag" data-cn="UA标识(苹果)" data-keywords="ua user-agent apple UA标识" onclick="showDetail('ua-tag')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M15.5 7.5c1 1 1.5 2.5 1.5 4.5 0 4.5-2.5 9-5 9s-5-4.5-5-9c0-2 .5-3.5 1.5-4.5 1-1 2.5-1 3.5-1s2.5 0 3.5 1z"/><path d="M12 6.5c-.5-1.5-2-2.5-3.5-2.5"/><path d="M14 4c-.5 1.5-1.2 2.5-2 2.5"/>
+</svg>
+<div class="cn">UA标识(苹果)</div><div class="en">ua-tag</div></div><div class="cell" data-name="site-config" data-cn="网站配置" data-keywords="site config settings 网站配置" onclick="showDetail('site-config')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="m15.5 8.5-6 6"/><path d="M10.5 8.5H9v1.5"/><path d="M15.5 14v1.5H14"/>
+</svg>
+<div class="cn">网站配置</div><div class="en">site-config</div></div><div class="cell" data-name="view-source" data-cn="查看源码(叠椭圆)" data-keywords="view source code 查看源码" onclick="showDetail('view-source')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="12" cy="9" rx="5" ry="2.5"/><path d="M7 9v3c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V9"/>
+</svg>
+<div class="cn">查看源码(叠椭圆)</div><div class="en">view-source</div></div><div class="cell" data-name="code" data-cn="代码" data-keywords="code dev 代码" onclick="showDetail('code')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="8 7 3 12 8 17"/><polyline points="16 7 21 12 16 17"/><line x1="14" y1="5" x2="10" y2="19"/>
+</svg>
+<div class="cn">代码</div><div class="en">code</div></div><div class="cell" data-name="terminal" data-cn="终端" data-keywords="terminal console 终端" onclick="showDetail('terminal')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="4" width="18" height="16" rx="2"/><polyline points="7 9 10 12 7 15"/><line x1="12" y1="15" x2="17" y2="15"/>
+</svg>
+<div class="cn">终端</div><div class="en">terminal</div></div><div class="cell" data-name="network-log" data-cn="网络日志(沙漏)" data-keywords="network log hourglass 网络日志 沙漏" onclick="showDetail('network-log')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M10 3h4l1 3.5-2 1-2-1z"/><path d="M9 6.5h6l1 7h-8z"/><path d="M8 13.5h8l1 7h-10z"/>
+</svg>
+<div class="cn">网络日志(沙漏)</div><div class="en">network-log</div></div><div class="cell" data-name="translate" data-cn="翻译" data-keywords="translate language 翻译" onclick="showDetail('translate')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 6.5h10"/><path d="M8 4.5v2"/><path d="M5 9c0 2.5 2 5 4 6"/><path d="M11 9c0 2.5-3 5.5-6 7"/><path d="M13 20.5 17.5 10l4.5 10.5"/><path d="M14.5 17h6"/>
+</svg>
+<div class="cn">翻译</div><div class="en">translate</div></div><div class="cell" data-name="translate-box" data-cn="网页翻译(中A框)" data-keywords="translate webpage 网页翻译 中A" onclick="showDetail('translate-box')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 3h6l1 2v3l-2 1-2-1"/><path d="M3 3v6"/><path d="M3 9h5"/><path d="M15 3v6h6"/><path d="M15 3h6v6"/><path d="M12 20.5 16.5 10l4.5 10.5"/><path d="M13.5 17h6"/>
+</svg>
+<div class="cn">网页翻译(中A框)</div><div class="en">translate-box</div></div><div class="cell" data-name="read-aloud" data-cn="网页朗读" data-keywords="read aloud tts 网页朗读" onclick="showDetail('read-aloud')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 14a8 8 0 0 1 16 0"/><path d="M4 14v3a2 2 0 0 0 2 2h1v-6H6a2 2 0 0 0-2 1z"/><path d="M20 14v3a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 1z"/><path d="M9 14.5 10 16l2 -2" stroke-width="1.2"/>
+</svg>
+<div class="cn">网页朗读</div><div class="en">read-aloud</div></div><div class="cell" data-name="page-zoom" data-cn="网页缩放" data-keywords="page zoom 网页缩放" onclick="showDetail('page-zoom')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><polyline points="8 12 8 8 12 8"/><polyline points="16 12 16 16 12 16"/><line x1="8" y1="8" x2="11" y2="11"/><line x1="16" y1="16" x2="13" y2="13"/>
+</svg>
+<div class="cn">网页缩放</div><div class="en">page-zoom</div></div><div class="cell" data-name="page-find" data-cn="页内查找" data-keywords="page find search 页内查找" onclick="showDetail('page-find')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V9z"/><polyline points="13 3 13 9 19 9"/><circle cx="12" cy="15" r="2.5"/><path d="m15 18 2 2"/>
+</svg>
+<div class="cn">页内查找</div><div class="en">page-find</div></div><div class="cell" data-name="timed-refresh" data-cn="定时刷新" data-keywords="timed refresh schedule 定时刷新" onclick="showDetail('timed-refresh')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 12A8 8 0 1 1 17.66 7"/><polyline points="20 4 20 11 13 11"/><path d="M12 8v4l2 1" stroke-width="1.5"/>
+</svg>
+<div class="cn">定时刷新</div><div class="en">timed-refresh</div></div><div class="cell" data-name="zoom-in" data-cn="放大" data-keywords="zoom in 放大" onclick="showDetail('zoom-in')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.35-4.35"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+</svg>
+<div class="cn">放大</div><div class="en">zoom-in</div></div><div class="cell" data-name="zoom-out" data-cn="缩小" data-keywords="zoom out 缩小" onclick="showDetail('zoom-out')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.35-4.35"/><line x1="8" y1="11" x2="14" y2="11"/>
+</svg>
+<div class="cn">缩小</div><div class="en">zoom-out</div></div></div></div><div class="group" data-cat="file"><h2>文件/文档<span class="count">15</span></h2><div class="grid"><div class="cell" data-name="file" data-cn="文件" data-keywords="file document 文件 文档" onclick="showDetail('file')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V9z"/><polyline points="13 3 13 9 19 9"/>
+</svg>
+<div class="cn">文件</div><div class="en">file</div></div><div class="cell" data-name="file-text" data-cn="文档(带内容)" data-keywords="file text document 文档" onclick="showDetail('file-text')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V9z"/><polyline points="13 3 13 9 19 9"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>
+</svg>
+<div class="cn">文档(带内容)</div><div class="en">file-text</div></div><div class="cell" data-name="file-pdf" data-cn="保存为PDF" data-keywords="pdf save 保存为PDF PDF" onclick="showDetail('file-pdf')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V9z"/><polyline points="13 3 13 9 19 9"/><path d="M10 15 12 12 14 15" stroke-width="1.5"/>
+</svg>
+<div class="cn">保存为PDF</div><div class="en">file-pdf</div></div><div class="cell" data-name="save-page" data-cn="保存网页" data-keywords="save page 保存网页" onclick="showDetail('save-page')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h13v15.5A1.5 1.5 0 0 1 19 20H7.5A1.5 1.5 0 0 1 6 18.5z"/><path d="m16 11-3 3-3-3" stroke-width="1.5"/><line x1="13" y1="7" x2="13" y2="14" stroke-width="1.5"/>
+</svg>
+<div class="cn">保存网页</div><div class="en">save-page</div></div><div class="cell" data-name="print" data-cn="打印" data-keywords="print printer 打印" onclick="showDetail('print')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="6 9 6 3 18 3 18 9"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><rect x="7" y="14" width="10" height="7"/><circle cx="17" cy="12" r="0.7" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">打印</div><div class="en">print</div></div><div class="cell" data-name="add-desktop" data-cn="添加至桌面" data-keywords="add desktop home 添加至桌面" onclick="showDetail('add-desktop')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-6h-6v6H5A1 1 0 0 1 4 19z"/><circle cx="16" cy="9" r="3" fill="#fff"/><circle cx="16" cy="9" r="3"/><line x1="16" y1="7.5" x2="16" y2="10.5"/><line x1="14.5" y1="9" x2="17.5" y2="9"/>
+</svg>
+<div class="cn">添加至桌面</div><div class="en">add-desktop</div></div><div class="cell" data-name="folder" data-cn="文件夹" data-keywords="folder directory 文件夹" onclick="showDetail('folder')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/>
+</svg>
+<div class="cn">文件夹</div><div class="en">folder</div></div><div class="cell" data-name="folder-add" data-cn="文件夹加" data-keywords="folder add new 文件夹加" onclick="showDetail('folder-add')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/><path d="M12 12v5"/><path d="M9.5 14.5h5"/>
+</svg>
+<div class="cn">文件夹加</div><div class="en">folder-add</div></div><div class="cell" data-name="folder-arrow" data-cn="文件工具(文件夹带箭头)" data-keywords="folder arrow tool 文件工具" onclick="showDetail('folder-arrow')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/><line x1="11" y1="12" x2="11" y2="17"/><polyline points="9 15 11 17 13 15"/>
+</svg>
+<div class="cn">文件工具(文件夹带箭头)</div><div class="en">folder-arrow</div></div><div class="cell" data-name="folder-download" data-cn="文件(底栏导航)" data-keywords="folder download nav 文件" onclick="showDetail('folder-download')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h5l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="11" x2="12" y2="18"/>
+</svg>
+<div class="cn">文件(底栏导航)</div><div class="en">folder-download</div></div><div class="cell" data-name="folder-document" data-cn="文档管理" data-keywords="document manage 文档管理" onclick="showDetail('folder-document')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/>
+</svg>
+<div class="cn">文档管理</div><div class="en">folder-document</div></div><div class="cell" data-name="book-open" data-cn="打开的书" data-keywords="book open book 打开的书" onclick="showDetail('book-open')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 5.5h6.5a3 3 0 0 1 2.5 1.4 3 3 0 0 1 2.5-1.4H21v12.5h-6.5a3 3 0 0 0-2.5 1.4 3 3 0 0 0-2.5-1.4H3z"/><path d="M12 6.9v11.5"/>
+</svg>
+<div class="cn">打开的书</div><div class="en">book-open</div></div><div class="cell" data-name="novel" data-cn="小说(底栏)" data-keywords="novel book 小说" onclick="showDetail('novel')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6 4h10.5A1.5 1.5 0 0 1 18 5.5v13a1.5 1.5 0 0 1-1.5 1.5H6V4z"/><path d="M6 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"/>
+</svg>
+<div class="cn">小说(底栏)</div><div class="en">novel</div></div><div class="cell" data-name="study-tool" data-cn="学习工具" data-keywords="study tool edit 学习工具" onclick="showDetail('study-tool')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 4h10.5A1.5 1.5 0 0 1 17 5.5v13a1.5 1.5 0 0 1-1.5 1.5H5V4z"/><path d="M5 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2"/><path d="m20 9-3-3-4 4v3h3z"/>
+</svg>
+<div class="cn">学习工具</div><div class="en">study-tool</div></div><div class="cell" data-name="scan-tool" data-cn="扫描工具" data-keywords="scan tool 扫描工具" onclick="showDetail('scan-tool')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8"/><path d="M18 11v6"/><polyline points="16 13 18 11 20 13"/><polyline points="16 15 18 17 20 15"/>
+</svg>
+<div class="cn">扫描工具</div><div class="en">scan-tool</div></div></div></div><div class="group" data-cat="security"><h2>安全/密码<span class="count">6</span></h2><div class="grid"><div class="cell" data-name="key" data-cn="钥匙(横)" data-keywords="key password 钥匙 密码" onclick="showDetail('key')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="8" cy="8" r="4.5"/><path d="m11.5 11 9 9"/><path d="m17 15.5 2 2"/><path d="m14.5 18 2 2"/>
+</svg>
+<div class="cn">钥匙(横)</div><div class="en">key</div></div><div class="cell" data-name="key-vertical" data-cn="密码管理(竖钥匙)" data-keywords="key password 密码管理 钥匙" onclick="showDetail('key-vertical')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="7" r="3.5"/><path d="M12 10.5V21"/><path d="M14 15h-2"/><path d="M14 18h-2"/>
+</svg>
+<div class="cn">密码管理(竖钥匙)</div><div class="en">key-vertical</div></div><div class="cell" data-name="lock" data-cn="锁" data-keywords="lock closed 锁 加密" onclick="showDetail('lock')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 1 1 8 0v3.5"/>
+</svg>
+<div class="cn">锁</div><div class="en">lock</div></div><div class="cell" data-name="unlock" data-cn="解锁" data-keywords="unlock open 解锁" onclick="showDetail('unlock')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 7.5-2"/>
+</svg>
+<div class="cn">解锁</div><div class="en">unlock</div></div><div class="cell" data-name="shield" data-cn="盾牌" data-keywords="shield security 盾牌" onclick="showDetail('shield')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3 4 6v6c0 4.5 3.5 8 8 9 4.5-1 8-4.5 8-9V6z"/>
+</svg>
+<div class="cn">盾牌</div><div class="en">shield</div></div><div class="cell" data-name="shield-check" data-cn="盾牌保护" data-keywords="shield check verified 盾牌 保护" onclick="showDetail('shield-check')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3 4 6v6c0 4.5 3.5 8 8 9 4.5-1 8-4.5 8-9V6z"/><polyline points="9 12 11 14 15 10"/>
+</svg>
+<div class="cn">盾牌保护</div><div class="en">shield-check</div></div></div></div><div class="group" data-cat="theme"><h2>主题模式<span class="count">5</span></h2><div class="grid"><div class="cell" data-name="sun" data-cn="太阳(日间)" data-keywords="sun day light 太阳 日间 白天" onclick="showDetail('sun')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="4"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="5.2" y1="5.2" x2="7" y2="7"/><line x1="17" y1="17" x2="18.8" y2="18.8"/><line x1="5.2" y1="18.8" x2="7" y2="17"/><line x1="17" y1="7" x2="18.8" y2="5.2"/>
+</svg>
+<div class="cn">太阳(日间)</div><div class="en">sun</div></div><div class="cell" data-name="moon" data-cn="月亮(夜间)" data-keywords="moon night dark 月亮 夜间 夜晚" onclick="showDetail('moon')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z"/>
+</svg>
+<div class="cn">月亮(夜间)</div><div class="en">moon</div></div><div class="cell" data-name="theme" data-cn="主题切换" data-keywords="theme mode 主题" onclick="showDetail('theme')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">主题切换</div><div class="en">theme</div></div><div class="cell" data-name="wallpaper-tshirt" data-cn="壁纸(T恤款)" data-keywords="wallpaper tshirt 壁纸 衣服" onclick="showDetail('wallpaper-tshirt')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8 4c0 2 1.5 3 4 3s4-1 4-3l3 2-2 3v11H7V9L5 6z"/>
+</svg>
+<div class="cn">壁纸(T恤款)</div><div class="en">wallpaper-tshirt</div></div><div class="cell" data-name="wallpaper" data-cn="壁纸(图片)" data-keywords="wallpaper picture 壁纸" onclick="showDetail('wallpaper')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="9" cy="9.5" r="1.5"/><path d="m4 16 4.5-4.5 5 5 3-3L20 17"/>
+</svg>
+<div class="cn">壁纸(图片)</div><div class="en">wallpaper</div></div></div></div><div class="group" data-cat="action"><h2>通用操作<span class="count">25</span></h2><div class="grid"><div class="cell" data-name="add-circle" data-cn="加号(圆圈)" data-keywords="add plus circle 添加 加号" onclick="showDetail('add-circle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+</svg>
+<div class="cn">加号(圆圈)</div><div class="en">add-circle</div></div><div class="cell" data-name="add-square" data-cn="加号(方框)" data-keywords="add plus square 添加" onclick="showDetail('add-square')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2.5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+</svg>
+<div class="cn">加号(方框)</div><div class="en">add-square</div></div><div class="cell" data-name="plus" data-cn="加号" data-keywords="plus add 加号" onclick="showDetail('plus')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+</svg>
+<div class="cn">加号</div><div class="en">plus</div></div><div class="cell" data-name="minus" data-cn="减号" data-keywords="minus remove 减号" onclick="showDetail('minus')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="5" y1="12" x2="19" y2="12"/>
+</svg>
+<div class="cn">减号</div><div class="en">minus</div></div><div class="cell" data-name="minus-circle" data-cn="减号(圆圈)" data-keywords="minus remove circle 减号" onclick="showDetail('minus-circle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><line x1="8" y1="12" x2="16" y2="12"/>
+</svg>
+<div class="cn">减号(圆圈)</div><div class="en">minus-circle</div></div><div class="cell" data-name="check" data-cn="对勾" data-keywords="check done 对勾 完成" onclick="showDetail('check')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="4 12 10 18 20 6"/>
+</svg>
+<div class="cn">对勾</div><div class="en">check</div></div><div class="cell" data-name="check-circle" data-cn="对勾(圆圈)" data-keywords="check done circle 对勾" onclick="showDetail('check-circle')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><polyline points="8 12 11 15 16 9"/>
+</svg>
+<div class="cn">对勾(圆圈)</div><div class="en">check-circle</div></div><div class="cell" data-name="edit" data-cn="编辑" data-keywords="edit pen 编辑" onclick="showDetail('edit')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17 3.5a2.12 2.12 0 0 1 3 3L7.5 19 3 20.5 4.5 16z"/>
+</svg>
+<div class="cn">编辑</div><div class="en">edit</div></div><div class="cell" data-name="edit-box" data-cn="编辑(带框)" data-keywords="edit box 编辑" onclick="showDetail('edit-box')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M11 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V13"/><path d="M18 3 21 6l-9 9H9v-3z"/>
+</svg>
+<div class="cn">编辑(带框)</div><div class="en">edit-box</div></div><div class="cell" data-name="trash" data-cn="删除" data-keywords="trash delete 删除 垃圾桶" onclick="showDetail('trash')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="4 7 20 7"/><path d="M6 7v12.5A1.5 1.5 0 0 0 7.5 21h9a1.5 1.5 0 0 0 1.5-1.5V7"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+</svg>
+<div class="cn">删除</div><div class="en">trash</div></div><div class="cell" data-name="copy" data-cn="复制" data-keywords="copy duplicate 复制" onclick="showDetail('copy')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>
+</svg>
+<div class="cn">复制</div><div class="en">copy</div></div><div class="cell" data-name="share" data-cn="分享(三点)" data-keywords="share 分享" onclick="showDetail('share')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><line x1="8.2" y1="10.8" x2="15.8" y2="6.2"/><line x1="8.2" y1="13.2" x2="15.8" y2="17.8"/>
+</svg>
+<div class="cn">分享(三点)</div><div class="en">share</div></div><div class="cell" data-name="share-arrow" data-cn="分享(箭头)" data-keywords="share arrow up 分享" onclick="showDetail('share-arrow')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 12v6.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V12"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+</svg>
+<div class="cn">分享(箭头)</div><div class="en">share-arrow</div></div><div class="cell" data-name="share-box" data-cn="分享(外链)" data-keywords="share external link 分享" onclick="showDetail('share-box')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="16" height="16" rx="2"/><polyline points="15 8 19 8 19 12"/><line x1="19" y1="8" x2="12" y2="15"/>
+</svg>
+<div class="cn">分享(外链)</div><div class="en">share-box</div></div><div class="cell" data-name="heart" data-cn="喜欢" data-keywords="heart love like 喜欢" onclick="showDetail('heart')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M20 8a4.5 4.5 0 0 0-8-2.9A4.5 4.5 0 0 0 4 8c0 5 8 12 8 12s8-7 8-12z"/>
+</svg>
+<div class="cn">喜欢</div><div class="en">heart</div></div><div class="cell" data-name="eye" data-cn="显示" data-keywords="eye view show 显示 查看" onclick="showDetail('eye')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z"/><circle cx="12" cy="12" r="3"/>
+</svg>
+<div class="cn">显示</div><div class="en">eye</div></div><div class="cell" data-name="eye-off" data-cn="隐藏" data-keywords="eye off hide 隐藏" onclick="showDetail('eye-off')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 4l16 16"/><path d="M6.5 6.5C4 8.5 2.5 12 2.5 12s3.5 7 9.5 7a9.5 9.5 0 0 0 5.5-1.7"/><path d="M9.9 4.2A9.6 9.6 0 0 1 12 4c6 0 9.5 7 9.5 7a16 16 0 0 1-3.3 4.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+</svg>
+<div class="cn">隐藏</div><div class="en">eye-off</div></div><div class="cell" data-name="info" data-cn="信息" data-keywords="info i 信息 提示" onclick="showDetail('info')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.8" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">信息</div><div class="en">info</div></div><div class="cell" data-name="warning" data-cn="警告" data-keywords="warning alert 警告" onclick="showDetail('warning')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 3 2.5 20h19z"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">警告</div><div class="en">warning</div></div><div class="cell" data-name="help" data-cn="帮助" data-keywords="help question 帮助 问号" onclick="showDetail('help')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">帮助</div><div class="en">help</div></div><div class="cell" data-name="filter" data-cn="筛选" data-keywords="filter 筛选 过滤" onclick="showDetail('filter')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polygon points="3 5 21 5 14 13 14 20 10 17 10 13"/>
+</svg>
+<div class="cn">筛选</div><div class="en">filter</div></div><div class="cell" data-name="sort" data-cn="排序" data-keywords="sort 排序" onclick="showDetail('sort')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="4" y1="6" x2="16" y2="6"/><line x1="4" y1="12" x2="13" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
+</svg>
+<div class="cn">排序</div><div class="en">sort</div></div><div class="cell" data-name="list" data-cn="列表" data-keywords="list 列表" onclick="showDetail('list')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">列表</div><div class="en">list</div></div><div class="cell" data-name="grid" data-cn="网格" data-keywords="grid 网格" onclick="showDetail('grid')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>
+</svg>
+<div class="cn">网格</div><div class="en">grid</div></div><div class="cell" data-name="recommend" data-cn="推荐(横线)" data-keywords="recommend list feed 推荐" onclick="showDetail('recommend')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<line x1="4" y1="7" x2="18" y2="7"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="17" x2="14" y2="17"/>
+</svg>
+<div class="cn">推荐(横线)</div><div class="en">recommend</div></div></div></div><div class="group" data-cat="network"><h2>网络/云<span class="count">7</span></h2><div class="grid"><div class="cell" data-name="voice" data-cn="语音广播(三弧)" data-keywords="voice broadcast radio wifi 语音 广播" onclick="showDetail('voice')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><path d="M9 9a4 4 0 0 1 0 6"/><path d="M11.5 7.5a6.5 6.5 0 0 1 0 9"/><path d="M14 6a9 9 0 0 1 0 12"/>
+</svg>
+<div class="cn">语音广播(三弧)</div><div class="en">voice</div></div><div class="cell" data-name="mic" data-cn="麦克风" data-keywords="mic microphone 麦克风" onclick="showDetail('mic')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="21"/>
+</svg>
+<div class="cn">麦克风</div><div class="en">mic</div></div><div class="cell" data-name="wifi" data-cn="WiFi" data-keywords="wifi WiFi 无线" onclick="showDetail('wifi')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M5 10.5a12 12 0 0 1 14 0"/><path d="M8 13.5a7 7 0 0 1 8 0"/><path d="M11 16.5a2 2 0 0 1 2 0"/><circle cx="12" cy="19.5" r="0.8" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">WiFi</div><div class="en">wifi</div></div><div class="cell" data-name="cloud" data-cn="云" data-keywords="cloud 云" onclick="showDetail('cloud')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17.5 18.5a4.5 4.5 0 0 0 0-9 6.5 6.5 0 0 0-12.4 2.5A3.5 3.5 0 0 0 6 18.5z"/>
+</svg>
+<div class="cn">云</div><div class="en">cloud</div></div><div class="cell" data-name="cloud-download" data-cn="云下载" data-keywords="cloud download 云下载" onclick="showDetail('cloud-download')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17.5 18a4.5 4.5 0 0 0 0-9 6.5 6.5 0 0 0-12.4 2.5A3.5 3.5 0 0 0 6 18"/><line x1="12" y1="13" x2="12" y2="20"/><polyline points="9 17 12 20 15 17"/>
+</svg>
+<div class="cn">云下载</div><div class="en">cloud-download</div></div><div class="cell" data-name="cloud-upload" data-cn="云上传" data-keywords="cloud upload 云上传" onclick="showDetail('cloud-upload')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M17.5 18a4.5 4.5 0 0 0 0-9 6.5 6.5 0 0 0-12.4 2.5A3.5 3.5 0 0 0 6 18"/><line x1="12" y1="20" x2="12" y2="13"/><polyline points="9 16 12 13 15 16"/>
+</svg>
+<div class="cn">云上传</div><div class="en">cloud-upload</div></div><div class="cell" data-name="globe" data-cn="地球" data-keywords="globe world 地球 网站" onclick="showDetail('globe')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><line x1="3.5" y1="12" x2="20.5" y2="12"/><path d="M12 3.5a13 13 0 0 1 0 17"/><path d="M12 3.5a13 13 0 0 0 0 17"/>
+</svg>
+<div class="cn">地球</div><div class="en">globe</div></div></div></div><div class="group" data-cat="scan"><h2>扫描<span class="count">2</span></h2><div class="grid"><div class="cell" data-name="scan" data-cn="扫描" data-keywords="scan 扫描" onclick="showDetail('scan')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="4 8 4 4 8 4"/><polyline points="20 8 20 4 16 4"/><polyline points="4 16 4 20 8 20"/><polyline points="20 16 20 20 16 20"/><line x1="4" y1="12" x2="20" y2="12"/>
+</svg>
+<div class="cn">扫描</div><div class="en">scan</div></div><div class="cell" data-name="qr-code" data-cn="二维码" data-keywords="qr qrcode 二维码" onclick="showDetail('qr-code')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="2.5" height="2.5"/><rect x="17.5" y="14" width="2.5" height="2.5"/><rect x="14" y="17.5" width="2.5" height="2.5"/><rect x="17.5" y="17.5" width="2.5" height="2.5"/>
+</svg>
+<div class="cn">二维码</div><div class="en">qr-code</div></div></div></div><div class="group" data-cat="game"><h2>游戏<span class="count">2</span></h2><div class="grid"><div class="cell" data-name="game" data-cn="游戏手柄" data-keywords="game controller 游戏" onclick="showDetail('game')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="7" width="18" height="11" rx="3"/><path d="M8 11v3"/><path d="M6.5 12.5h3"/><circle cx="15" cy="11.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="17" cy="13.5" r="0.9" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">游戏手柄</div><div class="en">game</div></div><div class="cell" data-name="game-x" data-cn="游戏福利(手柄带X)" data-keywords="game x controller 游戏福利" onclick="showDetail('game-x')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<rect x="3" y="7" width="18" height="11" rx="3"/><path d="m6.5 10.5 3.5 3.5"/><path d="m10 10.5-3.5 3.5"/><circle cx="15.5" cy="11" r="0.9" fill="currentColor" stroke="none"/><circle cx="17.5" cy="13" r="0.9" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">游戏福利(手柄带X)</div><div class="en">game-x</div></div></div></div><div class="group" data-cat="power"><h2>电源/存储<span class="count">6</span></h2><div class="grid"><div class="cell" data-name="power" data-cn="电源" data-keywords="power 电源 关机" onclick="showDetail('power')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8 5.5a8 8 0 1 0 8 0"/><line x1="12" y1="3" x2="12" y2="12"/>
+</svg>
+<div class="cn">电源</div><div class="en">power</div></div><div class="cell" data-name="power-off" data-cn="关机" data-keywords="power off 关机" onclick="showDetail('power-off')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="12" cy="12" r="8.5"/><line x1="8" y1="8" x2="16" y2="16"/>
+</svg>
+<div class="cn">关机</div><div class="en">power-off</div></div><div class="cell" data-name="storage" data-cn="存储" data-keywords="storage database 存储" onclick="showDetail('storage')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="12" cy="6" rx="8" ry="2.5"/><path d="M4 6v12c0 1.5 3.5 2.5 8 2.5s8-1 8-2.5V6"/><path d="M4 12c0 1.5 3.5 2.5 8 2.5s8-1 8-2.5"/>
+</svg>
+<div class="cn">存储</div><div class="en">storage</div></div><div class="cell" data-name="storage-clean" data-cn="空间清理" data-keywords="storage clean 空间清理" onclick="showDetail('storage-clean')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="12" cy="6" rx="8" ry="2.5"/><path d="M4 6v12c0 1.5 3.5 2.5 8 2.5s8-1 8-2.5V6"/><path d="M4 12c0 1.5 3.5 2.5 8 2.5s8-1 8-2.5"/><path d="m9 15 3 3 3-3" stroke-width="1.5"/>
+</svg>
+<div class="cn">空间清理</div><div class="en">storage-clean</div></div><div class="cell" data-name="database" data-cn="数据库" data-keywords="database 数据库" onclick="showDetail('database')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<ellipse cx="12" cy="6" rx="8" ry="2.5"/><path d="M4 6v6c0 1.5 3.5 2.5 8 2.5s8-1 8-2.5V6"/><path d="M4 12v6c0 1.5 3.5 2.5 8 2.5s8-1 8-2.5v-6"/>
+</svg>
+<div class="cn">数据库</div><div class="en">database</div></div><div class="cell" data-name="hourglass" data-cn="沙漏" data-keywords="hourglass time 沙漏" onclick="showDetail('hourglass')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M7 3h10"/><path d="M7 21h10"/><path d="M8 3v3c0 2 2 3 4 5s4 3 4 5v3"/><path d="M16 3v3c0 2-2 3-4 5s-4 3-4 5v3"/>
+</svg>
+<div class="cn">沙漏</div><div class="en">hourglass</div></div></div></div><div class="group" data-cat="trending"><h2>趋势/热门<span class="count">3</span></h2><div class="grid"><div class="cell" data-name="trending" data-cn="趋势上升" data-keywords="trending up chart 趋势" onclick="showDetail('trending')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/>
+</svg>
+<div class="cn">趋势上升</div><div class="en">trending</div></div><div class="cell" data-name="fire" data-cn="火焰" data-keywords="fire hot 火焰 热门" onclick="showDetail('fire')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 21c4 0 7-3 7-7 0-3-2-5-4-7-1 3-3 3-3 3s0-4-3-5c0 3-4 4-4 9 0 4 3 7 7 7z"/>
+</svg>
+<div class="cn">火焰</div><div class="en">fire</div></div><div class="cell" data-name="hot" data-cn="热门(带内火)" data-keywords="hot fire 热门" onclick="showDetail('hot')"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 21c4 0 7-3 7-7 0-3-2-5-4-7-1 3-3 3-3 3s0-4-3-5c0 3-4 4-4 9 0 4 3 7 7 7z"/><path d="M12 17c1.5 0 2.5-1 2.5-2.5s-1-2-1.5-3c-.5 1-1.5 1-1.5 1s0-1.5-1-2c0 1-1.5 1.5-1.5 3.5 0 1.5 1 3 3 3z" fill="currentColor" stroke="none"/>
+</svg>
+<div class="cn">热门(带内火)</div><div class="en">hot</div></div></div></div></div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal" onclick="if(event.target===this) this.classList.remove('show')">
+  <div class="modal-content">
+    <h3 id="modal-title"></h3>
+    <div class="icon-preview" id="modal-preview"></div>
+    <div id="modal-info"></div>
+    <div class="btn-row">
+      <button onclick="copySvgCode()" class="primary">复制 SVG</button>
+      <button onclick="copyXmlCode()">复制 Android XML 资源名</button>
+      <button onclick="document.getElementById('modal').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+<script>
+const manifest = {"search": {"name": "search", "cn": "搜索", "category": "nav", "keywords": ["search", "find", "lookup", "搜索", "查找", "搜", "magnifier"], "source_screenshots": ["image7", "image2"], "file": "icons/search.svg"}, "home": {"name": "home", "cn": "首页(房子)", "category": "nav", "keywords": ["home", "house", "首页", "主页"], "source_screenshots": [], "file": "icons/home.svg"}, "home-pentagon": {"name": "home-pentagon", "cn": "首页(五边形款)", "category": "nav", "keywords": ["home", "pentagon", "首页", "logo"], "source_screenshots": ["image7"], "file": "icons/home-pentagon.svg"}, "home-q": {"name": "home-q", "cn": "首页(Q标识)", "category": "nav", "keywords": ["home", "q", "logo", "tencent", "首页"], "source_screenshots": ["image3"], "file": "icons/home-q.svg"}, "back": {"name": "back", "cn": "后退", "category": "nav", "keywords": ["back", "后退", "上一步", "左箭头"], "source_screenshots": [], "file": "icons/back.svg"}, "forward": {"name": "forward", "cn": "前进", "category": "nav", "keywords": ["forward", "前进", "下一步", "右箭头"], "source_screenshots": [], "file": "icons/forward.svg"}, "refresh": {"name": "refresh", "cn": "刷新", "category": "nav", "keywords": ["refresh", "reload", "刷新", "重新加载"], "source_screenshots": ["image1", "image5"], "file": "icons/refresh.svg"}, "refresh-disc": {"name": "refresh-disc", "cn": "刷新(圆盘款)", "category": "nav", "keywords": ["refresh", "disc", "刷新", "唱片"], "source_screenshots": ["image4"], "file": "icons/refresh-disc.svg"}, "refresh-cw": {"name": "refresh-cw", "cn": "刷新(顺时针)", "category": "nav", "keywords": ["refresh", "reload", "刷新"], "source_screenshots": [], "file": "icons/refresh-cw.svg"}, "close": {"name": "close", "cn": "关闭", "category": "nav", "keywords": ["close", "x", "cancel", "关闭", "取消", "叉"], "source_screenshots": [], "file": "icons/close.svg"}, "close-circle": {"name": "close-circle", "cn": "关闭(圆圈)", "category": "nav", "keywords": ["close", "cancel", "关闭", "圆叉"], "source_screenshots": [], "file": "icons/close-circle.svg"}, "menu": {"name": "menu", "cn": "菜单", "category": "nav", "keywords": ["menu", "hamburger", "菜单", "三横"], "source_screenshots": [], "file": "icons/menu.svg"}, "more-horizontal": {"name": "more-horizontal", "cn": "更多(横向)", "category": "nav", "keywords": ["more", "dots", "更多", "三点"], "source_screenshots": [], "file": "icons/more-horizontal.svg"}, "more-vertical": {"name": "more-vertical", "cn": "更多(纵向)", "category": "nav", "keywords": ["more", "dots", "更多", "三点"], "source_screenshots": [], "file": "icons/more-vertical.svg"}, "arrow-up": {"name": "arrow-up", "cn": "向上箭头", "category": "nav", "keywords": ["arrow", "up", "向上"], "source_screenshots": [], "file": "icons/arrow-up.svg"}, "arrow-down": {"name": "arrow-down", "cn": "向下箭头", "category": "nav", "keywords": ["arrow", "down", "向下"], "source_screenshots": [], "file": "icons/arrow-down.svg"}, "arrow-left": {"name": "arrow-left", "cn": "向左箭头", "category": "nav", "keywords": ["arrow", "left", "向左"], "source_screenshots": [], "file": "icons/arrow-left.svg"}, "arrow-right": {"name": "arrow-right", "cn": "向右箭头", "category": "nav", "keywords": ["arrow", "right", "向右"], "source_screenshots": [], "file": "icons/arrow-right.svg"}, "chevron-up": {"name": "chevron-up", "cn": "尖角向上", "category": "nav", "keywords": ["chevron", "up", "向上", "折叠"], "source_screenshots": [], "file": "icons/chevron-up.svg"}, "chevron-down": {"name": "chevron-down", "cn": "尖角向下", "category": "nav", "keywords": ["chevron", "down", "向下", "展开"], "source_screenshots": ["image4"], "file": "icons/chevron-down.svg"}, "chevron-left": {"name": "chevron-left", "cn": "尖角向左", "category": "nav", "keywords": ["chevron", "left", "向左"], "source_screenshots": [], "file": "icons/chevron-left.svg"}, "chevron-right": {"name": "chevron-right", "cn": "尖角向右", "category": "nav", "keywords": ["chevron", "right", "向右"], "source_screenshots": [], "file": "icons/chevron-right.svg"}, "tab": {"name": "tab", "cn": "标签页(带数字)", "category": "tab", "keywords": ["tab", "window", "标签页"], "source_screenshots": ["image7"], "file": "icons/tab.svg"}, "tab-multi": {"name": "tab-multi", "cn": "多标签页", "category": "tab", "keywords": ["tab", "multi", "windows", "多标签", "叠加"], "source_screenshots": [], "file": "icons/tab-multi.svg"}, "tab-new": {"name": "tab-new", "cn": "新建标签页", "category": "tab", "keywords": ["tab", "new", "add", "新建标签"], "source_screenshots": [], "file": "icons/tab-new.svg"}, "tab-close": {"name": "tab-close", "cn": "关闭标签页", "category": "tab", "keywords": ["tab", "close", "关闭标签"], "source_screenshots": [], "file": "icons/tab-close.svg"}, "picture-in-picture": {"name": "picture-in-picture", "cn": "画中画", "category": "tab", "keywords": ["pip", "picture-in-picture", "画中画", "小窗"], "source_screenshots": ["image9"], "file": "icons/picture-in-picture.svg"}, "fullscreen": {"name": "fullscreen", "cn": "全屏", "category": "tab", "keywords": ["fullscreen", "expand", "全屏"], "source_screenshots": [], "file": "icons/fullscreen.svg"}, "fullscreen-corners": {"name": "fullscreen-corners", "cn": "全屏模式", "category": "tab", "keywords": ["fullscreen", "mode", "全屏模式"], "source_screenshots": ["image6"], "file": "icons/fullscreen-corners.svg"}, "fullscreen-exit": {"name": "fullscreen-exit", "cn": "退出全屏", "category": "tab", "keywords": ["fullscreen", "exit", "compress", "退出全屏"], "source_screenshots": [], "file": "icons/fullscreen-exit.svg"}, "bookmark": {"name": "bookmark", "cn": "书签", "category": "bookmark", "keywords": ["bookmark", "书签", "收藏"], "source_screenshots": [], "file": "icons/bookmark.svg"}, "bookmark-add": {"name": "bookmark-add", "cn": "加书签", "category": "bookmark", "keywords": ["bookmark", "add", "加书签", "添加书签"], "source_screenshots": ["image4"], "file": "icons/bookmark-add.svg"}, "bookmark-filled": {"name": "bookmark-filled", "cn": "书签(实心)", "category": "bookmark", "keywords": ["bookmark", "filled", "书签实心"], "source_screenshots": [], "file": "icons/bookmark-filled.svg"}, "bookmarks-stacked": {"name": "bookmarks-stacked", "cn": "书签(双层叠)", "category": "bookmark", "keywords": ["bookmarks", "stacked", "书签", "双层"], "source_screenshots": ["image4"], "file": "icons/bookmarks-stacked.svg"}, "bookmark-square": {"name": "bookmark-square", "cn": "书签收藏(方形)", "category": "bookmark", "keywords": ["bookmark", "square", "书签收藏", "方形"], "source_screenshots": ["image3"], "file": "icons/bookmark-square.svg"}, "star": {"name": "star", "cn": "星标(线)", "category": "bookmark", "keywords": ["star", "favorite", "收藏", "星"], "source_screenshots": ["image1"], "file": "icons/star.svg"}, "star-filled": {"name": "star-filled", "cn": "星标(实)", "category": "bookmark", "keywords": ["star", "filled", "收藏", "实星"], "source_screenshots": [], "file": "icons/star-filled.svg"}, "star-add": {"name": "star-add", "cn": "收藏该网页", "category": "bookmark", "keywords": ["star", "add", "收藏", "加星"], "source_screenshots": ["image1"], "file": "icons/star-add.svg"}, "history": {"name": "history", "cn": "历史记录(时钟)", "category": "history", "keywords": ["history", "clock", "历史", "时钟"], "source_screenshots": ["image4"], "file": "icons/history.svg"}, "history-filled": {"name": "history-filled", "cn": "历史记录(实心)", "category": "history", "keywords": ["history", "filled", "历史记录"], "source_screenshots": ["image3"], "file": "icons/history-filled.svg"}, "clock": {"name": "clock", "cn": "时钟", "category": "history", "keywords": ["clock", "time", "时钟", "时间"], "source_screenshots": [], "file": "icons/clock.svg"}, "download": {"name": "download", "cn": "下载", "category": "download", "keywords": ["download", "下载"], "source_screenshots": [], "file": "icons/download.svg"}, "download-box": {"name": "download-box", "cn": "下载(方框)", "category": "download", "keywords": ["download", "box", "下载"], "source_screenshots": ["image4"], "file": "icons/download-box.svg"}, "download-filled": {"name": "download-filled", "cn": "下载管理(实心)", "category": "download", "keywords": ["download", "manage", "下载管理"], "source_screenshots": ["image3"], "file": "icons/download-filled.svg"}, "upload": {"name": "upload", "cn": "上传", "category": "download", "keywords": ["upload", "上传"], "source_screenshots": [], "file": "icons/upload.svg"}, "user": {"name": "user", "cn": "用户", "category": "user", "keywords": ["user", "person", "用户", "人"], "source_screenshots": ["image9"], "file": "icons/user.svg"}, "user-filled": {"name": "user-filled", "cn": "用户(实心)", "category": "user", "keywords": ["user", "filled", "用户实心"], "source_screenshots": [], "file": "icons/user-filled.svg"}, "user-placeholder": {"name": "user-placeholder", "cn": "用户占位", "category": "user", "keywords": ["avatar", "placeholder", "头像", "占位"], "source_screenshots": ["image2"], "file": "icons/user-placeholder.svg"}, "login": {"name": "login", "cn": "登录", "category": "user", "keywords": ["login", "signin", "登录", "立即登录"], "source_screenshots": [], "file": "icons/login.svg"}, "logout": {"name": "logout", "cn": "退出登录", "category": "user", "keywords": ["logout", "signout", "退出"], "source_screenshots": [], "file": "icons/logout.svg"}, "smile": {"name": "smile", "cn": "我的(微笑)", "category": "user", "keywords": ["smile", "face", "我的", "微笑脸"], "source_screenshots": ["image3"], "file": "icons/smile.svg"}, "bell": {"name": "bell", "cn": "铃铛/通知", "category": "user", "keywords": ["bell", "notification", "铃铛", "通知"], "source_screenshots": ["image2"], "file": "icons/bell.svg"}, "bell-off": {"name": "bell-off", "cn": "关闭通知", "category": "user", "keywords": ["bell", "off", "mute", "静音"], "source_screenshots": [], "file": "icons/bell-off.svg"}, "settings": {"name": "settings", "cn": "设置(六边形)", "category": "settings", "keywords": ["settings", "hexagon", "设置", "六边形"], "source_screenshots": ["image1", "image2", "image4"], "file": "icons/settings.svg"}, "settings-gear": {"name": "settings-gear", "cn": "设置(齿轮)", "category": "settings", "keywords": ["settings", "gear", "设置", "齿轮"], "source_screenshots": [], "file": "icons/settings-gear.svg"}, "toolbox": {"name": "toolbox", "cn": "工具箱(公文包)", "category": "settings", "keywords": ["toolbox", "briefcase", "工具箱", "公文包"], "source_screenshots": ["image5"], "file": "icons/toolbox.svg"}, "toolbox-package": {"name": "toolbox-package", "cn": "工具箱(包裹盒)", "category": "settings", "keywords": ["toolbox", "package", "box", "工具箱", "包裹"], "source_screenshots": ["image4"], "file": "icons/toolbox-package.svg"}, "plugin": {"name": "plugin", "cn": "插件", "category": "settings", "keywords": ["plugin", "addon", "extension", "插件", "扩展"], "source_screenshots": ["image4"], "file": "icons/plugin.svg"}, "camera": {"name": "camera", "cn": "相机", "category": "media", "keywords": ["camera", "photo", "相机", "拍照"], "source_screenshots": ["image8"], "file": "icons/camera.svg"}, "video": {"name": "video", "cn": "摄像机", "category": "media", "keywords": ["video", "camcorder", "摄像机"], "source_screenshots": [], "file": "icons/video.svg"}, "video-dot": {"name": "video-dot", "cn": "热搜好剧(摄像机带点)", "category": "media", "keywords": ["video", "dot", "hot", "trending", "热搜", "好剧"], "source_screenshots": ["image3"], "file": "icons/video-dot.svg"}, "play": {"name": "play", "cn": "播放", "category": "media", "keywords": ["play", "播放"], "source_screenshots": [], "file": "icons/play.svg"}, "play-circle": {"name": "play-circle", "cn": "播放(圆圈)", "category": "media", "keywords": ["play", "circle", "播放"], "source_screenshots": [], "file": "icons/play-circle.svg"}, "cinema-vr": {"name": "cinema-vr", "cn": "观影模式(VR眼镜)", "category": "media", "keywords": ["cinema", "vr", "mode", "观影", "眼镜"], "source_screenshots": ["image6"], "file": "icons/cinema-vr.svg"}, "headphones": {"name": "headphones", "cn": "耳机(网页朗读)", "category": "media", "keywords": ["headphones", "audio", "read-aloud", "耳机", "朗读"], "source_screenshots": ["image6"], "file": "icons/headphones.svg"}, "music": {"name": "music", "cn": "音乐", "category": "media", "keywords": ["music", "song", "音乐"], "source_screenshots": [], "file": "icons/music.svg"}, "follow-drama": {"name": "follow-drama", "cn": "影视追剧", "category": "media", "keywords": ["follow", "drama", "video", "追剧", "影视", "追"], "source_screenshots": ["image6"], "file": "icons/follow-drama.svg"}, "ai-video-search": {"name": "ai-video-search", "cn": "AI搜影视", "category": "media", "keywords": ["ai", "search", "video", "AI搜影视", "智能搜索"], "source_screenshots": ["image6"], "file": "icons/ai-video-search.svg"}, "ai-search": {"name": "ai-search", "cn": "AI搜索", "category": "ai", "keywords": ["ai", "search", "smart", "AI搜索"], "source_screenshots": [], "file": "icons/ai-search.svg"}, "ai-summary": {"name": "ai-summary", "cn": "AI总结", "category": "ai", "keywords": ["ai", "summary", "summarize", "AI总结", "总结"], "source_screenshots": ["image6"], "file": "icons/ai-summary.svg"}, "sort-sparkle": {"name": "sort-sparkle", "cn": "智能排序(带星)", "category": "ai", "keywords": ["sort", "sparkle", "ai", "smart", "AI排序", "智能排序"], "source_screenshots": ["image7"], "file": "icons/sort-sparkle.svg"}, "sparkle": {"name": "sparkle", "cn": "星火", "category": "ai", "keywords": ["sparkle", "magic", "ai", "星", "魔法"], "source_screenshots": [], "file": "icons/sparkle.svg"}, "robot": {"name": "robot", "cn": "机器人", "category": "ai", "keywords": ["robot", "ai", "bot", "机器人"], "source_screenshots": [], "file": "icons/robot.svg"}, "qbot": {"name": "qbot", "cn": "QBot(云+点)", "category": "ai", "keywords": ["qbot", "bot", "cloud", "ai"], "source_screenshots": ["image3"], "file": "icons/qbot.svg"}, "chat-bubble": {"name": "chat-bubble", "cn": "聊天气泡", "category": "ai", "keywords": ["chat", "bubble", "message", "对话", "气泡"], "source_screenshots": [], "file": "icons/chat-bubble.svg"}, "resource-sniffer": {"name": "resource-sniffer", "cn": "资源嗅探", "category": "browser-tool", "keywords": ["sniffer", "resource", "download", "资源嗅探"], "source_screenshots": ["image1", "image6"], "file": "icons/resource-sniffer.svg"}, "float-sniffer": {"name": "float-sniffer", "cn": "悬浮嗅探", "category": "browser-tool", "keywords": ["float", "sniffer", "悬浮嗅探"], "source_screenshots": ["image4"], "file": "icons/float-sniffer.svg"}, "ad-block": {"name": "ad-block", "cn": "屏蔽广告", "category": "browser-tool", "keywords": ["ad", "block", "屏蔽广告", "广告屏蔽"], "source_screenshots": ["image6"], "file": "icons/ad-block.svg"}, "ad-layers": {"name": "ad-layers", "cn": "标记广告(层叠)", "category": "browser-tool", "keywords": ["ad", "mark", "layers", "标记广告"], "source_screenshots": ["image4"], "file": "icons/ad-layers.svg"}, "no-image": {"name": "no-image", "cn": "无图模式", "category": "browser-tool", "keywords": ["no", "image", "off", "无图模式"], "source_screenshots": ["image6"], "file": "icons/no-image.svg"}, "image": {"name": "image", "cn": "图片", "category": "browser-tool", "keywords": ["image", "picture", "图片"], "source_screenshots": [], "file": "icons/image.svg"}, "desktop-mode": {"name": "desktop-mode", "cn": "访问电脑版", "category": "browser-tool", "keywords": ["desktop", "mode", "pc", "访问电脑版", "电脑版"], "source_screenshots": ["image6"], "file": "icons/desktop-mode.svg"}, "mobile-mode": {"name": "mobile-mode", "cn": "移动端模式", "category": "browser-tool", "keywords": ["mobile", "phone", "移动端"], "source_screenshots": [], "file": "icons/mobile-mode.svg"}, "tablet-mode": {"name": "tablet-mode", "cn": "平板模式", "category": "browser-tool", "keywords": ["tablet", "平板"], "source_screenshots": [], "file": "icons/tablet-mode.svg"}, "novel-mode": {"name": "novel-mode", "cn": "小说模式", "category": "browser-tool", "keywords": ["novel", "book", "mode", "小说模式"], "source_screenshots": ["image6", "image3"], "file": "icons/novel-mode.svg"}, "reader-mode": {"name": "reader-mode", "cn": "阅读模式", "category": "browser-tool", "keywords": ["reader", "mode", "阅读模式"], "source_screenshots": ["image6"], "file": "icons/reader-mode.svg"}, "reader-page": {"name": "reader-page", "cn": "阅读(单页)", "category": "browser-tool", "keywords": ["reader", "page", "阅读", "单页"], "source_screenshots": ["image4"], "file": "icons/reader-page.svg"}, "incognito": {"name": "incognito", "cn": "无痕(幽灵)", "category": "browser-tool", "keywords": ["incognito", "ghost", "private", "无痕", "幽灵"], "source_screenshots": ["image1", "image2"], "file": "icons/incognito.svg"}, "incognito-doc": {"name": "incognito-doc", "cn": "无痕(文档款)", "category": "browser-tool", "keywords": ["incognito", "doc", "无痕模式"], "source_screenshots": ["image4"], "file": "icons/incognito-doc.svg"}, "ua-tag": {"name": "ua-tag", "cn": "UA标识(苹果)", "category": "browser-tool", "keywords": ["ua", "user-agent", "apple", "UA标识"], "source_screenshots": ["image4"], "file": "icons/ua-tag.svg"}, "site-config": {"name": "site-config", "cn": "网站配置", "category": "browser-tool", "keywords": ["site", "config", "settings", "网站配置"], "source_screenshots": ["image4"], "file": "icons/site-config.svg"}, "view-source": {"name": "view-source", "cn": "查看源码(叠椭圆)", "category": "browser-tool", "keywords": ["view", "source", "code", "查看源码"], "source_screenshots": ["image4"], "file": "icons/view-source.svg"}, "code": {"name": "code", "cn": "代码", "category": "browser-tool", "keywords": ["code", "dev", "代码"], "source_screenshots": [], "file": "icons/code.svg"}, "terminal": {"name": "terminal", "cn": "终端", "category": "browser-tool", "keywords": ["terminal", "console", "终端"], "source_screenshots": [], "file": "icons/terminal.svg"}, "network-log": {"name": "network-log", "cn": "网络日志(沙漏)", "category": "browser-tool", "keywords": ["network", "log", "hourglass", "网络日志", "沙漏"], "source_screenshots": ["image4"], "file": "icons/network-log.svg"}, "translate": {"name": "translate", "cn": "翻译", "category": "browser-tool", "keywords": ["translate", "language", "翻译"], "source_screenshots": [], "file": "icons/translate.svg"}, "translate-box": {"name": "translate-box", "cn": "网页翻译(中A框)", "category": "browser-tool", "keywords": ["translate", "webpage", "网页翻译", "中A"], "source_screenshots": ["image6"], "file": "icons/translate-box.svg"}, "read-aloud": {"name": "read-aloud", "cn": "网页朗读", "category": "browser-tool", "keywords": ["read", "aloud", "tts", "网页朗读"], "source_screenshots": ["image6"], "file": "icons/read-aloud.svg"}, "page-zoom": {"name": "page-zoom", "cn": "网页缩放", "category": "browser-tool", "keywords": ["page", "zoom", "网页缩放"], "source_screenshots": ["image6"], "file": "icons/page-zoom.svg"}, "page-find": {"name": "page-find", "cn": "页内查找", "category": "browser-tool", "keywords": ["page", "find", "search", "页内查找"], "source_screenshots": ["image6"], "file": "icons/page-find.svg"}, "timed-refresh": {"name": "timed-refresh", "cn": "定时刷新", "category": "browser-tool", "keywords": ["timed", "refresh", "schedule", "定时刷新"], "source_screenshots": ["image6"], "file": "icons/timed-refresh.svg"}, "zoom-in": {"name": "zoom-in", "cn": "放大", "category": "browser-tool", "keywords": ["zoom", "in", "放大"], "source_screenshots": [], "file": "icons/zoom-in.svg"}, "zoom-out": {"name": "zoom-out", "cn": "缩小", "category": "browser-tool", "keywords": ["zoom", "out", "缩小"], "source_screenshots": [], "file": "icons/zoom-out.svg"}, "file": {"name": "file", "cn": "文件", "category": "file", "keywords": ["file", "document", "文件", "文档"], "source_screenshots": [], "file": "icons/file.svg"}, "file-text": {"name": "file-text", "cn": "文档(带内容)", "category": "file", "keywords": ["file", "text", "document", "文档"], "source_screenshots": [], "file": "icons/file-text.svg"}, "file-pdf": {"name": "file-pdf", "cn": "保存为PDF", "category": "file", "keywords": ["pdf", "save", "保存为PDF", "PDF"], "source_screenshots": ["image6"], "file": "icons/file-pdf.svg"}, "save-page": {"name": "save-page", "cn": "保存网页", "category": "file", "keywords": ["save", "page", "保存网页"], "source_screenshots": ["image6"], "file": "icons/save-page.svg"}, "print": {"name": "print", "cn": "打印", "category": "file", "keywords": ["print", "printer", "打印"], "source_screenshots": ["image6"], "file": "icons/print.svg"}, "add-desktop": {"name": "add-desktop", "cn": "添加至桌面", "category": "file", "keywords": ["add", "desktop", "home", "添加至桌面"], "source_screenshots": ["image6"], "file": "icons/add-desktop.svg"}, "folder": {"name": "folder", "cn": "文件夹", "category": "file", "keywords": ["folder", "directory", "文件夹"], "source_screenshots": [], "file": "icons/folder.svg"}, "folder-add": {"name": "folder-add", "cn": "文件夹加", "category": "file", "keywords": ["folder", "add", "new", "文件夹加"], "source_screenshots": [], "file": "icons/folder-add.svg"}, "folder-arrow": {"name": "folder-arrow", "cn": "文件工具(文件夹带箭头)", "category": "file", "keywords": ["folder", "arrow", "tool", "文件工具"], "source_screenshots": ["image3"], "file": "icons/folder-arrow.svg"}, "folder-download": {"name": "folder-download", "cn": "文件(底栏导航)", "category": "file", "keywords": ["folder", "download", "nav", "文件"], "source_screenshots": ["image3"], "file": "icons/folder-download.svg"}, "folder-document": {"name": "folder-document", "cn": "文档管理", "category": "file", "keywords": ["document", "manage", "文档管理"], "source_screenshots": ["image6"], "file": "icons/folder-document.svg"}, "book-open": {"name": "book-open", "cn": "打开的书", "category": "file", "keywords": ["book", "open", "book", "打开的书"], "source_screenshots": ["image9"], "file": "icons/book-open.svg"}, "novel": {"name": "novel", "cn": "小说(底栏)", "category": "file", "keywords": ["novel", "book", "小说"], "source_screenshots": ["image3"], "file": "icons/novel.svg"}, "study-tool": {"name": "study-tool", "cn": "学习工具", "category": "file", "keywords": ["study", "tool", "edit", "学习工具"], "source_screenshots": ["image3"], "file": "icons/study-tool.svg"}, "scan-tool": {"name": "scan-tool", "cn": "扫描工具", "category": "file", "keywords": ["scan", "tool", "扫描工具"], "source_screenshots": ["image3"], "file": "icons/scan-tool.svg"}, "key": {"name": "key", "cn": "钥匙(横)", "category": "security", "keywords": ["key", "password", "钥匙", "密码"], "source_screenshots": [], "file": "icons/key.svg"}, "key-vertical": {"name": "key-vertical", "cn": "密码管理(竖钥匙)", "category": "security", "keywords": ["key", "password", "密码管理", "钥匙"], "source_screenshots": ["image6"], "file": "icons/key-vertical.svg"}, "lock": {"name": "lock", "cn": "锁", "category": "security", "keywords": ["lock", "closed", "锁", "加密"], "source_screenshots": [], "file": "icons/lock.svg"}, "unlock": {"name": "unlock", "cn": "解锁", "category": "security", "keywords": ["unlock", "open", "解锁"], "source_screenshots": [], "file": "icons/unlock.svg"}, "shield": {"name": "shield", "cn": "盾牌", "category": "security", "keywords": ["shield", "security", "盾牌"], "source_screenshots": [], "file": "icons/shield.svg"}, "shield-check": {"name": "shield-check", "cn": "盾牌保护", "category": "security", "keywords": ["shield", "check", "verified", "盾牌", "保护"], "source_screenshots": [], "file": "icons/shield-check.svg"}, "sun": {"name": "sun", "cn": "太阳(日间)", "category": "theme", "keywords": ["sun", "day", "light", "太阳", "日间", "白天"], "source_screenshots": ["image2"], "file": "icons/sun.svg"}, "moon": {"name": "moon", "cn": "月亮(夜间)", "category": "theme", "keywords": ["moon", "night", "dark", "月亮", "夜间", "夜晚"], "source_screenshots": ["image1"], "file": "icons/moon.svg"}, "theme": {"name": "theme", "cn": "主题切换", "category": "theme", "keywords": ["theme", "mode", "主题"], "source_screenshots": [], "file": "icons/theme.svg"}, "wallpaper-tshirt": {"name": "wallpaper-tshirt", "cn": "壁纸(T恤款)", "category": "theme", "keywords": ["wallpaper", "tshirt", "壁纸", "衣服"], "source_screenshots": ["image2"], "file": "icons/wallpaper-tshirt.svg"}, "wallpaper": {"name": "wallpaper", "cn": "壁纸(图片)", "category": "theme", "keywords": ["wallpaper", "picture", "壁纸"], "source_screenshots": [], "file": "icons/wallpaper.svg"}, "add-circle": {"name": "add-circle", "cn": "加号(圆圈)", "category": "action", "keywords": ["add", "plus", "circle", "添加", "加号"], "source_screenshots": ["image8"], "file": "icons/add-circle.svg"}, "add-square": {"name": "add-square", "cn": "加号(方框)", "category": "action", "keywords": ["add", "plus", "square", "添加"], "source_screenshots": ["image3"], "file": "icons/add-square.svg"}, "plus": {"name": "plus", "cn": "加号", "category": "action", "keywords": ["plus", "add", "加号"], "source_screenshots": [], "file": "icons/plus.svg"}, "minus": {"name": "minus", "cn": "减号", "category": "action", "keywords": ["minus", "remove", "减号"], "source_screenshots": [], "file": "icons/minus.svg"}, "minus-circle": {"name": "minus-circle", "cn": "减号(圆圈)", "category": "action", "keywords": ["minus", "remove", "circle", "减号"], "source_screenshots": [], "file": "icons/minus-circle.svg"}, "check": {"name": "check", "cn": "对勾", "category": "action", "keywords": ["check", "done", "对勾", "完成"], "source_screenshots": [], "file": "icons/check.svg"}, "check-circle": {"name": "check-circle", "cn": "对勾(圆圈)", "category": "action", "keywords": ["check", "done", "circle", "对勾"], "source_screenshots": [], "file": "icons/check-circle.svg"}, "edit": {"name": "edit", "cn": "编辑", "category": "action", "keywords": ["edit", "pen", "编辑"], "source_screenshots": [], "file": "icons/edit.svg"}, "edit-box": {"name": "edit-box", "cn": "编辑(带框)", "category": "action", "keywords": ["edit", "box", "编辑"], "source_screenshots": [], "file": "icons/edit-box.svg"}, "trash": {"name": "trash", "cn": "删除", "category": "action", "keywords": ["trash", "delete", "删除", "垃圾桶"], "source_screenshots": [], "file": "icons/trash.svg"}, "copy": {"name": "copy", "cn": "复制", "category": "action", "keywords": ["copy", "duplicate", "复制"], "source_screenshots": [], "file": "icons/copy.svg"}, "share": {"name": "share", "cn": "分享(三点)", "category": "action", "keywords": ["share", "分享"], "source_screenshots": [], "file": "icons/share.svg"}, "share-arrow": {"name": "share-arrow", "cn": "分享(箭头)", "category": "action", "keywords": ["share", "arrow", "up", "分享"], "source_screenshots": ["image1"], "file": "icons/share-arrow.svg"}, "share-box": {"name": "share-box", "cn": "分享(外链)", "category": "action", "keywords": ["share", "external", "link", "分享"], "source_screenshots": [], "file": "icons/share-box.svg"}, "heart": {"name": "heart", "cn": "喜欢", "category": "action", "keywords": ["heart", "love", "like", "喜欢"], "source_screenshots": [], "file": "icons/heart.svg"}, "eye": {"name": "eye", "cn": "显示", "category": "action", "keywords": ["eye", "view", "show", "显示", "查看"], "source_screenshots": [], "file": "icons/eye.svg"}, "eye-off": {"name": "eye-off", "cn": "隐藏", "category": "action", "keywords": ["eye", "off", "hide", "隐藏"], "source_screenshots": [], "file": "icons/eye-off.svg"}, "info": {"name": "info", "cn": "信息", "category": "action", "keywords": ["info", "i", "信息", "提示"], "source_screenshots": [], "file": "icons/info.svg"}, "warning": {"name": "warning", "cn": "警告", "category": "action", "keywords": ["warning", "alert", "警告"], "source_screenshots": [], "file": "icons/warning.svg"}, "help": {"name": "help", "cn": "帮助", "category": "action", "keywords": ["help", "question", "帮助", "问号"], "source_screenshots": [], "file": "icons/help.svg"}, "filter": {"name": "filter", "cn": "筛选", "category": "action", "keywords": ["filter", "筛选", "过滤"], "source_screenshots": [], "file": "icons/filter.svg"}, "sort": {"name": "sort", "cn": "排序", "category": "action", "keywords": ["sort", "排序"], "source_screenshots": [], "file": "icons/sort.svg"}, "list": {"name": "list", "cn": "列表", "category": "action", "keywords": ["list", "列表"], "source_screenshots": [], "file": "icons/list.svg"}, "grid": {"name": "grid", "cn": "网格", "category": "action", "keywords": ["grid", "网格"], "source_screenshots": [], "file": "icons/grid.svg"}, "recommend": {"name": "recommend", "cn": "推荐(横线)", "category": "action", "keywords": ["recommend", "list", "feed", "推荐"], "source_screenshots": ["image3"], "file": "icons/recommend.svg"}, "voice": {"name": "voice", "cn": "语音广播(三弧)", "category": "network", "keywords": ["voice", "broadcast", "radio", "wifi", "语音", "广播"], "source_screenshots": ["image8", "image3"], "file": "icons/voice.svg"}, "mic": {"name": "mic", "cn": "麦克风", "category": "network", "keywords": ["mic", "microphone", "麦克风"], "source_screenshots": [], "file": "icons/mic.svg"}, "wifi": {"name": "wifi", "cn": "WiFi", "category": "network", "keywords": ["wifi", "WiFi", "无线"], "source_screenshots": [], "file": "icons/wifi.svg"}, "cloud": {"name": "cloud", "cn": "云", "category": "network", "keywords": ["cloud", "云"], "source_screenshots": ["image9"], "file": "icons/cloud.svg"}, "cloud-download": {"name": "cloud-download", "cn": "云下载", "category": "network", "keywords": ["cloud", "download", "云下载"], "source_screenshots": [], "file": "icons/cloud-download.svg"}, "cloud-upload": {"name": "cloud-upload", "cn": "云上传", "category": "network", "keywords": ["cloud", "upload", "云上传"], "source_screenshots": [], "file": "icons/cloud-upload.svg"}, "globe": {"name": "globe", "cn": "地球", "category": "network", "keywords": ["globe", "world", "地球", "网站"], "source_screenshots": [], "file": "icons/globe.svg"}, "scan": {"name": "scan", "cn": "扫描", "category": "scan", "keywords": ["scan", "扫描"], "source_screenshots": [], "file": "icons/scan.svg"}, "qr-code": {"name": "qr-code", "cn": "二维码", "category": "scan", "keywords": ["qr", "qrcode", "二维码"], "source_screenshots": [], "file": "icons/qr-code.svg"}, "game": {"name": "game", "cn": "游戏手柄", "category": "game", "keywords": ["game", "controller", "游戏"], "source_screenshots": [], "file": "icons/game.svg"}, "game-x": {"name": "game-x", "cn": "游戏福利(手柄带X)", "category": "game", "keywords": ["game", "x", "controller", "游戏福利"], "source_screenshots": ["image3"], "file": "icons/game-x.svg"}, "power": {"name": "power", "cn": "电源", "category": "power", "keywords": ["power", "电源", "关机"], "source_screenshots": ["image4"], "file": "icons/power.svg"}, "power-off": {"name": "power-off", "cn": "关机", "category": "power", "keywords": ["power", "off", "关机"], "source_screenshots": [], "file": "icons/power-off.svg"}, "storage": {"name": "storage", "cn": "存储", "category": "power", "keywords": ["storage", "database", "存储"], "source_screenshots": [], "file": "icons/storage.svg"}, "storage-clean": {"name": "storage-clean", "cn": "空间清理", "category": "power", "keywords": ["storage", "clean", "空间清理"], "source_screenshots": ["image2"], "file": "icons/storage-clean.svg"}, "database": {"name": "database", "cn": "数据库", "category": "power", "keywords": ["database", "数据库"], "source_screenshots": [], "file": "icons/database.svg"}, "hourglass": {"name": "hourglass", "cn": "沙漏", "category": "power", "keywords": ["hourglass", "time", "沙漏"], "source_screenshots": [], "file": "icons/hourglass.svg"}, "trending": {"name": "trending", "cn": "趋势上升", "category": "trending", "keywords": ["trending", "up", "chart", "趋势"], "source_screenshots": [], "file": "icons/trending.svg"}, "fire": {"name": "fire", "cn": "火焰", "category": "trending", "keywords": ["fire", "hot", "火焰", "热门"], "source_screenshots": [], "file": "icons/fire.svg"}, "hot": {"name": "hot", "cn": "热门(带内火)", "category": "trending", "keywords": ["hot", "fire", "热门"], "source_screenshots": [], "file": "icons/hot.svg"}};
+let currentIcon = null;
+
+async function showDetail(name) {
+  currentIcon = manifest[name];
+  const res = await fetch('./icons/' + name + '.svg');
+  const svgText = await res.text();
+  document.getElementById('modal-title').textContent = currentIcon.cn + ' · ' + name;
+  document.getElementById('modal-preview').innerHTML = svgText;
+  document.getElementById('modal-info').innerHTML = `
+    <div class="info-row"><div class="k">英文名</div><div class="v">${name}</div></div>
+    <div class="info-row"><div class="k">中文名</div><div class="v">${currentIcon.cn}</div></div>
+    <div class="info-row"><div class="k">分类</div><div class="v">${currentIcon.category}</div></div>
+    <div class="info-row"><div class="k">关键词</div><div class="v">${currentIcon.keywords.join(', ')}</div></div>
+    <div class="info-row"><div class="k">Android 资源</div><div class="v">@drawable/ic_${name.replace(/-/g,'_')}</div></div>
+    <div class="info-row"><div class="k">SVG 路径</div><div class="v">icons/${name}.svg</div></div>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+async function copySvgCode() {
+  const res = await fetch('./icons/' + currentIcon.name + '.svg');
+  const txt = await res.text();
+  await navigator.clipboard.writeText(txt);
+  showToast('已复制 SVG 代码');
+}
+async function copyXmlCode() {
+  const rn = '@drawable/ic_' + currentIcon.name.replace(/-/g, '_');
+  await navigator.clipboard.writeText(rn);
+  showToast('已复制资源名 ' + rn);
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+function setSize(px, el) {
+  document.querySelectorAll('.cell svg').forEach(s => {
+    s.style.width = px + 'px';
+    s.style.height = px + 'px';
+  });
+  document.querySelectorAll('.controls button').forEach(b => {
+    if(b.textContent.endsWith('px')) b.classList.remove('active');
+  });
+  el.classList.add('active');
+}
+function setColor(c) {
+  document.querySelectorAll('.cell svg').forEach(s => s.style.color = c);
+}
+function toggleDark() {
+  document.body.classList.toggle('dark');
+}
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.cell').forEach(cell => {
+    if (!q) { cell.style.display = ''; return; }
+    const name = cell.dataset.name.toLowerCase();
+    const cn = cell.dataset.cn.toLowerCase();
+    const kw = cell.dataset.keywords.toLowerCase();
+    cell.style.display = (name.includes(q) || cn.includes(q) || kw.includes(q)) ? '' : 'none';
+  });
+  document.querySelectorAll('.group').forEach(g => {
+    const visible = g.querySelectorAll('.cell:not([style*="none"])').length;
+    g.style.display = visible ? '' : 'none';
+  });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('modal').classList.remove('show');
+});
+</script>
+</body>
+</html>

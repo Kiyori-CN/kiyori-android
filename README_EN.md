@@ -1,17 +1,12 @@
-# XiaoMiao Player - Local Anime Video Real-time Upscaling Player
+# Kiyori - Local Anime Video Real-time Upscaling Player
 
 **[中文版本](README.md) | [English Version](README_EN.md)**
 
 ---
 
 > [!IMPORTANT]
-> ## 🌍 English Version Available
-> 
-> **If you are looking for the English version of the app download or related information, please visit:**
-> 
-> ### 👉 [meow-player-en branch](https://github.com/azxcvn/mpv-android-anime4k/tree/meow-player-en?tab=readme-ov-file)
-> 
-> This branch is dedicated to English version development.
+> The current primary repository is
+> [Kiyori-CN/kiyori-android](https://github.com/Kiyori-CN/kiyori-android).
 
 ---
 

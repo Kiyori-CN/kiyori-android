@@ -1,4 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="NotificationPermission">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
         android:maxSdkVersion="32" />
@@ -8,18 +10,23 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS"
+        tools:targetApi="33" />
 
     <application
-        android:name=".AppApplication"
+        android:name=".app.AppApplication"
         android:allowBackup="true"
         android:appCategory="video"
+        android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.VideoPlayer">
-        <activity android:name=".MainActivity"
+        <activity android:name=".app.MainActivity"
+            android:theme="@style/Theme.VideoPlayer.Launcher"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,43 +34,48 @@
             </intent-filter>
         </activity>
         <activity 
-            android:name=".UserAgreementActivity"
+            android:name=".settings.UserAgreementActivity"
             android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
-        <activity android:name=".SettingsComposeActivity" />
-        <activity android:name=".DownloadActivity" />
-        <activity android:name=".PlaybackSettingsComposeActivity" />
-        <activity android:name=".PlaybackHistoryComposeActivity" />
-        <activity android:name=".BiliBiliDanmakuComposeActivity" />
-        <activity android:name=".SubtitleSearchActivity" />
-        <activity android:name=".AboutComposeActivity" />
-        <activity android:name=".LicenseActivity" />
-        <activity android:name=".FeedbackActivity" />
+        <activity android:name=".settings.SettingsComposeActivity" />
+        <activity android:name=".download.ui.DownloadActivity" />
+        <activity android:name=".settings.PlaybackSettingsComposeActivity" />
+        <activity android:name=".history.ui.PlaybackHistoryComposeActivity" />
+        <activity android:name=".danmaku.ui.BiliBiliDanmakuComposeActivity" />
+        <activity android:name=".subtitle.ui.SubtitleSearchActivity" />
+        <activity android:name=".settings.AboutComposeActivity" />
+        <activity android:name=".settings.LicenseActivity" />
+        <activity android:name=".settings.FeedbackActivity" />
         <activity 
-            android:name="com.fanchen.fam4k007.manager.compose.BiliBiliLoginActivity"
-            android:exported="false"
-            android:theme="@style/Theme.VideoPlayer" />
-        <activity 
-            android:name=".BiliBiliPlayActivity"
+            android:name="com.android.kiyori.manager.compose.BiliBiliLoginActivity"
             android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
         <activity 
-            android:name=".VideoBrowserComposeActivity"
+            android:name=".bilibili.ui.BiliBiliPlayActivity"
+            android:exported="false"
+            android:theme="@style/Theme.VideoPlayer" />
+        <activity 
+            android:name=".media.ui.VideoBrowserComposeActivity"
             android:exported="false" />
         <activity
-            android:name=".RemotePlaybackInputActivity"
+            android:name=".remote.ui.RemotePlaybackInputActivity"
             android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
         <activity
-            android:name=".RemotePlaybackHistoryActivity"
+            android:name=".remote.ui.RemotePlaybackHistoryActivity"
             android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
         <activity
             android:name=".browser.ui.BrowserActivity"
             android:exported="false"
+            android:hardwareAccelerated="true"
+            android:theme="@style/Theme.VideoPlayer" />
+        <activity
+            android:name=".browser.ui.BrowserBookmarksActivity"
+            android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
         <activity 
-            android:name=".VideoListComposeActivity"
+            android:name=".media.ui.VideoListComposeActivity"
             android:exported="false" />
         <activity 
             android:name=".webdav.WebDavComposeActivity"
@@ -72,7 +84,7 @@
             android:name=".webdav.WebDavBrowserComposeActivity"
             android:exported="false" />
         <activity 
-            android:name=".VideoPlayerActivity"
+            android:name=".player.ui.VideoPlayerActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:launchMode="singleTop"
             android:supportsPictureInPicture="true"
@@ -117,3 +129,4 @@
     </application>
 
 </manifest>
+

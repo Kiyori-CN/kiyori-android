@@ -21,17 +21,17 @@
 
 当前已有可复用能力：
 
-- `app/src/main/java/com/fam4k007/videoplayer/tv/TVBrowserActivity.kt`
+- `app/src/main/java/com/android/kiyori/browser/ui/BrowserActivity.kt`
   - WebView 拦截请求并调用 `VideoSnifferManager.processRequest()`
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/VideoSnifferManager.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/VideoSnifferManager.kt`
   - 维护已识别视频列表
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/UrlDetector.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/UrlDetector.kt`
   - 通过扩展名、关键词、`Content-Type` 识别视频 URL
-- `app/src/main/java/com/fam4k007/videoplayer/VideoPlayerActivity.kt`
+- `app/src/main/java/com/android/kiyori/player/ui/VideoPlayerActivity.kt`
   - 已支持 `http/https` URI 走在线视频分支
-- `app/src/main/java/com/fam4k007/videoplayer/player/PlaybackEngine.kt`
+- `app/src/main/java/com/android/kiyori/player/PlaybackEngine.kt`
   - 已有 `loadVideoFromUrl()`，支持把 HTTP 头传给 mpv
-- `app/src/main/java/com/fam4k007/videoplayer/Anime4KManager.kt`
+- `app/src/main/java/com/android/kiyori/player/Anime4KManager.kt`
   - 在线/本地都可复用同一套 shader chain
 
 当前主要问题：
@@ -316,14 +316,14 @@ fun loadRemote(request: RemotePlaybackRequest, startPosition: Double = 0.0)
 
 ## 12. 本项目里最值得优先修改的文件
 
-- `app/src/main/java/com/fam4k007/videoplayer/VideoPlayerActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/player/PlaybackEngine.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/player/CustomMPVView.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/tv/TVBrowserActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/DetectedVideo.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/sniffer/UrlDetector.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/webdav/WebDavBrowserComposeActivity.kt`
-- `app/src/main/java/com/fam4k007/videoplayer/compose/HomeScreen.kt`
+- `app/src/main/java/com/android/kiyori/player/ui/VideoPlayerActivity.kt`
+- `app/src/main/java/com/android/kiyori/player/PlaybackEngine.kt`
+- `app/src/main/java/com/android/kiyori/player/CustomMPVView.kt`
+- `app/src/main/java/com/android/kiyori/browser/ui/BrowserActivity.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/DetectedVideo.kt`
+- `app/src/main/java/com/android/kiyori/sniffer/UrlDetector.kt`
+- `app/src/main/java/com/android/kiyori/webdav/WebDavBrowserComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/app/ui/HomeScreen.kt`
 
 ## 13. 结论
 
