@@ -24,7 +24,6 @@ import com.android.kiyori.R
 import com.android.kiyori.media.VideoFile
 import com.android.kiyori.media.VideoFileParcelable
 import com.android.kiyori.media.VideoFolder
-import com.android.kiyori.media.ui.FolderBrowserScreen
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.NoMediaChecker
 import com.android.kiyori.utils.ThemeManager
@@ -32,10 +31,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class VideoBrowserComposeActivity : ComponentActivity() {
+class LocalMediaBrowserActivity : ComponentActivity() {
 
     companion object {
-        private const val TAG = "VideoBrowserCompose"
+        private const val TAG = "LocalMediaBrowser"
         private const val PERMISSION_REQUEST_CODE = 1001
     }
 

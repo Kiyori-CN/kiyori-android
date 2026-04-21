@@ -25,7 +25,7 @@
 
 现状问题：
 
-- 浏览器能力集中在 `TVBrowserActivity`，结构偏原型化
+- 浏览器能力集中在 `BrowserActivity`，结构仍偏单入口原型化
 - UI、WebView 配置、嗅探、播放跳转耦合较高
 - 适配 TV 的页面不适合作为手机浏览器长期演进基线
 - 嗅探逻辑可继续增强，但目前缺少清晰的模块边界
@@ -466,7 +466,7 @@ Cookie 策略：
 
 首期开发时保留当前：
 
-- `TVBrowserActivity`
+- `BrowserActivity`
 
 新建：
 
@@ -475,7 +475,7 @@ Cookie 策略：
 后续策略：
 
 - 手机端入口逐步切换到 `BrowserActivity`
-- `TVBrowserActivity` 保留为 TV 定制页面或后续复用统一浏览器控制器
+- `BrowserActivity` 继续作为当前浏览器入口，后续可再拆出更清晰的浏览器控制层
 
 ### 10.2 现有类复用策略
 

@@ -55,7 +55,7 @@
             android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
         <activity 
-            android:name=".media.ui.VideoBrowserComposeActivity"
+            android:name=".media.ui.LocalMediaBrowserActivity"
             android:exported="false" />
         <activity
             android:name=".remote.ui.RemotePlaybackInputActivity"
@@ -81,7 +81,7 @@
             android:name=".webdav.WebDavComposeActivity"
             android:exported="false" />
         <activity 
-            android:name=".webdav.WebDavBrowserComposeActivity"
+            android:name=".webdav.WebDavFileBrowserActivity"
             android:exported="false" />
         <activity 
             android:name=".player.ui.VideoPlayerActivity"

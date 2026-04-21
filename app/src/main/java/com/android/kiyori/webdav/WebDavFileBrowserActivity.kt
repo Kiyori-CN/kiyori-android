@@ -19,7 +19,7 @@ import com.android.kiyori.utils.ThemeManager
 /**
  * WebDAV 文件浏览 Compose Activity
  */
-class WebDavBrowserComposeActivity : ComponentActivity() {
+class WebDavFileBrowserActivity : ComponentActivity() {
     
     private var accountId: String? = null
     private var onBackCallback: (() -> Unit)? = null

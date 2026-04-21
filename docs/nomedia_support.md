@@ -17,7 +17,7 @@
 
 ### 2. 修改的文件
 
-#### VideoBrowserComposeActivity.kt
+#### LocalMediaBrowserActivity.kt
 - 在 `scanVideoFiles()` 方法中添加 .nomedia 检测
 - 扫描视频时会自动跳过包含 .nomedia 的文件夹
 

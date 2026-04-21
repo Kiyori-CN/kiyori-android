@@ -56,7 +56,7 @@ import com.android.kiyori.history.PlaybackHistoryManager
 import com.android.kiyori.history.ui.PlaybackHistoryComposeActivity
 import com.android.kiyori.manager.PreferencesManager
 import com.android.kiyori.media.VideoFileParcelable
-import com.android.kiyori.media.ui.VideoBrowserComposeActivity
+import com.android.kiyori.media.ui.LocalMediaBrowserActivity
 import com.android.kiyori.bilibili.ui.BiliBiliPlayActivity
 import com.android.kiyori.player.ui.VideoPlayerActivity
 import com.android.kiyori.remote.RemotePlaybackHeaders
@@ -127,7 +127,7 @@ fun HomeScreen(
 
                 HomeTab.Files -> FileManagementPage(
                     onLocalVideoClick = {
-                        context.startActivity(Intent(context, VideoBrowserComposeActivity::class.java))
+                        context.startActivity(Intent(context, LocalMediaBrowserActivity::class.java))
                         (context as? android.app.Activity)?.overridePendingTransition(
                             R.anim.slide_in_right,
                             R.anim.slide_out_left

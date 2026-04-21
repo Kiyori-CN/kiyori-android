@@ -76,14 +76,14 @@
 页面以 Activity 为导航单元，主要入口包括：
 
 - `MainActivity`：首页/入口聚合
-- `VideoBrowserComposeActivity`：本地文件夹浏览
+- `LocalMediaBrowserActivity`：本地文件夹浏览
 - `VideoListComposeActivity`：文件夹视频列表
 - `VideoPlayerActivity`：核心播放器
 - `BiliBiliPlayActivity`：番剧解析与播放前选择
 - `DownloadActivity`：下载管理
 - `SubtitleSearchActivity`：字幕搜索下载
-- `WebDavComposeActivity` / `WebDavBrowserComposeActivity`
-- `TVBrowserActivity`：网页视频嗅探
+- `WebDavComposeActivity` / `WebDavFileBrowserActivity`
+- `BrowserActivity`：内置浏览器与网页视频嗅探
 
 项目没有使用 Navigation Compose，也没有单 Activity 架构；当前是典型的“多 Activity + 局部 Compose 页面”。
 
@@ -158,7 +158,7 @@ UI 是混合式的：
 
 本地浏览分为两段：
 
-1. `VideoBrowserComposeActivity`
+1. `LocalMediaBrowserActivity`
    - 申请存储权限
    - 通过 `MediaStore` 扫描视频
    - 过滤 `.nomedia`
@@ -277,14 +277,14 @@ WebDAV 能力也很直接：
 
 1. `WebDavAccountManager` 存储账户
 2. `WebDavClient` 使用 Sardine 列目录
-3. `WebDavBrowserComposeActivity` 浏览文件夹
+3. `WebDavFileBrowserActivity` 浏览文件夹
 4. 选中视频后拼接 URL，跳转 `VideoPlayerActivity`
 
 这条链路与本地播放复用播放器本身，因此在线与离线播放在后半段是统一的。
 
 ### 4.9 TV/Web 嗅探链路
 
-TV 浏览器能力由 `TVBrowserActivity` 提供：
+浏览器内网页视频嗅探能力由 `BrowserActivity` 提供：
 
 - 内嵌 `WebView`
 - 在 `shouldInterceptRequest` 中抓取资源请求
@@ -304,7 +304,7 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 - `MainActivity`
 - `VideoPlayerActivity`
-- `VideoBrowserComposeActivity`
+- `LocalMediaBrowserActivity`
 - `VideoListComposeActivity`
 - `SubtitleSearchActivity`
 - `DownloadActivity`
@@ -570,7 +570,7 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 优先看：
 
-- `VideoBrowserComposeActivity.kt`
+- `LocalMediaBrowserActivity.kt`
 - `VideoListComposeActivity.kt`
 - `database/VideoCacheDao.kt`
 - `paging/VideoPagingSource.kt`
@@ -599,13 +599,13 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 - `webdav/WebDavClient.kt`
 - `webdav/WebDavAccountManager.kt`
-- `webdav/WebDavBrowserComposeActivity.kt`
+- `webdav/WebDavFileBrowserActivity.kt`
 
 ### 9.7 想改网页嗅探
 
 优先看：
 
-- `tv/TVBrowserActivity.kt`
+- `browser/ui/BrowserActivity.kt`
 - `sniffer/VideoSnifferManager.kt`
 - `sniffer/UrlDetector.kt`
 
@@ -631,7 +631,7 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 当前仓库其实已经具备这条能力链路的雏形：
 
-1. `TVBrowserActivity` 通过 `WebView.shouldInterceptRequest()` 拿到页面请求。
+1. `BrowserActivity` 通过 `WebView.shouldInterceptRequest()` 拿到页面请求。
 2. `VideoSnifferManager` + `UrlDetector` 从请求里筛出疑似视频链接。
 3. `DetectedVideo` 把 URL 和请求头打包后跳转 `VideoPlayerActivity`。
 4. `VideoPlayerActivity` 在检测到 `http/https` 后走 `PlaybackEngine.loadVideoFromUrl()`。
@@ -658,7 +658,7 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 ### 11.3 对你要做的目标功能，最合理的改造方向
 
-后续不要继续把远程播放能力散落在 `TVBrowserActivity`、`VideoPlayerActivity`、`PlaybackEngine` 的条件分支里，而是应该补一个统一的远程播放模型，建议最少包含：
+后续不要继续把远程播放能力散落在 `BrowserActivity`、`VideoPlayerActivity`、`PlaybackEngine` 的条件分支里，而是应该补一个统一的远程播放模型，建议最少包含：
 
 - `RemotePlaybackRequest`
   - `url`
@@ -705,7 +705,7 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 
 - `app/src/main/java/com/android/kiyori/app/AppApplication.kt`
 - `app/src/main/java/com/android/kiyori/app/MainActivity.kt`
-- `app/src/main/java/com/android/kiyori/media/ui/VideoBrowserComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/media/ui/LocalMediaBrowserActivity.kt`
 - `app/src/main/java/com/android/kiyori/media/ui/VideoListComposeActivity.kt`
 - `app/src/main/java/com/android/kiyori/player/ui/VideoPlayerActivity.kt`
 - `app/src/main/java/com/android/kiyori/player/PlaybackEngine.kt`
@@ -721,7 +721,7 @@ TV 浏览器能力由 `TVBrowserActivity` 提供：
 - `app/src/main/java/com/android/kiyori/download/BilibiliDownloadViewModel.kt`
 - `app/src/main/java/com/android/kiyori/subtitle/SubtitleDownloadManager.kt`
 - `app/src/main/java/com/android/kiyori/webdav/WebDavClient.kt`
-- `app/src/main/java/com/android/kiyori/webdav/WebDavBrowserComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/webdav/WebDavFileBrowserActivity.kt`
 - `app/src/main/java/com/android/kiyori/browser/ui/BrowserActivity.kt`
 - `app/src/main/java/com/android/kiyori/sniffer/VideoSnifferManager.kt`
 - `app/src/main/java/com/android/kiyori/utils/SecureStorage.kt`

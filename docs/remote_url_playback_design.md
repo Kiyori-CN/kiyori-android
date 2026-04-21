@@ -101,7 +101,7 @@ data class RemotePlaybackRequest(
 
 ### 4.2 WebView 嗅探
 
-`TVBrowserActivity` 不再把 headers 编码到 URI 字符串里，而是：
+`BrowserActivity` 不再把 headers 编码到 URI 字符串里，而是：
 
 1. 从 `DetectedVideo` 生成 `RemotePlaybackRequest`
 2. 使用 `Intent.putExtra("remote_request", request)` 跳转播放器
@@ -251,7 +251,7 @@ fun loadRemote(request: RemotePlaybackRequest, startPosition: Double = 0.0)
 
 - 新增 `remote/RemotePlaybackRequest.kt`
 - 新增 `remote/RemotePlaybackLauncher.kt`
-- 修改 `tv/TVBrowserActivity.kt`
+- 修改 `browser/ui/BrowserActivity.kt`
 - 修改 `VideoPlayerActivity.kt`
 - 修改 `player/PlaybackEngine.kt`
 
@@ -287,7 +287,7 @@ fun loadRemote(request: RemotePlaybackRequest, startPosition: Double = 0.0)
 
 修改建议：
 
-- 修改 `webdav/WebDavBrowserComposeActivity.kt`
+- 修改 `webdav/WebDavFileBrowserActivity.kt`
 - 去除 URL 内嵌认证信息
 - 让 WebDAV 也走 `RemotePlaybackRequest`
 
@@ -322,7 +322,7 @@ fun loadRemote(request: RemotePlaybackRequest, startPosition: Double = 0.0)
 - `app/src/main/java/com/android/kiyori/browser/ui/BrowserActivity.kt`
 - `app/src/main/java/com/android/kiyori/sniffer/DetectedVideo.kt`
 - `app/src/main/java/com/android/kiyori/sniffer/UrlDetector.kt`
-- `app/src/main/java/com/android/kiyori/webdav/WebDavBrowserComposeActivity.kt`
+- `app/src/main/java/com/android/kiyori/webdav/WebDavFileBrowserActivity.kt`
 - `app/src/main/java/com/android/kiyori/app/ui/HomeScreen.kt`
 
 ## 13. 结论

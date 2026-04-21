@@ -45,7 +45,7 @@ class WebDavComposeActivity : ComponentActivity() {
                         overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onAccountSelected = { account ->
-                        val intent = Intent(this, WebDavBrowserComposeActivity::class.java)
+                        val intent = Intent(this, WebDavFileBrowserActivity::class.java)
                         intent.putExtra("account_id", account.id)
                         startActivity(intent)
                         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)

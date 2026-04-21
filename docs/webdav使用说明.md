@@ -38,7 +38,7 @@ webdav/
 ├── WebDavAccountManager.kt    # 多账户管理
 ├── WebDavClient.kt             # 客户端封装
 ├── WebDavComposeActivity.kt    # 账户管理页面
-├── WebDavBrowserComposeActivity.kt  # 文件浏览
+├── WebDavFileBrowserActivity.kt     # 文件浏览
 └── WebDavScreen.kt             # UI 组件
 ```
 
