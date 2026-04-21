@@ -4,7 +4,7 @@
 
 Turn the project into a browser-led product incrementally without changing UI behavior or existing features during the refactor itself.
 
-The refactor should stay safe, reversible, and friendly to future feature porting from the local `hikerView` workspace.
+The refactor should stay safe, reversible, and friendly to future feature porting from external browser reference projects when needed.
 
 ## Constraints
 
@@ -16,7 +16,7 @@ The refactor should stay safe, reversible, and friendly to future feature portin
 
 ## Reference Direction
 
-`hikerView` is organized as a browser product with many capability modules.
+The reference browser project is organized as a browser product with many capability modules.
 
 This project should move in that direction gradually:
 
@@ -94,7 +94,7 @@ Scope:
 
 Purpose:
 
-- Prepare for large-scale browser feature growth and selective feature porting from `hikerView`.
+- Prepare for large-scale browser feature growth and selective feature porting from external reference projects.
 
 Prerequisite:
 
@@ -130,4 +130,4 @@ After Phase 1 is stable:
 
 1. Move browser settings-related code into a browser-owned area
 2. Introduce a `browser/engine` boundary around the current system WebView implementation
-3. Start collecting browser capability gaps against `hikerView`
+3. Start collecting browser capability gaps against the reference browser project
