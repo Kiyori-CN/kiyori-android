@@ -48,7 +48,7 @@
         "image7",
         "image2"
       ],
-      "file": "icons/search.svg"
+      "file": "svg/search.svg"
     },
     {
       "name": "home",
@@ -61,7 +61,7 @@
         "主页"
       ],
       "source_screenshots": [],
-      "file": "icons/home.svg"
+      "file": "svg/home.svg"
     },
     {
       "name": "home-pentagon",
@@ -76,7 +76,7 @@
       "source_screenshots": [
         "image7"
       ],
-      "file": "icons/home-pentagon.svg"
+      "file": "svg/home-pentagon.svg"
     },
     {
       "name": "home-q",
@@ -92,7 +92,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/home-q.svg"
+      "file": "svg/home-q.svg"
     },
     {
       "name": "back",
@@ -105,7 +105,7 @@
         "左箭头"
       ],
       "source_screenshots": [],
-      "file": "icons/back.svg"
+      "file": "svg/back.svg"
     },
     {
       "name": "forward",
@@ -118,7 +118,7 @@
         "右箭头"
       ],
       "source_screenshots": [],
-      "file": "icons/forward.svg"
+      "file": "svg/forward.svg"
     },
     {
       "name": "refresh",
@@ -134,7 +134,7 @@
         "image1",
         "image5"
       ],
-      "file": "icons/refresh.svg"
+      "file": "svg/refresh.svg"
     },
     {
       "name": "refresh-disc",
@@ -149,7 +149,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/refresh-disc.svg"
+      "file": "svg/refresh-disc.svg"
     },
     {
       "name": "refresh-cw",
@@ -161,7 +161,7 @@
         "刷新"
       ],
       "source_screenshots": [],
-      "file": "icons/refresh-cw.svg"
+      "file": "svg/refresh-cw.svg"
     },
     {
       "name": "close",
@@ -176,7 +176,7 @@
         "叉"
       ],
       "source_screenshots": [],
-      "file": "icons/close.svg"
+      "file": "svg/close.svg"
     },
     {
       "name": "close-circle",
@@ -189,7 +189,7 @@
         "圆叉"
       ],
       "source_screenshots": [],
-      "file": "icons/close-circle.svg"
+      "file": "svg/close-circle.svg"
     },
     {
       "name": "menu",
@@ -202,7 +202,7 @@
         "三横"
       ],
       "source_screenshots": [],
-      "file": "icons/menu.svg"
+      "file": "svg/menu.svg"
     },
     {
       "name": "more-horizontal",
@@ -215,7 +215,7 @@
         "三点"
       ],
       "source_screenshots": [],
-      "file": "icons/more-horizontal.svg"
+      "file": "svg/more-horizontal.svg"
     },
     {
       "name": "more-vertical",
@@ -228,7 +228,7 @@
         "三点"
       ],
       "source_screenshots": [],
-      "file": "icons/more-vertical.svg"
+      "file": "svg/more-vertical.svg"
     },
     {
       "name": "arrow-up",
@@ -240,7 +240,7 @@
         "向上"
       ],
       "source_screenshots": [],
-      "file": "icons/arrow-up.svg"
+      "file": "svg/arrow-up.svg"
     },
     {
       "name": "arrow-down",
@@ -252,7 +252,7 @@
         "向下"
       ],
       "source_screenshots": [],
-      "file": "icons/arrow-down.svg"
+      "file": "svg/arrow-down.svg"
     },
     {
       "name": "arrow-left",
@@ -264,7 +264,7 @@
         "向左"
       ],
       "source_screenshots": [],
-      "file": "icons/arrow-left.svg"
+      "file": "svg/arrow-left.svg"
     },
     {
       "name": "arrow-right",
@@ -276,7 +276,7 @@
         "向右"
       ],
       "source_screenshots": [],
-      "file": "icons/arrow-right.svg"
+      "file": "svg/arrow-right.svg"
     },
     {
       "name": "chevron-up",
@@ -289,7 +289,7 @@
         "折叠"
       ],
       "source_screenshots": [],
-      "file": "icons/chevron-up.svg"
+      "file": "svg/chevron-up.svg"
     },
     {
       "name": "chevron-down",
@@ -304,7 +304,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/chevron-down.svg"
+      "file": "svg/chevron-down.svg"
     },
     {
       "name": "chevron-left",
@@ -316,7 +316,7 @@
         "向左"
       ],
       "source_screenshots": [],
-      "file": "icons/chevron-left.svg"
+      "file": "svg/chevron-left.svg"
     },
     {
       "name": "chevron-right",
@@ -328,7 +328,7 @@
         "向右"
       ],
       "source_screenshots": [],
-      "file": "icons/chevron-right.svg"
+      "file": "svg/chevron-right.svg"
     },
     {
       "name": "tab",
@@ -342,7 +342,7 @@
       "source_screenshots": [
         "image7"
       ],
-      "file": "icons/tab.svg"
+      "file": "svg/tab.svg"
     },
     {
       "name": "tab-multi",
@@ -356,7 +356,7 @@
         "叠加"
       ],
       "source_screenshots": [],
-      "file": "icons/tab-multi.svg"
+      "file": "svg/tab-multi.svg"
     },
     {
       "name": "tab-new",
@@ -369,7 +369,7 @@
         "新建标签"
       ],
       "source_screenshots": [],
-      "file": "icons/tab-new.svg"
+      "file": "svg/tab-new.svg"
     },
     {
       "name": "tab-close",
@@ -381,7 +381,7 @@
         "关闭标签"
       ],
       "source_screenshots": [],
-      "file": "icons/tab-close.svg"
+      "file": "svg/tab-close.svg"
     },
     {
       "name": "picture-in-picture",
@@ -396,7 +396,7 @@
       "source_screenshots": [
         "image9"
       ],
-      "file": "icons/picture-in-picture.svg"
+      "file": "svg/picture-in-picture.svg"
     },
     {
       "name": "fullscreen",
@@ -408,7 +408,7 @@
         "全屏"
       ],
       "source_screenshots": [],
-      "file": "icons/fullscreen.svg"
+      "file": "svg/fullscreen.svg"
     },
     {
       "name": "fullscreen-corners",
@@ -422,7 +422,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/fullscreen-corners.svg"
+      "file": "svg/fullscreen-corners.svg"
     },
     {
       "name": "fullscreen-exit",
@@ -435,7 +435,7 @@
         "退出全屏"
       ],
       "source_screenshots": [],
-      "file": "icons/fullscreen-exit.svg"
+      "file": "svg/fullscreen-exit.svg"
     },
     {
       "name": "bookmark",
@@ -447,7 +447,7 @@
         "收藏"
       ],
       "source_screenshots": [],
-      "file": "icons/bookmark.svg"
+      "file": "svg/bookmark.svg"
     },
     {
       "name": "bookmark-add",
@@ -462,7 +462,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/bookmark-add.svg"
+      "file": "svg/bookmark-add.svg"
     },
     {
       "name": "bookmark-filled",
@@ -474,7 +474,7 @@
         "书签实心"
       ],
       "source_screenshots": [],
-      "file": "icons/bookmark-filled.svg"
+      "file": "svg/bookmark-filled.svg"
     },
     {
       "name": "bookmarks-stacked",
@@ -489,7 +489,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/bookmarks-stacked.svg"
+      "file": "svg/bookmarks-stacked.svg"
     },
     {
       "name": "bookmark-square",
@@ -504,7 +504,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/bookmark-square.svg"
+      "file": "svg/bookmark-square.svg"
     },
     {
       "name": "star",
@@ -519,7 +519,7 @@
       "source_screenshots": [
         "image1"
       ],
-      "file": "icons/star.svg"
+      "file": "svg/star.svg"
     },
     {
       "name": "star-filled",
@@ -532,7 +532,7 @@
         "实星"
       ],
       "source_screenshots": [],
-      "file": "icons/star-filled.svg"
+      "file": "svg/star-filled.svg"
     },
     {
       "name": "star-add",
@@ -547,7 +547,7 @@
       "source_screenshots": [
         "image1"
       ],
-      "file": "icons/star-add.svg"
+      "file": "svg/star-add.svg"
     },
     {
       "name": "history",
@@ -562,7 +562,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/history.svg"
+      "file": "svg/history.svg"
     },
     {
       "name": "history-filled",
@@ -576,7 +576,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/history-filled.svg"
+      "file": "svg/history-filled.svg"
     },
     {
       "name": "clock",
@@ -589,7 +589,7 @@
         "时间"
       ],
       "source_screenshots": [],
-      "file": "icons/clock.svg"
+      "file": "svg/clock.svg"
     },
     {
       "name": "download",
@@ -600,7 +600,7 @@
         "下载"
       ],
       "source_screenshots": [],
-      "file": "icons/download.svg"
+      "file": "svg/download.svg"
     },
     {
       "name": "download-box",
@@ -614,7 +614,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/download-box.svg"
+      "file": "svg/download-box.svg"
     },
     {
       "name": "download-filled",
@@ -628,7 +628,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/download-filled.svg"
+      "file": "svg/download-filled.svg"
     },
     {
       "name": "upload",
@@ -639,7 +639,7 @@
         "上传"
       ],
       "source_screenshots": [],
-      "file": "icons/upload.svg"
+      "file": "svg/upload.svg"
     },
     {
       "name": "user",
@@ -654,7 +654,7 @@
       "source_screenshots": [
         "image9"
       ],
-      "file": "icons/user.svg"
+      "file": "svg/user.svg"
     },
     {
       "name": "user-filled",
@@ -666,7 +666,7 @@
         "用户实心"
       ],
       "source_screenshots": [],
-      "file": "icons/user-filled.svg"
+      "file": "svg/user-filled.svg"
     },
     {
       "name": "user-placeholder",
@@ -681,7 +681,7 @@
       "source_screenshots": [
         "image2"
       ],
-      "file": "icons/user-placeholder.svg"
+      "file": "svg/user-placeholder.svg"
     },
     {
       "name": "login",
@@ -694,7 +694,7 @@
         "立即登录"
       ],
       "source_screenshots": [],
-      "file": "icons/login.svg"
+      "file": "svg/login.svg"
     },
     {
       "name": "logout",
@@ -706,7 +706,7 @@
         "退出"
       ],
       "source_screenshots": [],
-      "file": "icons/logout.svg"
+      "file": "svg/logout.svg"
     },
     {
       "name": "smile",
@@ -721,7 +721,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/smile.svg"
+      "file": "svg/smile.svg"
     },
     {
       "name": "bell",
@@ -736,7 +736,7 @@
       "source_screenshots": [
         "image2"
       ],
-      "file": "icons/bell.svg"
+      "file": "svg/bell.svg"
     },
     {
       "name": "bell-off",
@@ -749,7 +749,7 @@
         "静音"
       ],
       "source_screenshots": [],
-      "file": "icons/bell-off.svg"
+      "file": "svg/bell-off.svg"
     },
     {
       "name": "settings",
@@ -766,7 +766,7 @@
         "image2",
         "image4"
       ],
-      "file": "icons/settings.svg"
+      "file": "svg/settings.svg"
     },
     {
       "name": "settings-gear",
@@ -779,7 +779,7 @@
         "齿轮"
       ],
       "source_screenshots": [],
-      "file": "icons/settings-gear.svg"
+      "file": "svg/settings-gear.svg"
     },
     {
       "name": "toolbox",
@@ -794,7 +794,7 @@
       "source_screenshots": [
         "image5"
       ],
-      "file": "icons/toolbox.svg"
+      "file": "svg/toolbox.svg"
     },
     {
       "name": "toolbox-package",
@@ -810,7 +810,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/toolbox-package.svg"
+      "file": "svg/toolbox-package.svg"
     },
     {
       "name": "plugin",
@@ -826,7 +826,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/plugin.svg"
+      "file": "svg/plugin.svg"
     },
     {
       "name": "camera",
@@ -841,7 +841,7 @@
       "source_screenshots": [
         "image8"
       ],
-      "file": "icons/camera.svg"
+      "file": "svg/camera.svg"
     },
     {
       "name": "video",
@@ -853,7 +853,7 @@
         "摄像机"
       ],
       "source_screenshots": [],
-      "file": "icons/video.svg"
+      "file": "svg/video.svg"
     },
     {
       "name": "video-dot",
@@ -870,7 +870,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/video-dot.svg"
+      "file": "svg/video-dot.svg"
     },
     {
       "name": "play",
@@ -881,7 +881,7 @@
         "播放"
       ],
       "source_screenshots": [],
-      "file": "icons/play.svg"
+      "file": "svg/play.svg"
     },
     {
       "name": "play-circle",
@@ -893,7 +893,7 @@
         "播放"
       ],
       "source_screenshots": [],
-      "file": "icons/play-circle.svg"
+      "file": "svg/play-circle.svg"
     },
     {
       "name": "cinema-vr",
@@ -909,7 +909,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/cinema-vr.svg"
+      "file": "svg/cinema-vr.svg"
     },
     {
       "name": "headphones",
@@ -925,7 +925,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/headphones.svg"
+      "file": "svg/headphones.svg"
     },
     {
       "name": "music",
@@ -937,7 +937,7 @@
         "音乐"
       ],
       "source_screenshots": [],
-      "file": "icons/music.svg"
+      "file": "svg/music.svg"
     },
     {
       "name": "follow-drama",
@@ -954,7 +954,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/follow-drama.svg"
+      "file": "svg/follow-drama.svg"
     },
     {
       "name": "ai-video-search",
@@ -970,7 +970,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/ai-video-search.svg"
+      "file": "svg/ai-video-search.svg"
     },
     {
       "name": "ai-search",
@@ -983,7 +983,7 @@
         "AI搜索"
       ],
       "source_screenshots": [],
-      "file": "icons/ai-search.svg"
+      "file": "svg/ai-search.svg"
     },
     {
       "name": "ai-summary",
@@ -999,7 +999,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/ai-summary.svg"
+      "file": "svg/ai-summary.svg"
     },
     {
       "name": "sort-sparkle",
@@ -1016,7 +1016,7 @@
       "source_screenshots": [
         "image7"
       ],
-      "file": "icons/sort-sparkle.svg"
+      "file": "svg/sort-sparkle.svg"
     },
     {
       "name": "sparkle",
@@ -1030,7 +1030,7 @@
         "魔法"
       ],
       "source_screenshots": [],
-      "file": "icons/sparkle.svg"
+      "file": "svg/sparkle.svg"
     },
     {
       "name": "robot",
@@ -1043,7 +1043,7 @@
         "机器人"
       ],
       "source_screenshots": [],
-      "file": "icons/robot.svg"
+      "file": "svg/robot.svg"
     },
     {
       "name": "qbot",
@@ -1058,7 +1058,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/qbot.svg"
+      "file": "svg/qbot.svg"
     },
     {
       "name": "chat-bubble",
@@ -1072,7 +1072,7 @@
         "气泡"
       ],
       "source_screenshots": [],
-      "file": "icons/chat-bubble.svg"
+      "file": "svg/chat-bubble.svg"
     },
     {
       "name": "resource-sniffer",
@@ -1088,7 +1088,7 @@
         "image1",
         "image6"
       ],
-      "file": "icons/resource-sniffer.svg"
+      "file": "svg/resource-sniffer.svg"
     },
     {
       "name": "float-sniffer",
@@ -1102,7 +1102,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/float-sniffer.svg"
+      "file": "svg/float-sniffer.svg"
     },
     {
       "name": "ad-block",
@@ -1117,7 +1117,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/ad-block.svg"
+      "file": "svg/ad-block.svg"
     },
     {
       "name": "ad-layers",
@@ -1132,7 +1132,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/ad-layers.svg"
+      "file": "svg/ad-layers.svg"
     },
     {
       "name": "no-image",
@@ -1147,7 +1147,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/no-image.svg"
+      "file": "svg/no-image.svg"
     },
     {
       "name": "image",
@@ -1159,7 +1159,7 @@
         "图片"
       ],
       "source_screenshots": [],
-      "file": "icons/image.svg"
+      "file": "svg/image.svg"
     },
     {
       "name": "desktop-mode",
@@ -1175,7 +1175,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/desktop-mode.svg"
+      "file": "svg/desktop-mode.svg"
     },
     {
       "name": "mobile-mode",
@@ -1187,7 +1187,7 @@
         "移动端"
       ],
       "source_screenshots": [],
-      "file": "icons/mobile-mode.svg"
+      "file": "svg/mobile-mode.svg"
     },
     {
       "name": "tablet-mode",
@@ -1198,7 +1198,7 @@
         "平板"
       ],
       "source_screenshots": [],
-      "file": "icons/tablet-mode.svg"
+      "file": "svg/tablet-mode.svg"
     },
     {
       "name": "novel-mode",
@@ -1214,7 +1214,7 @@
         "image6",
         "image3"
       ],
-      "file": "icons/novel-mode.svg"
+      "file": "svg/novel-mode.svg"
     },
     {
       "name": "reader-mode",
@@ -1228,7 +1228,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/reader-mode.svg"
+      "file": "svg/reader-mode.svg"
     },
     {
       "name": "reader-page",
@@ -1243,7 +1243,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/reader-page.svg"
+      "file": "svg/reader-page.svg"
     },
     {
       "name": "incognito",
@@ -1260,7 +1260,7 @@
         "image1",
         "image2"
       ],
-      "file": "icons/incognito.svg"
+      "file": "svg/incognito.svg"
     },
     {
       "name": "incognito-doc",
@@ -1274,7 +1274,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/incognito-doc.svg"
+      "file": "svg/incognito-doc.svg"
     },
     {
       "name": "ua-tag",
@@ -1289,7 +1289,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/ua-tag.svg"
+      "file": "svg/ua-tag.svg"
     },
     {
       "name": "site-config",
@@ -1304,7 +1304,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/site-config.svg"
+      "file": "svg/site-config.svg"
     },
     {
       "name": "view-source",
@@ -1319,7 +1319,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/view-source.svg"
+      "file": "svg/view-source.svg"
     },
     {
       "name": "code",
@@ -1331,7 +1331,7 @@
         "代码"
       ],
       "source_screenshots": [],
-      "file": "icons/code.svg"
+      "file": "svg/code.svg"
     },
     {
       "name": "terminal",
@@ -1343,7 +1343,7 @@
         "终端"
       ],
       "source_screenshots": [],
-      "file": "icons/terminal.svg"
+      "file": "svg/terminal.svg"
     },
     {
       "name": "network-log",
@@ -1359,7 +1359,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/network-log.svg"
+      "file": "svg/network-log.svg"
     },
     {
       "name": "translate",
@@ -1371,7 +1371,7 @@
         "翻译"
       ],
       "source_screenshots": [],
-      "file": "icons/translate.svg"
+      "file": "svg/translate.svg"
     },
     {
       "name": "translate-box",
@@ -1386,7 +1386,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/translate-box.svg"
+      "file": "svg/translate-box.svg"
     },
     {
       "name": "read-aloud",
@@ -1401,7 +1401,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/read-aloud.svg"
+      "file": "svg/read-aloud.svg"
     },
     {
       "name": "page-zoom",
@@ -1415,7 +1415,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/page-zoom.svg"
+      "file": "svg/page-zoom.svg"
     },
     {
       "name": "page-find",
@@ -1430,7 +1430,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/page-find.svg"
+      "file": "svg/page-find.svg"
     },
     {
       "name": "timed-refresh",
@@ -1445,7 +1445,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/timed-refresh.svg"
+      "file": "svg/timed-refresh.svg"
     },
     {
       "name": "zoom-in",
@@ -1457,7 +1457,7 @@
         "放大"
       ],
       "source_screenshots": [],
-      "file": "icons/zoom-in.svg"
+      "file": "svg/zoom-in.svg"
     },
     {
       "name": "zoom-out",
@@ -1469,7 +1469,7 @@
         "缩小"
       ],
       "source_screenshots": [],
-      "file": "icons/zoom-out.svg"
+      "file": "svg/zoom-out.svg"
     },
     {
       "name": "file",
@@ -1482,7 +1482,7 @@
         "文档"
       ],
       "source_screenshots": [],
-      "file": "icons/file.svg"
+      "file": "svg/file.svg"
     },
     {
       "name": "file-text",
@@ -1495,7 +1495,7 @@
         "文档"
       ],
       "source_screenshots": [],
-      "file": "icons/file-text.svg"
+      "file": "svg/file-text.svg"
     },
     {
       "name": "file-pdf",
@@ -1510,7 +1510,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/file-pdf.svg"
+      "file": "svg/file-pdf.svg"
     },
     {
       "name": "save-page",
@@ -1524,7 +1524,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/save-page.svg"
+      "file": "svg/save-page.svg"
     },
     {
       "name": "print",
@@ -1538,7 +1538,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/print.svg"
+      "file": "svg/print.svg"
     },
     {
       "name": "add-desktop",
@@ -1553,7 +1553,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/add-desktop.svg"
+      "file": "svg/add-desktop.svg"
     },
     {
       "name": "folder",
@@ -1565,7 +1565,7 @@
         "文件夹"
       ],
       "source_screenshots": [],
-      "file": "icons/folder.svg"
+      "file": "svg/folder.svg"
     },
     {
       "name": "folder-add",
@@ -1578,7 +1578,7 @@
         "文件夹加"
       ],
       "source_screenshots": [],
-      "file": "icons/folder-add.svg"
+      "file": "svg/folder-add.svg"
     },
     {
       "name": "folder-arrow",
@@ -1593,7 +1593,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/folder-arrow.svg"
+      "file": "svg/folder-arrow.svg"
     },
     {
       "name": "folder-download",
@@ -1608,7 +1608,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/folder-download.svg"
+      "file": "svg/folder-download.svg"
     },
     {
       "name": "folder-document",
@@ -1622,7 +1622,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/folder-document.svg"
+      "file": "svg/folder-document.svg"
     },
     {
       "name": "book-open",
@@ -1637,7 +1637,7 @@
       "source_screenshots": [
         "image9"
       ],
-      "file": "icons/book-open.svg"
+      "file": "svg/book-open.svg"
     },
     {
       "name": "novel",
@@ -1651,7 +1651,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/novel.svg"
+      "file": "svg/novel.svg"
     },
     {
       "name": "study-tool",
@@ -1666,7 +1666,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/study-tool.svg"
+      "file": "svg/study-tool.svg"
     },
     {
       "name": "scan-tool",
@@ -1680,7 +1680,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/scan-tool.svg"
+      "file": "svg/scan-tool.svg"
     },
     {
       "name": "key",
@@ -1693,7 +1693,7 @@
         "密码"
       ],
       "source_screenshots": [],
-      "file": "icons/key.svg"
+      "file": "svg/key.svg"
     },
     {
       "name": "key-vertical",
@@ -1708,7 +1708,7 @@
       "source_screenshots": [
         "image6"
       ],
-      "file": "icons/key-vertical.svg"
+      "file": "svg/key-vertical.svg"
     },
     {
       "name": "lock",
@@ -1721,7 +1721,7 @@
         "加密"
       ],
       "source_screenshots": [],
-      "file": "icons/lock.svg"
+      "file": "svg/lock.svg"
     },
     {
       "name": "unlock",
@@ -1733,7 +1733,7 @@
         "解锁"
       ],
       "source_screenshots": [],
-      "file": "icons/unlock.svg"
+      "file": "svg/unlock.svg"
     },
     {
       "name": "shield",
@@ -1745,7 +1745,7 @@
         "盾牌"
       ],
       "source_screenshots": [],
-      "file": "icons/shield.svg"
+      "file": "svg/shield.svg"
     },
     {
       "name": "shield-check",
@@ -1759,7 +1759,7 @@
         "保护"
       ],
       "source_screenshots": [],
-      "file": "icons/shield-check.svg"
+      "file": "svg/shield-check.svg"
     },
     {
       "name": "sun",
@@ -1776,7 +1776,7 @@
       "source_screenshots": [
         "image2"
       ],
-      "file": "icons/sun.svg"
+      "file": "svg/sun.svg"
     },
     {
       "name": "moon",
@@ -1793,7 +1793,7 @@
       "source_screenshots": [
         "image1"
       ],
-      "file": "icons/moon.svg"
+      "file": "svg/moon.svg"
     },
     {
       "name": "theme",
@@ -1805,7 +1805,7 @@
         "主题"
       ],
       "source_screenshots": [],
-      "file": "icons/theme.svg"
+      "file": "svg/theme.svg"
     },
     {
       "name": "wallpaper-tshirt",
@@ -1820,7 +1820,7 @@
       "source_screenshots": [
         "image2"
       ],
-      "file": "icons/wallpaper-tshirt.svg"
+      "file": "svg/wallpaper-tshirt.svg"
     },
     {
       "name": "wallpaper",
@@ -1832,7 +1832,7 @@
         "壁纸"
       ],
       "source_screenshots": [],
-      "file": "icons/wallpaper.svg"
+      "file": "svg/wallpaper.svg"
     },
     {
       "name": "add-circle",
@@ -1848,7 +1848,7 @@
       "source_screenshots": [
         "image8"
       ],
-      "file": "icons/add-circle.svg"
+      "file": "svg/add-circle.svg"
     },
     {
       "name": "add-square",
@@ -1863,7 +1863,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/add-square.svg"
+      "file": "svg/add-square.svg"
     },
     {
       "name": "plus",
@@ -1875,7 +1875,7 @@
         "加号"
       ],
       "source_screenshots": [],
-      "file": "icons/plus.svg"
+      "file": "svg/plus.svg"
     },
     {
       "name": "minus",
@@ -1887,7 +1887,7 @@
         "减号"
       ],
       "source_screenshots": [],
-      "file": "icons/minus.svg"
+      "file": "svg/minus.svg"
     },
     {
       "name": "minus-circle",
@@ -1900,7 +1900,7 @@
         "减号"
       ],
       "source_screenshots": [],
-      "file": "icons/minus-circle.svg"
+      "file": "svg/minus-circle.svg"
     },
     {
       "name": "check",
@@ -1913,7 +1913,7 @@
         "完成"
       ],
       "source_screenshots": [],
-      "file": "icons/check.svg"
+      "file": "svg/check.svg"
     },
     {
       "name": "check-circle",
@@ -1926,7 +1926,7 @@
         "对勾"
       ],
       "source_screenshots": [],
-      "file": "icons/check-circle.svg"
+      "file": "svg/check-circle.svg"
     },
     {
       "name": "edit",
@@ -1938,7 +1938,7 @@
         "编辑"
       ],
       "source_screenshots": [],
-      "file": "icons/edit.svg"
+      "file": "svg/edit.svg"
     },
     {
       "name": "edit-box",
@@ -1950,7 +1950,7 @@
         "编辑"
       ],
       "source_screenshots": [],
-      "file": "icons/edit-box.svg"
+      "file": "svg/edit-box.svg"
     },
     {
       "name": "trash",
@@ -1963,7 +1963,7 @@
         "垃圾桶"
       ],
       "source_screenshots": [],
-      "file": "icons/trash.svg"
+      "file": "svg/trash.svg"
     },
     {
       "name": "copy",
@@ -1975,7 +1975,7 @@
         "复制"
       ],
       "source_screenshots": [],
-      "file": "icons/copy.svg"
+      "file": "svg/copy.svg"
     },
     {
       "name": "share",
@@ -1986,7 +1986,7 @@
         "分享"
       ],
       "source_screenshots": [],
-      "file": "icons/share.svg"
+      "file": "svg/share.svg"
     },
     {
       "name": "share-arrow",
@@ -2001,7 +2001,7 @@
       "source_screenshots": [
         "image1"
       ],
-      "file": "icons/share-arrow.svg"
+      "file": "svg/share-arrow.svg"
     },
     {
       "name": "share-box",
@@ -2014,7 +2014,7 @@
         "分享"
       ],
       "source_screenshots": [],
-      "file": "icons/share-box.svg"
+      "file": "svg/share-box.svg"
     },
     {
       "name": "heart",
@@ -2027,7 +2027,7 @@
         "喜欢"
       ],
       "source_screenshots": [],
-      "file": "icons/heart.svg"
+      "file": "svg/heart.svg"
     },
     {
       "name": "eye",
@@ -2041,7 +2041,7 @@
         "查看"
       ],
       "source_screenshots": [],
-      "file": "icons/eye.svg"
+      "file": "svg/eye.svg"
     },
     {
       "name": "eye-off",
@@ -2054,7 +2054,7 @@
         "隐藏"
       ],
       "source_screenshots": [],
-      "file": "icons/eye-off.svg"
+      "file": "svg/eye-off.svg"
     },
     {
       "name": "info",
@@ -2067,7 +2067,7 @@
         "提示"
       ],
       "source_screenshots": [],
-      "file": "icons/info.svg"
+      "file": "svg/info.svg"
     },
     {
       "name": "warning",
@@ -2079,7 +2079,7 @@
         "警告"
       ],
       "source_screenshots": [],
-      "file": "icons/warning.svg"
+      "file": "svg/warning.svg"
     },
     {
       "name": "help",
@@ -2092,7 +2092,7 @@
         "问号"
       ],
       "source_screenshots": [],
-      "file": "icons/help.svg"
+      "file": "svg/help.svg"
     },
     {
       "name": "filter",
@@ -2104,7 +2104,7 @@
         "过滤"
       ],
       "source_screenshots": [],
-      "file": "icons/filter.svg"
+      "file": "svg/filter.svg"
     },
     {
       "name": "sort",
@@ -2115,7 +2115,7 @@
         "排序"
       ],
       "source_screenshots": [],
-      "file": "icons/sort.svg"
+      "file": "svg/sort.svg"
     },
     {
       "name": "list",
@@ -2126,7 +2126,7 @@
         "列表"
       ],
       "source_screenshots": [],
-      "file": "icons/list.svg"
+      "file": "svg/list.svg"
     },
     {
       "name": "grid",
@@ -2137,7 +2137,7 @@
         "网格"
       ],
       "source_screenshots": [],
-      "file": "icons/grid.svg"
+      "file": "svg/grid.svg"
     },
     {
       "name": "recommend",
@@ -2152,7 +2152,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/recommend.svg"
+      "file": "svg/recommend.svg"
     },
     {
       "name": "voice",
@@ -2170,7 +2170,7 @@
         "image8",
         "image3"
       ],
-      "file": "icons/voice.svg"
+      "file": "svg/voice.svg"
     },
     {
       "name": "mic",
@@ -2182,7 +2182,7 @@
         "麦克风"
       ],
       "source_screenshots": [],
-      "file": "icons/mic.svg"
+      "file": "svg/mic.svg"
     },
     {
       "name": "wifi",
@@ -2194,7 +2194,7 @@
         "无线"
       ],
       "source_screenshots": [],
-      "file": "icons/wifi.svg"
+      "file": "svg/wifi.svg"
     },
     {
       "name": "cloud",
@@ -2207,7 +2207,7 @@
       "source_screenshots": [
         "image9"
       ],
-      "file": "icons/cloud.svg"
+      "file": "svg/cloud.svg"
     },
     {
       "name": "cloud-download",
@@ -2219,7 +2219,7 @@
         "云下载"
       ],
       "source_screenshots": [],
-      "file": "icons/cloud-download.svg"
+      "file": "svg/cloud-download.svg"
     },
     {
       "name": "cloud-upload",
@@ -2231,7 +2231,7 @@
         "云上传"
       ],
       "source_screenshots": [],
-      "file": "icons/cloud-upload.svg"
+      "file": "svg/cloud-upload.svg"
     },
     {
       "name": "globe",
@@ -2244,7 +2244,7 @@
         "网站"
       ],
       "source_screenshots": [],
-      "file": "icons/globe.svg"
+      "file": "svg/globe.svg"
     },
     {
       "name": "scan",
@@ -2255,7 +2255,7 @@
         "扫描"
       ],
       "source_screenshots": [],
-      "file": "icons/scan.svg"
+      "file": "svg/scan.svg"
     },
     {
       "name": "qr-code",
@@ -2267,7 +2267,7 @@
         "二维码"
       ],
       "source_screenshots": [],
-      "file": "icons/qr-code.svg"
+      "file": "svg/qr-code.svg"
     },
     {
       "name": "game",
@@ -2279,7 +2279,7 @@
         "游戏"
       ],
       "source_screenshots": [],
-      "file": "icons/game.svg"
+      "file": "svg/game.svg"
     },
     {
       "name": "game-x",
@@ -2294,7 +2294,7 @@
       "source_screenshots": [
         "image3"
       ],
-      "file": "icons/game-x.svg"
+      "file": "svg/game-x.svg"
     },
     {
       "name": "power",
@@ -2308,7 +2308,7 @@
       "source_screenshots": [
         "image4"
       ],
-      "file": "icons/power.svg"
+      "file": "svg/power.svg"
     },
     {
       "name": "power-off",
@@ -2320,7 +2320,7 @@
         "关机"
       ],
       "source_screenshots": [],
-      "file": "icons/power-off.svg"
+      "file": "svg/power-off.svg"
     },
     {
       "name": "storage",
@@ -2332,7 +2332,7 @@
         "存储"
       ],
       "source_screenshots": [],
-      "file": "icons/storage.svg"
+      "file": "svg/storage.svg"
     },
     {
       "name": "storage-clean",
@@ -2346,7 +2346,7 @@
       "source_screenshots": [
         "image2"
       ],
-      "file": "icons/storage-clean.svg"
+      "file": "svg/storage-clean.svg"
     },
     {
       "name": "database",
@@ -2357,7 +2357,7 @@
         "数据库"
       ],
       "source_screenshots": [],
-      "file": "icons/database.svg"
+      "file": "svg/database.svg"
     },
     {
       "name": "hourglass",
@@ -2369,7 +2369,7 @@
         "沙漏"
       ],
       "source_screenshots": [],
-      "file": "icons/hourglass.svg"
+      "file": "svg/hourglass.svg"
     },
     {
       "name": "trending",
@@ -2382,7 +2382,7 @@
         "趋势"
       ],
       "source_screenshots": [],
-      "file": "icons/trending.svg"
+      "file": "svg/trending.svg"
     },
     {
       "name": "fire",
@@ -2395,7 +2395,7 @@
         "热门"
       ],
       "source_screenshots": [],
-      "file": "icons/fire.svg"
+      "file": "svg/fire.svg"
     },
     {
       "name": "hot",
@@ -2407,7 +2407,7 @@
         "热门"
       ],
       "source_screenshots": [],
-      "file": "icons/hot.svg"
+      "file": "svg/hot.svg"
     }
   ]
 }

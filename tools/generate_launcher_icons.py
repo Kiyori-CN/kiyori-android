@@ -5,7 +5,7 @@ from PIL import Image, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_ICON = ROOT / "icon.png"
+SOURCE_ICON = ROOT / "icons" / "app" / "kiyori-app-icon-1024.png"
 PLAYSTORE_ICON = ROOT / "app" / "src" / "main" / "ic_launcher-playstore.png"
 RES_DIR = ROOT / "app" / "src" / "main" / "res"
 
@@ -42,9 +42,8 @@ def main() -> None:
         mipmap_dir = RES_DIR / f"mipmap-{density}"
         export_icon_variant(source, size, mipmap_dir / "ic_launcher.png")
         export_icon_variant(source, size, mipmap_dir / "ic_launcher_round.png")
-        export_icon_variant(source, size, mipmap_dir / "ic_launcher_foreground.png")
 
-    print("Launcher icons regenerated from icon.png with per-size sharpening.")
+    print("Launcher icons regenerated from icons/app/kiyori-app-icon-1024.png with per-size sharpening.")
 
 
 if __name__ == "__main__":

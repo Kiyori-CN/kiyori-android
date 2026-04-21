@@ -7,14 +7,14 @@
 - `app/`
   Android 应用主模块。只放应用源码、资源、Room schema、构建必须的本地二进制依赖和模块级配置。
 
-- `browser-icons/`
-  黑色图标库的规范来源目录。保留在仓库根目录，作为后续 UI 图标选型和复制来源；不要整库复制进 `app/src/main/res/`。
+- `icons/`
+  图标与图形资产目录。保留在仓库根目录，作为后续 UI 图标选型、复制和应用图标维护的规范来源；不要整库复制进 `app/src/main/res/`。
 
 - `docs/`
   面向协作和发布的文档目录。包含 README 引用的截图、设计说明、构建说明和架构分析。
 
 - `tools/`
-  维护脚本目录。当前只保留 `generate_launcher_icons.py`，用于从根目录 `icon.png` 生成启动图标。
+  维护脚本目录。当前只保留 `generate_launcher_icons.py`，用于从 `icons/app/kiyori-app-icon-1024.png` 生成启动图标。
 
 - `gradle/`、`gradlew`、`gradlew.bat`、`build.gradle`、`settings.gradle`、`gradle.properties`
   Gradle 构建系统文件，属于必须提交内容。
@@ -25,7 +25,7 @@
 - `local.properties`
   本机私有配置，禁止提交。
 
-- `icon.png`
+- `icons/app/kiyori-app-icon-1024.png`
   启动图标源图，供 `tools/generate_launcher_icons.py` 使用，属于应保留的设计源文件。
 
 ## 2. 提交边界
@@ -52,9 +52,10 @@
 
 ## 4. 图标与设计资产规则
 
-- `browser-icons/` 是规范来源，不轻易移动或重命名。
-- Android UI 优先从 `browser-icons/android-xml/` 复制实际需要的图标。
+- `icons/` 是规范来源，不轻易移动或重命名。
+- Android UI 优先从 `icons/android-xml/` 复制实际需要的图标。
 - 复制进应用模块的图标必须按 `ic_kiyori_*` 命名，避免与现有资源冲突。
+- `icons/svg/` 存放原始矢量文件，`icons/png/` 存放多密度位图导出，`icons/app/` 存放应用品牌图标源文件。
 - 只有 README 或文档明确引用的截图才应留在 `docs/screenshots/`。
 
 ## 5. 大文件与二进制管理
