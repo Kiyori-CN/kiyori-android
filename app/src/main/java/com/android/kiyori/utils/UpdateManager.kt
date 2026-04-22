@@ -15,6 +15,7 @@ object UpdateManager {
         val publishedAt: String
     )
 
+    @Suppress("UNUSED_PARAMETER")
     suspend fun checkForUpdate(context: Context): UpdateInfo? = null
 
     fun getAppVersionName(context: Context): String {
@@ -26,6 +27,7 @@ object UpdateManager {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun openDownloadPage(context: Context, downloadUrl: String) = Unit
 }
 

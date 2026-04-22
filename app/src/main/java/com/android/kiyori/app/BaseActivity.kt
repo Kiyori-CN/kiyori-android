@@ -1,12 +1,13 @@
 package com.android.kiyori.app
 
-import android.graphics.PorterDuff
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.android.kiyori.R
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 
 /**
@@ -57,7 +58,7 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     override fun onSupportNavigateUp(): Boolean {
         finish()
-        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
         return true
     }
 
@@ -65,9 +66,10 @@ abstract class BaseActivity : AppCompatActivity() {
      * 处理系统返回按钮点击事件
      * 统一使用滑动返回动画
      */
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         super.onBackPressed()
-        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
     }
 
     /**
@@ -76,14 +78,14 @@ abstract class BaseActivity : AppCompatActivity() {
      * @param exitAnim 退出动画资源 ID
      */
     protected fun startActivityWithTransition(enterAnim: Int, exitAnim: Int) {
-        overridePendingTransition(enterAnim, exitAnim)
+        applyOpenActivityTransitionCompat(enterAnim, exitAnim)
     }
 
     /**
      * 使用默认的进入动画启动 Activity
      */
     protected fun startActivityWithDefaultTransition() {
-        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        applyOpenActivityTransitionCompat(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
     /**

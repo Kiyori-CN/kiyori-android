@@ -1,5 +1,6 @@
 package com.android.kiyori.browser.ui
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -76,6 +77,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.android.kiyori.R
 import com.android.kiyori.browser.domain.BrowserBookmarkFolderOption
 import com.android.kiyori.browser.domain.BrowserHistoryEntry
 import com.android.kiyori.browser.domain.BrowserPageState
@@ -85,6 +87,8 @@ import com.android.kiyori.browser.playback.BrowserPlaybackInteractor.BrowserVide
 import com.android.kiyori.browser.playback.BrowserPlaybackInteractor.BrowserVideoFilter
 import com.android.kiyori.browser.domain.BrowserUserAgentMode
 import com.android.kiyori.browser.x5.BrowserX5KernelManager
+import com.android.kiyori.history.ui.HistoryComposeActivity
+import com.android.kiyori.history.ui.HistorySection
 import com.android.kiyori.sniffer.VideoSnifferManager
 import com.tencent.smtt.sdk.WebView
 
@@ -427,7 +431,18 @@ fun BrowserScreen(
                 },
                 onOpenPlaceholder = { title ->
                     showToolboxSheet = false
-                    toolboxPlaceholderTitle = title
+                    if (title == "\u5386\u53f2") {
+                        HistoryComposeActivity.start(
+                            context,
+                            initialSection = HistorySection.WEB
+                        )
+                        (context as? Activity)?.overridePendingTransition(
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
+                        )
+                    } else {
+                        toolboxPlaceholderTitle = title
+                    }
                 },
                 onCloseBrowser = {
                     showToolboxSheet = false

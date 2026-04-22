@@ -252,8 +252,6 @@ class BilibiliDownloadViewModel(application: Application) : AndroidViewModel(app
                 )
                 if (result.isSuccess) {
                     val videoInfo = result.getOrThrow()
-                    val downloadDir = getDownloadDir()
-                    
                     val downloadedFiles = mutableListOf<File>()
                     val fragmentCount = videoInfo.fragments.size
                     
@@ -357,8 +355,6 @@ class BilibiliDownloadViewModel(application: Application) : AndroidViewModel(app
                 )
                 if (result.isSuccess) {
                     val videoInfo = result.getOrThrow()
-                    val downloadDir = getDownloadDir()
-                    
                     val downloadedFiles = mutableListOf<File>()
                     val fragmentCount = videoInfo.fragments.size
                     
@@ -468,14 +464,12 @@ class BilibiliDownloadViewModel(application: Application) : AndroidViewModel(app
             // 提取video track
             val videoExtractor = android.media.MediaExtractor()
             videoExtractor.setDataSource(videoFile.absolutePath)
-            var videoTrackIndex = -1
             var videoFormat: android.media.MediaFormat? = null
             
             for (i in 0 until videoExtractor.trackCount) {
                 val format = videoExtractor.getTrackFormat(i)
                 val mime = format.getString(android.media.MediaFormat.KEY_MIME) ?: ""
                 if (mime.startsWith("video/")) {
-                    videoTrackIndex = i
                     videoFormat = format
                     videoExtractor.selectTrack(i)
                     Log.d(TAG, "找到视频轨道: $mime")
@@ -486,14 +480,12 @@ class BilibiliDownloadViewModel(application: Application) : AndroidViewModel(app
             // 提取audio track
             val audioExtractor = android.media.MediaExtractor()
             audioExtractor.setDataSource(audioFile.absolutePath)
-            var audioTrackIndex = -1
             var audioFormat: android.media.MediaFormat? = null
             
             for (i in 0 until audioExtractor.trackCount) {
                 val format = audioExtractor.getTrackFormat(i)
                 val mime = format.getString(android.media.MediaFormat.KEY_MIME) ?: ""
                 if (mime.startsWith("audio/")) {
-                    audioTrackIndex = i
                     audioFormat = format
                     audioExtractor.selectTrack(i)
                     Log.d(TAG, "找到音频轨道: $mime")

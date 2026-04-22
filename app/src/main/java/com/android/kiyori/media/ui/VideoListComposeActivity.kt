@@ -23,6 +23,9 @@ import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.Logger
 import com.android.kiyori.utils.NoMediaChecker
 import com.android.kiyori.utils.ThemeManager
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
+import com.android.kiyori.utils.parcelableArrayListExtraCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,7 +54,7 @@ class VideoListComposeActivity : ComponentActivity() {
 
         val folderName = intent.getStringExtra("folder_name") ?: "视频列表"
         folderPath = intent.getStringExtra("folder_path") ?: ""
-        val videos = intent.getParcelableArrayListExtra<VideoFileParcelable>("video_list") ?: arrayListOf()
+        val videos = intent.parcelableArrayListExtraCompat<VideoFileParcelable>("video_list") ?: arrayListOf()
         
         // 如果视频数量超过100个，使用Paging3模式
         usePaging = videos.size > 100
@@ -118,7 +121,7 @@ class VideoListComposeActivity : ComponentActivity() {
                         folderPath = folderPath,
                         onNavigateBack = { 
                             finish()
-                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                         },
                         onOpenVideo = { video, allVideos -> 
                             openVideoPlayer(video, 0, folderName, allVideos)
@@ -136,7 +139,7 @@ class VideoListComposeActivity : ComponentActivity() {
                         initialVideos = videos,
                         onNavigateBack = { 
                             finish()
-                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                         },
                         onOpenVideo = { video, index, allVideos -> 
                             openVideoPlayer(video, index, folderName, allVideos)
@@ -164,7 +167,7 @@ class VideoListComposeActivity : ComponentActivity() {
         intent.putExtra("folderName", folderName)
         intent.putParcelableArrayListExtra("video_list", ArrayList(allVideos))
         startActivity(intent)
-        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        applyOpenActivityTransitionCompat(R.anim.slide_in_right, R.anim.slide_out_left)
     }
     
     private fun rescanFolder(callback: (List<VideoFileParcelable>) -> Unit) {

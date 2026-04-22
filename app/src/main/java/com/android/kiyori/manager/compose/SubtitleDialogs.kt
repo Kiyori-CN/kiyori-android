@@ -1153,6 +1153,7 @@ fun QuickButton(text: String, onClick: () -> Unit) {
  * 字幕字体设置内容
  */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun SubtitleFontContent(composeOverlayManager: com.android.kiyori.manager.compose.ComposeOverlayManager) {
     val context = LocalContext.current
     val preferencesManager = remember { 
@@ -1317,33 +1318,4 @@ fun SubtitleFontContent(composeOverlayManager: com.android.kiyori.manager.compos
 }
 
 
-// 保留旧的Dialog组件（兼容性）
-@Composable
-fun SubtitleDelayDialog(
-    currentDelay: Double,
-    onDelayChange: (Double) -> Unit,
-    onDismiss: () -> Unit
-) {
-    // 已废弃，保留以防其他地方调用
-}
-
-@Composable
-fun SubtitleMiscDialog(
-    currentScale: Float,
-    currentPosition: Int,
-    onScaleChange: (Float) -> Unit,
-    onPositionChange: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    // 已废弃
-}
-
-@Composable
-fun SubtitleStyleDialog(
-    currentBorderSize: Int,
-    onBorderSizeChange: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    // 已废弃
-}
 

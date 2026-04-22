@@ -630,10 +630,7 @@ class PlaybackEngine(
                 0.0
             }
             
-            // 如果缓存时长小于10秒，认为是缓冲状态
-            val lowCache = cacheDuration < 10.0
-            
-            val newBufferingState = pausedForCache  // 移除seeking，只基于缓存暂停状态 || lowCache
+            val newBufferingState = pausedForCache
             
             // 只在状态改变时通知
             if (newBufferingState != isBuffering) {

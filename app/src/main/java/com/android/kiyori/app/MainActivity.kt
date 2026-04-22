@@ -35,6 +35,7 @@ class MainActivity : BaseActivity() {
     private var lastThemeName: String? = null
     private var needsRefresh = false
     private var requestedInitialTab: String? = null
+    private lateinit var permissionCoordinator: AppPermissionCoordinator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.applyTheme(this)
@@ -46,6 +47,8 @@ class MainActivity : BaseActivity() {
             finish()
             return
         }
+
+        permissionCoordinator = AppPermissionCoordinator(this)
 
         android.os.Looper.myQueue().addIdleHandler {
             historyManager = PlaybackHistoryManager(this)
@@ -59,6 +62,7 @@ class MainActivity : BaseActivity() {
         lastThemeName = ThemeManager.getCurrentTheme(this).themeName
         requestedInitialTab = intent.getStringExtra(EXTRA_INITIAL_TAB)
         setupContent()
+        permissionCoordinator.requestAllPermissionsIfNeeded()
     }
 
     override fun onNewIntent(intent: Intent) {

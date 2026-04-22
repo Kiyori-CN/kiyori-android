@@ -24,12 +24,10 @@ import android.widget.FrameLayout
 import com.android.kiyori.player.CustomMPVView
 import com.android.kiyori.player.VideoAspect
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -66,10 +64,13 @@ import com.android.kiyori.player.SeriesManager
 import com.android.kiyori.utils.FormatUtils
 import com.android.kiyori.utils.UriUtils.resolveUri
 import com.android.kiyori.utils.UriUtils.getFolderName
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.DialogUtils
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.getThemeAttrColor
 import com.android.kiyori.utils.Logger
+import com.android.kiyori.utils.parcelableArrayListExtraCompat
+import com.android.kiyori.utils.parcelableExtraCompat
 import `is`.xyz.mpv.MPVLib
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
@@ -119,9 +120,9 @@ class VideoPlayerActivity : AppCompatActivity(),
     private val pauseIndicatorHandler = Handler(Looper.getMainLooper())
     private var pauseIndicatorHideRunnable: Runnable? = null
     
-    private var resumeProgressPrompt: LinearLayout? = null
-    private var btnResumePromptConfirm: TextView? = null
-    private var btnResumePromptClose: TextView? = null
+    private lateinit var resumeProgressPrompt: LinearLayout
+    private lateinit var btnResumePromptConfirm: TextView
+    private lateinit var btnResumePromptClose: TextView
     private val resumePromptHandler = Handler(Looper.getMainLooper())
 
     private var videoUri: Uri? = null
@@ -158,9 +159,6 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     private var seekTimeSeconds = 5
     
-    private var currentSeries: List<Uri> = emptyList()
-    private var currentVideoIndex = -1
-    
     // 当前文件夹的视频列表
     private var currentVideoList: List<VideoFileParcelable> = emptyList()
     private var hasLoadedPlayableMedia = false
@@ -191,10 +189,6 @@ class VideoPlayerActivity : AppCompatActivity(),
     
     private lateinit var danmakuPickerLauncher: androidx.activity.result.ActivityResultLauncher<Array<String>>
     
-    private var wasPlayingBeforeSubtitlePicker = false
-    
-    private var wasPlayingBeforeDanmakuPicker = false
-    
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.applyTheme(this)
         
@@ -212,7 +206,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         WindowCompat.setDecorFitsSystemWindows(window, false)
         
         // 处理刘海屏/挖孔屏，让视频延伸到刘海区域，确保横屏时完全居中
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes.layoutInDisplayCutoutMode = 
                 android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
@@ -225,7 +219,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         historyManager = PlaybackHistoryManager(this)
         
         loadUserSettings()
-        remotePlaybackRequest = intent.getParcelableExtra(RemotePlaybackLauncher.EXTRA_REMOTE_REQUEST)
+        remotePlaybackRequest = intent.parcelableExtraCompat(RemotePlaybackLauncher.EXTRA_REMOTE_REQUEST)
 
         // 处理视频URI - 支持本地文件和在线URL
         try {
@@ -241,7 +235,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                 intent.action == android.content.Intent.ACTION_SEND -> {
                     com.android.kiyori.utils.Logger.d(TAG, "ACTION_SEND intent")
                     if (intent.type?.startsWith("video/") == true || intent.type?.startsWith("audio/") == true) {
-                        intent.getParcelableExtra(android.content.Intent.EXTRA_STREAM)
+                        intent.parcelableExtraCompat(android.content.Intent.EXTRA_STREAM)
                     } else {
                         val sharedText = intent.getStringExtra(android.content.Intent.EXTRA_TEXT)
                         val parsedSharedInput = sharedText?.let { RemoteUrlParser.parsePlaybackInput(it) }
@@ -355,7 +349,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         // 添加到根布局正中央
         val iconSizeDp = 90  // 图标大小90dp
         val iconSizePx = (iconSizeDp * resources.displayMetrics.density).toInt()
-        (findViewById(android.R.id.content) as ViewGroup)?.addView(pauseIndicator, FrameLayout.LayoutParams(
+        (findViewById(android.R.id.content) as ViewGroup).addView(pauseIndicator, FrameLayout.LayoutParams(
             iconSizePx,
             iconSizePx,
             Gravity.CENTER  // 屏幕正中央
@@ -382,11 +376,11 @@ class VideoPlayerActivity : AppCompatActivity(),
         btnResumePromptConfirm = findViewById(R.id.btnResumePromptConfirm)
         btnResumePromptClose = findViewById(R.id.btnResumePromptClose)
         
-        btnResumePromptConfirm?.setOnClickListener {
+        btnResumePromptConfirm.setOnClickListener {
             onResumePromptConfirm()
         }
         
-        btnResumePromptClose?.setOnClickListener {
+        btnResumePromptClose.setOnClickListener {
             hideResumeProgressPrompt()
         }
         
@@ -419,7 +413,9 @@ class VideoPlayerActivity : AppCompatActivity(),
             object : PlaybackEngine.PlaybackEventCallback {
                 override fun onPlaybackStateChanged(isPlaying: Boolean) {
                     this@VideoPlayerActivity.isPlaying = isPlaying
-                    controlsManager?.updatePlayPauseButton(isPlaying)
+                    if (::controlsManager.isInitialized) {
+                        controlsManager.updatePlayPauseButton(isPlaying)
+                    }
                     
                     // 按照DanDanPlay的逻辑：只有弹幕prepared并且track被选中时才控制弹幕播放
                     if (danmakuManager.isPrepared()) {
@@ -438,7 +434,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                     // 清除pending seek位置(当位置更新后，说明seek已完成)
                     pendingSeekPosition = null
                     
-                    controlsManager?.updateProgress(position, duration)
+                    if (::controlsManager.isInitialized) {
+                        controlsManager.updateProgress(position, duration)
+                    }
                     
                     // 只在第一次获取有效duration时初始化缩略图
                     if (duration > 0 && !isThumbnailInitialized) {
@@ -509,7 +507,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                 override fun onFileLoaded() {
                     hasLoadedPlayableMedia = true
                     isPlaying = true
-                    controlsManager?.updatePlayPauseButton(true)
+                    if (::controlsManager.isInitialized) {
+                        controlsManager.updatePlayPauseButton(true)
+                    }
                     
                     // 不在这里隐藏加载动画，让 onBufferingStateChanged 来控制
                     // 因为文件加载后可能还在缓冲
@@ -609,7 +609,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                 override fun onLongPressRelease() {
                     // 恢复到长按前的速度
                     currentSpeed = speedBeforeLongPress
-                    playbackEngine?.setSpeed(speedBeforeLongPress)
+                    playbackEngine.setSpeed(speedBeforeLongPress)
                     danmakuManager.setSpeed(speedBeforeLongPress.toFloat())
                     
                     // 隐藏速度提示
@@ -624,15 +624,17 @@ class VideoPlayerActivity : AppCompatActivity(),
                 
                 override fun onSingleTap() {
                     // 如果处于锁定状态，切换解锁按钮显示
-                    if (controlsManager?.isLocked == true) {
-                        controlsManager?.toggleUnlockButtonVisibility()
+                    if (::controlsManager.isInitialized && controlsManager.isLocked) {
+                        controlsManager.toggleUnlockButtonVisibility()
                     } else {
-                        controlsManager?.toggleControls()
+                        if (::controlsManager.isInitialized) {
+                            controlsManager.toggleControls()
+                        }
                     }
                 }
                 
                 override fun onDoubleTap() {
-                    playbackEngine?.togglePlayPause()
+                    playbackEngine.togglePlayPause()
                 }
                 
                 override fun onLongPress() {
@@ -643,7 +645,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                     
                     // 设置为长按速度
                     currentSpeed = longPressSpeed.toDouble()
-                    playbackEngine?.setSpeed(longPressSpeed.toDouble())
+                    playbackEngine.setSpeed(longPressSpeed.toDouble())
                     danmakuManager.setSpeed(longPressSpeed)
                     
                     // 显示速度提示
@@ -664,7 +666,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                         pendingSeekPosition = newPos
                         
                         val usePrecise = gestureHandler.isPreciseSeekingEnabled()
-                        playbackEngine?.seekTo(newPos, usePrecise)
+                        playbackEngine.seekTo(newPos, usePrecise)
                         danmakuManager.seekTo((newPos * 1000).toLong())
                         
                         val currentTime = FormatUtils.formatProgressTime(newPos.toDouble())
@@ -697,7 +699,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                         
                         // 实时调用 seekTo，让视频跟着手指移动
                         val usePrecise = gestureHandler.isPreciseSeekingEnabled()
-                        playbackEngine?.seekTo(clampedPosition, usePrecise)
+                        playbackEngine.seekTo(clampedPosition, usePrecise)
                         danmakuManager.seekTo((clampedPosition * 1000).toLong())
                         
                         // 更新提示文字
@@ -823,7 +825,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         
         // 只在本地视频时处理系列
         if (!isOnlineVideo) {
-            val videoListParcelable = intent.getParcelableArrayListExtra<VideoFileParcelable>("video_list")
+            val videoListParcelable = intent.parcelableArrayListExtraCompat<VideoFileParcelable>("video_list")
             
             com.android.kiyori.utils.Logger.d(TAG, "=== Video List Processing ===")
             com.android.kiyori.utils.Logger.d(TAG, "videoListParcelable: ${videoListParcelable?.size ?: "null"}")
@@ -1062,7 +1064,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         // 设置controlsManager引用到gestureHandler，用于检查锁定状态
         gestureHandler.setControlsManager(controlsManager)
         
-        clickArea.setOnTouchListener { v: View, event: MotionEvent ->
+        clickArea.setOnTouchListener { _: View, event: MotionEvent ->
             gestureHandler.onTouchEvent(event)
         }
         
@@ -1132,19 +1134,19 @@ class VideoPlayerActivity : AppCompatActivity(),
             }
         }
 
-        findViewById<View>(R.id.resumeProgressPrompt)?.let { v ->
-            val lp = v.layoutParams as? android.widget.RelativeLayout.LayoutParams ?: return@let
-            if (enabled) {
-                lp.addRule(android.widget.RelativeLayout.ABOVE, R.id.controlPanel)
-                lp.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
-                lp.bottomMargin = (10f * resources.displayMetrics.density).toInt()
-            } else {
-                lp.removeRule(android.widget.RelativeLayout.ABOVE)
-                lp.addRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
-                lp.bottomMargin = (130f * resources.displayMetrics.density).toInt()
-            }
-            v.layoutParams = lp
+        val resumePromptLayoutParams =
+            resumeProgressPrompt.layoutParams as? android.widget.RelativeLayout.LayoutParams
+                ?: return
+        if (enabled) {
+            resumePromptLayoutParams.addRule(android.widget.RelativeLayout.ABOVE, R.id.controlPanel)
+            resumePromptLayoutParams.removeRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
+            resumePromptLayoutParams.bottomMargin = (10f * resources.displayMetrics.density).toInt()
+        } else {
+            resumePromptLayoutParams.removeRule(android.widget.RelativeLayout.ABOVE)
+            resumePromptLayoutParams.addRule(android.widget.RelativeLayout.ALIGN_PARENT_BOTTOM)
+            resumePromptLayoutParams.bottomMargin = (130f * resources.displayMetrics.density).toInt()
         }
+        resumeProgressPrompt.layoutParams = resumePromptLayoutParams
 
         applyPortraitSizing(enabled)
     }
@@ -1330,7 +1332,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                 loadResolvedRemoteVideo(request, position)
             } else {
                 // 本地视频:使用URI对象
-                playbackEngine?.loadVideo(uri, position)
+                playbackEngine.loadVideo(uri, position)
             }
             
             loadDanmakuForVideo(uri)
@@ -1703,7 +1705,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             val uriString = videoUri.toString()
             Logger.d(TAG, "Restoring subtitle preferences for: $uriString")
             
-            playbackEngine?.let { engine ->
+            val engine = playbackEngine
                 val assOverride = preferencesManager.isAssOverrideEnabled(uriString)
                 if (assOverride) {
                     lifecycleScope.launch {
@@ -1789,7 +1791,6 @@ class VideoPlayerActivity : AppCompatActivity(),
                 val savedBorderStyle = preferencesManager.getSubtitleBorderStyle(uriString)
                 engine.setSubtitleBorderStyle(savedBorderStyle)
                 Logger.d(TAG, "Restored subtitle border style: $savedBorderStyle")
-            }
         } catch (e: Exception) {
             Log.e(TAG, "Error restoring subtitle preferences", e)
             // 恢复字幕设置失败不影响播放，不提示用户
@@ -1800,7 +1801,7 @@ class VideoPlayerActivity : AppCompatActivity(),
      * 显示进度恢复提示框
      */
     private fun showResumeProgressPrompt() {
-        resumeProgressPrompt?.visibility = View.VISIBLE
+        resumeProgressPrompt.visibility = View.VISIBLE
         
         resumePromptHandler.postDelayed({
             hideResumeProgressPrompt()
@@ -1837,7 +1838,7 @@ class VideoPlayerActivity : AppCompatActivity(),
      * 隐藏进度恢复提示框
      */
     private fun hideResumeProgressPrompt() {
-        resumeProgressPrompt?.visibility = View.GONE
+        resumeProgressPrompt.visibility = View.GONE
         resumePromptHandler.removeCallbacksAndMessages(null)
     }
     
@@ -1848,7 +1849,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         Logger.d(TAG, "User confirmed to restart from beginning")
         hideResumeProgressPrompt()
         
-        playbackEngine?.seekTo(0)
+        playbackEngine.seekTo(0)
         
         videoUri?.let { uri ->
             Thread {
@@ -1872,7 +1873,9 @@ class VideoPlayerActivity : AppCompatActivity(),
      */
     private fun updateEpisodeButtons() {
         Logger.d(TAG, "updateEpisodeButtons - hasPrevious: ${seriesManager.hasPrevious}, hasNext: ${seriesManager.hasNext}")
-        controlsManager?.updateEpisodeButtons(seriesManager.hasPrevious, seriesManager.hasNext)
+        if (::controlsManager.isInitialized) {
+            controlsManager.updateEpisodeButtons(seriesManager.hasPrevious, seriesManager.hasNext)
+        }
     }
     
     /**
@@ -1939,7 +1942,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         }
         
         val fileName = getFileNameFromUri(uri)
-        controlsManager?.setFileName(fileName)
+        controlsManager.setFileName(fileName)
         
         val position = preferencesManager.getPlaybackPosition(uri.toString())
         
@@ -1950,7 +1953,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         if (isOnlineVideo) {
             loadResolvedRemoteVideo(remotePlaybackRequest!!, position)
         } else {
-            playbackEngine?.loadVideo(uri, position)
+            playbackEngine.loadVideo(uri, position)
         }
         
         // 设置当前视频 URI 给文件选择器管理器
@@ -2036,7 +2039,9 @@ class VideoPlayerActivity : AppCompatActivity(),
      * 否则正常返回
      */
     private fun handleBackNavigation() {
-        gestureHandler?.restoreOriginalSettings()
+        if (::gestureHandler.isInitialized) {
+            gestureHandler.restoreOriginalSettings()
+        }
         
         if (isFromHomeContinue) {
             // 从主页继续播放进入，直接返回到主页（MainActivity）
@@ -2049,11 +2054,11 @@ class VideoPlayerActivity : AppCompatActivity(),
             
             startActivity(intent)
             finish()
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
         } else {
             // 正常返回
             finish()
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
         }
     }
 
@@ -2070,7 +2075,7 @@ class VideoPlayerActivity : AppCompatActivity(),
 
             if (!isTaskRoot) {
                 finish()
-                overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                 return@post
             }
 
@@ -2096,7 +2101,7 @@ class VideoPlayerActivity : AppCompatActivity(),
             }
 
             finish()
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
         }
     }
     
@@ -2189,10 +2194,18 @@ class VideoPlayerActivity : AppCompatActivity(),
         }
         
         // 销毁播放引擎（会自动移除MPVLib观察者）
-        playbackEngine?.destroy()
-        controlsManager?.cleanup()
-        gestureHandler?.cleanup()
-        filePickerManager?.cleanup()
+        if (::playbackEngine.isInitialized) {
+            playbackEngine.destroy()
+        }
+        if (::controlsManager.isInitialized) {
+            controlsManager.cleanup()
+        }
+        if (::gestureHandler.isInitialized) {
+            gestureHandler.cleanup()
+        }
+        if (::filePickerManager.isInitialized) {
+            filePickerManager.cleanup()
+        }
         
         // 释放缩略图资源
         if (::thumbnailManager.isInitialized) {
@@ -2346,11 +2359,11 @@ class VideoPlayerActivity : AppCompatActivity(),
     }
     
     override fun onImportSubtitle() {
-        filePickerManager.importSubtitle(isPlaying)
+        filePickerManager.importSubtitle()
     }
     
     override fun onImportDanmaku() {
-        filePickerManager.importDanmaku(isPlaying)
+        filePickerManager.importDanmaku()
     }
     
     override fun onSearchNetworkDanmaku() {

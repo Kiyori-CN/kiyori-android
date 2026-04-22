@@ -346,12 +346,6 @@ fun VideoListItem(
         Color(0x1AFFFFFF)  // 普通项：半透明白色
     }
 
-    val borderColor = if (isCurrentPlaying) {
-        Color(0xFF64B5F6)  // 当前播放：蓝色边框
-    } else {
-        Color.Transparent
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()

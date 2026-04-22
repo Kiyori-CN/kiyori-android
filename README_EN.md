@@ -22,12 +22,14 @@ Kiyori is no longer documented as a standalone local video player. It is now pos
 
 ## Documentation
 
-- [Development Guide](docs/development_guide.md)
-- [Repository Layout](docs/repository_layout.md)
-- [Feature Overview](docs/features.md)
-- [Internal Browser Design](docs/internal_browser_design.md)
-- [Architecture Analysis](docs/project_architecture_analysis.md)
-- [Remote URL Playback Design](docs/remote_url_playback_design.md)
+- [Documentation Index](docs/README.md)
+- [Development Guide](docs/guides/development.md)
+- [Repository Layout](docs/project/repository_layout.md)
+- [Codebase Map](docs/project/codebase-map.md)
+- [Feature Overview](docs/product/features.md)
+- [Internal Browser Design](docs/architecture/browser.md)
+- [Architecture Analysis](docs/architecture/project-overview.md)
+- [Remote URL Playback Design](docs/architecture/remote-playback.md)
 
 ## Feedback
 

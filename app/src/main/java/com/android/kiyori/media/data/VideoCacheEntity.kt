@@ -53,7 +53,6 @@ data class VideoCacheEntity(
                 
                 if (c.isDigit()) {
                     // 提取完整的数字
-                    var numStart = i
                     var num = 0
                     while (i < lowerName.length && lowerName[i].isDigit()) {
                         num = num * 10 + (lowerName[i] - '0')

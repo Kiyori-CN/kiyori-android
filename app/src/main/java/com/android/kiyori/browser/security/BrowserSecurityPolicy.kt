@@ -15,7 +15,7 @@ object BrowserSecurityPolicy {
     const val SYMBIAN_WAP_USER_AGENT: String =
         "Mozilla/5.0 (SymbianOS/9.4; Series60/5.0 Nokia5800 XpressMusic/52.0.007; Profile/MIDP-2.1 Configuration/CLDC-1.1) AppleWebKit/413 (KHTML, like Gecko) Safari/413"
 
-    private val allowedWebSchemes = setOf("http", "https", "about")
+    private val allowedWebSchemes = setOf("http", "https", "about", "javascript", "blob", "data")
     private val domainLikePattern =
         Regex("""^(localhost|(\d{1,3}\.){3}\d{1,3}|([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})(:\d+)?([/?#].*)?$""")
 

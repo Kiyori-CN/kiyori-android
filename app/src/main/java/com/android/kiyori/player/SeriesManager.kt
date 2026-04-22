@@ -81,7 +81,7 @@ class SeriesManager {
         videoList.clear()
 
         // 获取同目录下的视频文件
-        val videosInFolder = getVideosInSameFolder(context, currentUri, getFileNameCallback)
+        val videosInFolder = getVideosInSameFolder(context, currentUri)
         Log.d(TAG, "Found ${videosInFolder.size} videos in folder")
 
         // 过滤同系列视频
@@ -186,8 +186,7 @@ class SeriesManager {
      */
     private fun getVideosInSameFolder(
         context: android.content.Context,
-        uri: Uri,
-        getFileNameCallback: (Uri) -> String
+        uri: Uri
     ): List<Uri> {
         val videos = mutableListOf<Uri>()
 
@@ -282,7 +281,7 @@ class SeriesManager {
                             val extension = fileName.substringAfterLast('.', "").lowercase()
 
                             if (extension in VIDEO_EXTENSIONS) {
-                                file.uri?.let { videos.add(it) }
+                                videos.add(file.uri)
                             }
                         }
                     }

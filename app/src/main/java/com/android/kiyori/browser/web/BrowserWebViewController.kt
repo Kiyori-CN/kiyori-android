@@ -46,7 +46,7 @@ import org.json.JSONArray
 
 data class BrowserWebViewCallbacks(
     val onStateChanged: (BrowserPageState) -> Unit,
-    val onExternalUrlBlocked: (String) -> Unit = {},
+    val onExternalUrlBlocked: (String) -> Boolean = { false },
     val onDownloadRequested: (
         url: String,
         userAgent: String,
@@ -297,8 +297,10 @@ class BrowserWebViewController(
                     applyUserAgent()
                     return false
                 }
-                updateState { copy(blockedExternalUrl = url) }
-                callbacks.onExternalUrlBlocked(url)
+                val handledExternally = callbacks.onExternalUrlBlocked(url)
+                if (!handledExternally) {
+                    updateState { copy(blockedExternalUrl = url) }
+                }
                 return true
             }
 
@@ -335,10 +337,19 @@ class BrowserWebViewController(
                 error: WebResourceError?
             ) {
                 if (request?.isForMainFrame == true) {
+                    val failedUrl = request.url?.toString()
                     Log.w(
                         LOG_TAG,
-                        "Page load error ${error?.errorCode}: ${error?.description} @${request.url}"
+                        "Page load error ${error?.errorCode}: ${error?.description} @$failedUrl"
                     )
+                    if (view != null) {
+                        finishLoadingState(
+                            view = view,
+                            url = failedUrl,
+                            captureHistory = false,
+                            reason = "main-frame-error"
+                        )
+                    }
                 }
                 super.onReceivedError(view, request, error)
             }
@@ -349,10 +360,20 @@ class BrowserWebViewController(
                 errorResponse: WebResourceResponse?
             ) {
                 if (request?.isForMainFrame == true) {
+                    val failedUrl = request.url?.toString()
+                    val statusCode = errorResponse?.statusCode ?: -1
                     Log.w(
                         LOG_TAG,
-                        "HTTP ${errorResponse?.statusCode ?: -1} @${request.url}"
+                        "HTTP $statusCode @$failedUrl"
                     )
+                    if (view != null && statusCode >= 400 && statusCode != 401 && statusCode != 407) {
+                        finishLoadingState(
+                            view = view,
+                            url = failedUrl,
+                            captureHistory = false,
+                            reason = "main-frame-http-$statusCode"
+                        )
+                    }
                 }
                 super.onReceivedHttpError(view, request, errorResponse)
             }
@@ -954,11 +975,32 @@ class BrowserWebViewController(
             if (pageState.isLoading && currentProgress >= 100 &&
                 resolvedUrl != BrowserSecurityPolicy.BLANK_HOME_URL
             ) {
-                completePageLoad(
+                finishLoadingState(
                     view = targetWebView,
                     url = resolvedUrl,
-                    captureHistory = false
+                    captureHistory = false,
+                    reason = "progress-recovery"
                 )
+                return@postDelayed
+            }
+
+            if (pageState.isLoading && attempt >= MAX_LOAD_RECOVERY_ATTEMPTS) {
+                val hasVisibleContent =
+                    currentProgress >= VISUAL_READY_PROGRESS_THRESHOLD ||
+                        targetWebView.contentHeight > 0 ||
+                        !targetWebView.title.isNullOrBlank()
+                if (resolvedUrl != BrowserSecurityPolicy.BLANK_HOME_URL && hasVisibleContent) {
+                    Log.w(
+                        LOG_TAG,
+                        "Forcing load completion after recovery timeout: url=$resolvedUrl progress=$currentProgress contentHeight=${targetWebView.contentHeight}"
+                    )
+                    finishLoadingState(
+                        view = targetWebView,
+                        url = resolvedUrl,
+                        captureHistory = false,
+                        reason = "recovery-timeout"
+                    )
+                }
                 return@postDelayed
             }
 
@@ -980,10 +1022,11 @@ class BrowserWebViewController(
             syncNavigationState()
             val webProgress = targetWebView.progress.coerceIn(0, 100)
             if (pageState.isLoading && webProgress >= 100) {
-                completePageLoad(
+                finishLoadingState(
                     view = targetWebView,
                     url = targetWebView.url,
-                    captureHistory = false
+                    captureHistory = false,
+                    reason = "navigation-sync"
                 )
                 return@postDelayed
             }
@@ -1011,10 +1054,11 @@ class BrowserWebViewController(
                 return@post
             }
 
-            completePageLoad(
+            finishLoadingState(
                 view = targetWebView,
                 url = resolvedUrl,
-                captureHistory = false
+                captureHistory = false,
+                reason = "x5-visual-ready"
             )
         }
     }
@@ -1041,6 +1085,23 @@ class BrowserWebViewController(
         if (captureHistory) {
             scheduleHistoryCapture(view, currentUrl)
         }
+    }
+
+    private fun finishLoadingState(
+        view: WebView,
+        url: String?,
+        captureHistory: Boolean,
+        reason: String
+    ) {
+        Log.d(
+            LOG_TAG,
+            "Finishing loading state: reason=$reason url=${url ?: view.url.orEmpty()} progress=${view.progress} contentHeight=${view.contentHeight}"
+        )
+        completePageLoad(
+            view = view,
+            url = url,
+            captureHistory = captureHistory
+        )
     }
 
     private fun syncHistoryEntries() {

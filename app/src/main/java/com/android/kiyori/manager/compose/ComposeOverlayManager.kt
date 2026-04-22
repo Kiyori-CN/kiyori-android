@@ -219,23 +219,6 @@ class ComposeOverlayManager(
         }
     }
     
-    /**
-     * 显示字幕延迟对话框（已废弃，保留兼容）
-     */
-    @Deprecated("使用 showSubtitleSettingsDrawer 替代")
-    fun showSubtitleDelayDialog(
-        currentDelay: Double,
-        onDelayChange: (Double) -> Unit
-    ) {
-        setContent {
-            SubtitleDelayDialog(
-                currentDelay = currentDelay,
-                onDelayChange = onDelayChange,
-                onDismiss = { clearContent() }
-            )
-        }
-    }
-    
     // ===== 片头片尾跳过设置 =====
     
     /**
@@ -266,44 +249,6 @@ class ComposeOverlayManager(
         }
     }
 
-    /**
-     * 显示字幕杂项对话框（已废弃，保留兼容）
-     */
-    @Deprecated("使用 showSubtitleSettingsDrawer 替代")
-    fun showSubtitleMiscDialog(
-        currentScale: Float,
-        currentPosition: Int,
-        onScaleChange: (Float) -> Unit,
-        onPositionChange: (Int) -> Unit
-    ) {
-        setContent {
-            SubtitleMiscDialog(
-                currentScale = currentScale,
-                currentPosition = currentPosition,
-                onScaleChange = onScaleChange,
-                onPositionChange = onPositionChange,
-                onDismiss = { clearContent() }
-            )
-        }
-    }
-
-    /**
-     * 显示字幕样式对话框（已废弃，保留兼容）
-     */
-    @Deprecated("使用 showSubtitleSettingsDrawer 替代")
-    fun showSubtitleStyleDialog(
-        currentBorderSize: Int,
-        onBorderSizeChange: (Int) -> Unit
-    ) {
-        setContent {
-            SubtitleStyleDialog(
-                currentBorderSize = currentBorderSize,
-                onBorderSizeChange = onBorderSizeChange,
-                onDismiss = { clearContent() }
-            )
-        }
-    }
-    
     // ===== 视频列表相关 =====
     
     /**

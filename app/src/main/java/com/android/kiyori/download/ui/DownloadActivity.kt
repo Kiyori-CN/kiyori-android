@@ -25,7 +25,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,6 +39,7 @@ import com.android.kiyori.download.MediaParseResult
 import com.android.kiyori.download.MediaType
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import kotlinx.coroutines.launch
 import android.util.Log
 
@@ -77,7 +77,6 @@ class DownloadActivity : ComponentActivity() {
 fun DownloadScreen(viewModel: BilibiliDownloadViewModel = viewModel()) {
     val downloadItems by viewModel.downloadItems.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val downloadPath by viewModel.downloadPath.collectAsState()
     val downloadPathDisplay by viewModel.downloadPathDisplay.collectAsState()
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -127,7 +126,10 @@ fun DownloadScreen(viewModel: BilibiliDownloadViewModel = viewModel()) {
                 navigationIcon = {
                     IconButton(onClick = { 
                         activity?.finish()
-                        activity?.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        activity?.applyCloseActivityTransitionCompat(
+                            R.anim.slide_in_left,
+                            R.anim.slide_out_right
+                        )
                     }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,

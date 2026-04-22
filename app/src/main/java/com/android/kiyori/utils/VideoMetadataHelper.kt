@@ -160,7 +160,7 @@ object VideoMetadataHelper {
         
         // 方法4: 对于 MKV 等特殊格式，尝试采样法估算帧率
         if ((frameRateValue == null || frameRateValue <= 0) && isMkvOrWebm && duration > 1000) {
-            frameRateValue = estimateFrameRateBySampling(context, uri, duration)
+            frameRateValue = estimateFrameRateBySampling(context, uri)
             if (frameRateValue != null) {
                 Log.d(TAG, "Estimated by sampling: $frameRateValue")
             }
@@ -199,7 +199,7 @@ object VideoMetadataHelper {
     /**
      * 通过采样关键帧估算帧率 (用于 MKV 等难以获取帧率的格式)
      */
-    private fun estimateFrameRateBySampling(context: Context, uri: Uri, duration: Long): Double? {
+    private fun estimateFrameRateBySampling(context: Context, uri: Uri): Double? {
         val extractor = MediaExtractor()
         return try {
             extractor.setDataSource(context, uri, null)

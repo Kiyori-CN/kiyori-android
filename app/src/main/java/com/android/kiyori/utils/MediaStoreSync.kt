@@ -22,7 +22,6 @@ object MediaStoreSync {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 // Android 10+ 使用 MediaStore.scanVolume
-                val volumeName = MediaStore.VOLUME_EXTERNAL_PRIMARY
                 MediaScannerConnection.scanFile(
                     context,
                     arrayOf("/storage/emulated/0/"),

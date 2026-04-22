@@ -36,6 +36,8 @@ import com.android.kiyori.sniffer.UrlDetector
 import com.tencent.smtt.sdk.ValueCallback
 import com.tencent.smtt.sdk.WebChromeClient
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 
 class BrowserActivity : BaseActivity() {
@@ -76,9 +78,7 @@ class BrowserActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val initialUrl = intent.getStringExtra(EXTRA_INITIAL_URL).orEmpty()
-        initialUrlToLoad = initialUrl
-        shouldOpenSearch = intent.getBooleanExtra(EXTRA_OPEN_SEARCH, false)
+        handleLaunchIntent(intent)
         bookmarkRepository = BrowserBookmarkRepository(this)
         preferencesRepository = BrowserPreferencesRepository(this)
         historyRepository = BrowserHistoryRepository(this)
@@ -92,7 +92,7 @@ class BrowserActivity : BaseActivity() {
             searchHistoryRepository = searchHistoryRepository,
             callbacks = BrowserWebViewCallbacks(
                 onStateChanged = { state -> pageState = state },
-                onExternalUrlBlocked = { },
+                onExternalUrlBlocked = ::handleExternalUrl,
                 onDownloadRequested = { url, userAgent, contentDisposition, mimeType, contentLength, sourcePageUrl ->
                     handleDownloadRequest(
                         url = url,
@@ -139,18 +139,18 @@ class BrowserActivity : BaseActivity() {
                     onBackPressed = {
                         if (!browserWebViewController.exitCustomViewIfNeeded()) {
                             finish()
-                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                         }
                     },
                     onCloseBrowser = {
                         if (!browserWebViewController.exitCustomViewIfNeeded()) {
                             finish()
-                            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                            applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                         }
                     },
                     onOpenSettingsPage = {
                         MainActivity.start(this, MainActivity.TAB_SETTINGS)
-                        overridePendingTransition(R.anim.no_anim, R.anim.no_anim)
+                        applyOpenActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     },
                     onToggleUrlBar = {
                         browserWebViewController.setUrlBarVisible(!pageState.showUrlBar)
@@ -190,9 +190,24 @@ class BrowserActivity : BaseActivity() {
                     },
                     onOpenBookmarksPage = {
                         BrowserBookmarksActivity.start(this)
-                        overridePendingTransition(R.anim.no_anim, R.anim.no_anim)
+                        applyOpenActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     }
                 )
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLaunchIntent(intent)
+        if (::browserWebViewController.isInitialized) {
+            if (initialUrlToLoad.isNotBlank()) {
+                val targetUrl = initialUrlToLoad
+                initialUrlToLoad = ""
+                browserWebViewController.loadUrl(targetUrl)
+            } else if (shouldOpenSearch) {
+                browserWebViewController.setUrlBarVisible(true)
             }
         }
     }
@@ -223,6 +238,17 @@ class BrowserActivity : BaseActivity() {
             browserWebViewController.destroy()
         }
         super.onDestroy()
+    }
+
+    private fun handleLaunchIntent(intent: Intent?) {
+        val externalUrl = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString.orEmpty()
+        initialUrlToLoad = if (externalUrl.isNotBlank()) {
+            externalUrl
+        } else {
+            intent?.getStringExtra(EXTRA_INITIAL_URL).orEmpty()
+        }
+        shouldOpenSearch = externalUrl.isBlank() &&
+            (intent?.getBooleanExtra(EXTRA_OPEN_SEARCH, false) == true)
     }
 
     private fun openFileChooser(
@@ -309,7 +335,6 @@ class BrowserActivity : BaseActivity() {
             setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             setAllowedOverMetered(true)
             setAllowedOverRoaming(true)
-            setVisibleInDownloadsUi(true)
             addRequestHeader("User-Agent", headers["User-Agent"].orEmpty())
             headers["Referer"]?.let { addRequestHeader("Referer", it) }
             headers["Origin"]?.let { addRequestHeader("Origin", it) }
@@ -331,6 +356,43 @@ class BrowserActivity : BaseActivity() {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             }
         }
+    }
+
+    private fun handleExternalUrl(url: String): Boolean {
+        if (url.isBlank()) {
+            return false
+        }
+
+        val parsedIntent = runCatching {
+            if (url.startsWith("intent:", ignoreCase = true)) {
+                Intent.parseUri(url, Intent.URI_INTENT_SCHEME).apply {
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    component = null
+                    selector = null
+                }
+            } else {
+                Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                }
+            }
+        }.getOrNull() ?: return false
+
+        return runCatching {
+            startActivity(parsedIntent)
+            true
+        }.recoverCatching {
+            val fallbackUrl = parsedIntent.getStringExtra("browser_fallback_url").orEmpty()
+            when {
+                fallbackUrl.isNotBlank() -> {
+                    browserWebViewController.loadUrl(fallbackUrl)
+                    true
+                }
+                else -> {
+                    Toast.makeText(this, "未找到可处理该链接的应用", Toast.LENGTH_SHORT).show()
+                    false
+                }
+            }
+        }.getOrDefault(false)
     }
 }
 
