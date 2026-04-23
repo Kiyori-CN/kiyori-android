@@ -65,6 +65,7 @@ fun SubtitleSearchScreen(
     }
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("字幕搜索下载", fontSize = 20.sp, fontWeight = FontWeight.Bold) },

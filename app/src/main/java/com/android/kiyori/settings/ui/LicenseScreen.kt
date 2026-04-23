@@ -33,6 +33,7 @@ fun LicenseScreen(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("开源许可", fontSize = 18.sp, fontWeight = FontWeight.Bold) },

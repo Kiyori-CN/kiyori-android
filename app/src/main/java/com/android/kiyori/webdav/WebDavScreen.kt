@@ -58,6 +58,7 @@ fun WebDavAccountListScreen(
     }
     
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("WebDAV 账户管理", fontWeight = FontWeight.Bold) },
@@ -674,6 +675,7 @@ fun WebDavBrowserScreen(
     }
     
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             Column {
                 TopAppBar(

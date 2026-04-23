@@ -7,10 +7,10 @@ enum class BrowserUserAgentMode(
 ) {
     ANDROID("android", "Android"),
     PC_DESKTOP("pc_desktop", "PC桌面"),
-    IPHONE("iphone", "IPhone"),
+    IPHONE("iphone", "iPhone"),
     SYMBIAN_WAP("symbian_wap", "塞班Wap"),
-    CUSTOM_GLOBAL("custom_global", "自定义全局", isImplemented = false),
-    CUSTOM_SITE("custom_site", "自定义该网站", isImplemented = false);
+    CUSTOM_GLOBAL("custom_global", "自定义全局"),
+    CUSTOM_SITE("custom_site", "自定义当前网站");
 
     companion object {
         val selectableEntries: List<BrowserUserAgentMode> = listOf(

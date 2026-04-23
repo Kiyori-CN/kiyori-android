@@ -48,6 +48,7 @@ fun PlaybackSettingsScreen(
     var showDoubleTapSeekDialog by remember { mutableStateOf(false) }
     
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("播放设置", fontSize = 18.sp, fontWeight = FontWeight.Bold) },

@@ -38,6 +38,7 @@ fun AboutScreen(
 ) {
     val context = LocalContext.current
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("关于", fontSize = 20.sp, fontWeight = FontWeight.Bold) },

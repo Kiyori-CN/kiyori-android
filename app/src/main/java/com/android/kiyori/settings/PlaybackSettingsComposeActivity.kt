@@ -3,13 +3,13 @@ package com.android.kiyori.settings
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import com.android.kiyori.R
 import com.android.kiyori.settings.ui.PlaybackSettingsScreen
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
+import com.android.kiyori.utils.enableTransparentSystemBars
 
 /**
  * Compose 版本的播放设置 Activity
@@ -20,7 +20,7 @@ class PlaybackSettingsComposeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // 启用边到边显示
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
         
         setContent {
             val themeColors = getThemeColors(ThemeManager.getCurrentTheme(this).themeName)

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
@@ -18,6 +17,7 @@ import com.android.kiyori.browser.domain.BrowserBookmarkFolder
 import com.android.kiyori.browser.domain.BrowserBookmarkItem
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
+import com.android.kiyori.utils.enableTransparentSystemBars
 
 class BrowserBookmarksActivity : ComponentActivity() {
 
@@ -33,7 +33,7 @@ class BrowserBookmarksActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
         repository = BrowserBookmarkRepository(this)
         refreshState()
 

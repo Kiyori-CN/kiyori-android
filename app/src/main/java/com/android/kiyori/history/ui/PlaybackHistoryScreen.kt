@@ -48,6 +48,7 @@ fun PlaybackHistoryScreen(
     val primaryColor = MaterialTheme.colorScheme.primary
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("播放历史", fontSize = 20.sp, fontWeight = FontWeight.Bold) },

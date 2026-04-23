@@ -74,15 +74,10 @@ object BrowserWebViewFactory {
 
     fun applyIdentity(
         webView: WebView,
-        mode: BrowserUserAgentMode,
-        defaultUserAgent: String
+        userAgent: String
     ) {
-        val resolvedUserAgent = BrowserSecurityPolicy.resolveUserAgent(
-            mode = mode,
-            defaultUserAgent = defaultUserAgent
-        )
-        if (webView.settings.userAgentString != resolvedUserAgent) {
-            webView.settings.userAgentString = resolvedUserAgent
+        if (userAgent.isNotBlank() && webView.settings.userAgentString != userAgent) {
+            webView.settings.userAgentString = userAgent
         }
     }
 }

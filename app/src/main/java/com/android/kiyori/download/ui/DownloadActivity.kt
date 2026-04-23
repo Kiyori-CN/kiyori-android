@@ -6,7 +6,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -31,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.android.kiyori.R
+import com.android.kiyori.app.MainActivity
 import com.android.kiyori.ui.compose.ImmersiveTopAppBar
 import com.android.kiyori.download.BilibiliDownloadViewModel
 import com.android.kiyori.download.DownloadItem
@@ -40,15 +40,22 @@ import com.android.kiyori.download.MediaType
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.enableTransparentSystemBars
 import kotlinx.coroutines.launch
 import android.util.Log
 
 class DownloadActivity : ComponentActivity() {
+    companion object {
+        fun start(context: android.content.Context) {
+            context.startActivity(Intent(context, DownloadActivity::class.java))
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         // 启用边到边显示
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
         
         setContent {
             val themeColors = getThemeColors(ThemeManager.getCurrentTheme(this).themeName)
@@ -66,7 +73,22 @@ class DownloadActivity : ComponentActivity() {
                     onSurface = themeColors.onSurface
                 )
             ) {
-                DownloadScreen()
+                DownloadCenterScreen(
+                    onDismissRequest = {
+                        finish()
+                    },
+                    onOpenDownloadSettings = {
+                        MainActivity.start(
+                            this,
+                            initialTab = MainActivity.TAB_SETTINGS,
+                            initialSettingsPage = MainActivity.SETTINGS_PAGE_DOWNLOAD
+                        )
+                        finish()
+                    },
+                    onOpenBilibiliDownloader = {
+                        startActivity(Intent(this, BilibiliDownloadActivity::class.java))
+                    }
+                )
             }
         }
     }
@@ -115,6 +137,7 @@ fun DownloadScreen(viewModel: BilibiliDownloadViewModel = viewModel()) {
     }
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { 

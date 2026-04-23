@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,13 +58,14 @@ import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
+import com.android.kiyori.utils.enableTransparentSystemBars
 import java.util.Date
 
 class RemotePlaybackHistoryActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
 
         val historyType = intent.getStringExtra(EXTRA_HISTORY_TYPE) ?: HISTORY_TYPE_SEARCH
 
@@ -218,6 +218,7 @@ private fun HistoryScaffold(
     content: @Composable () -> Unit
 ) {
     androidx.compose.material3.Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = {

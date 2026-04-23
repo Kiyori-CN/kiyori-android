@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.android.kiyori.download.InternalDownloadDao
+import com.android.kiyori.download.InternalDownloadEntity
 import com.android.kiyori.history.data.PlaybackHistoryDao
 import com.android.kiyori.history.data.PlaybackHistoryEntity
 import com.android.kiyori.media.data.VideoCacheDao
@@ -20,14 +22,15 @@ import com.android.kiyori.media.data.VideoCacheEntity
  * - 这些文件应该提交到版本控制，方便追踪数据库变更历史
  */
 @Database(
-    entities = [VideoCacheEntity::class, PlaybackHistoryEntity::class],
-    version = 4,
+    entities = [VideoCacheEntity::class, PlaybackHistoryEntity::class, InternalDownloadEntity::class],
+    version = 5,
     exportSchema = true
 )
 abstract class VideoDatabase : RoomDatabase() {
     
     abstract fun videoCacheDao(): VideoCacheDao
     abstract fun playbackHistoryDao(): PlaybackHistoryDao
+    abstract fun internalDownloadDao(): InternalDownloadDao
     
     companion object {
         @Volatile
@@ -99,6 +102,46 @@ abstract class VideoDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX IF NOT EXISTS index_video_cache_folderPath_dateAdded ON video_cache(folderPath, dateAdded)")
             }
         }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS internal_downloads (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        systemDownloadId INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        fileName TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        mimeType TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        sourcePageUrl TEXT NOT NULL,
+                        sourcePageTitle TEXT NOT NULL,
+                        headersJson TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        totalBytes INTEGER NOT NULL,
+                        downloadedBytes INTEGER NOT NULL,
+                        localUri TEXT NOT NULL,
+                        localPath TEXT NOT NULL,
+                        mediaType TEXT NOT NULL,
+                        reason INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        completedAt INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_internal_downloads_systemDownloadId ON internal_downloads(systemDownloadId)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_internal_downloads_status ON internal_downloads(status)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_internal_downloads_createdAt ON internal_downloads(createdAt)"
+                )
+            }
+        }
         
         fun getDatabase(context: Context): VideoDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -107,7 +150,7 @@ abstract class VideoDatabase : RoomDatabase() {
                     VideoDatabase::class.java,
                     "video_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 INSTANCE = instance
                 instance

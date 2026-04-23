@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -38,6 +37,7 @@ import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.manager.compose.BiliBiliLoginActivity
+import com.android.kiyori.utils.enableTransparentSystemBars
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -65,7 +65,7 @@ class BiliBiliPlayActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // 启用边到边显示
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
         
         authManager = BiliBiliAuthManager.getInstance(this)
         
@@ -319,6 +319,7 @@ fun BiliBiliPlayScreen(
     }
     
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("播放B站番剧") },

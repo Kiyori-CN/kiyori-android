@@ -1,16 +1,13 @@
 package com.android.kiyori.browser.ui
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
@@ -27,8 +24,11 @@ import com.android.kiyori.browser.data.BrowserSearchHistoryRepository
 import com.android.kiyori.browser.domain.BrowserBookmarkFolderOption
 import com.android.kiyori.browser.domain.BrowserPageState
 import com.android.kiyori.browser.playback.BrowserPlaybackInteractor
+import com.android.kiyori.browser.playback.BrowserPlaybackInteractor.BrowserVideoCandidate
 import com.android.kiyori.browser.web.BrowserWebViewCallbacks
 import com.android.kiyori.browser.web.BrowserWebViewController
+import com.android.kiyori.download.InternalDownloadRequest
+import com.android.kiyori.download.requestDownloadWithPreferences
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.sniffer.DetectedVideo
@@ -38,6 +38,7 @@ import com.tencent.smtt.sdk.WebChromeClient
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.applyOpenActivityTransitionCompat
+import com.android.kiyori.utils.enableTransparentSystemBars
 import com.android.kiyori.utils.ThemeManager
 
 class BrowserActivity : BaseActivity() {
@@ -64,6 +65,7 @@ class BrowserActivity : BaseActivity() {
     private var bookmarkFolders by mutableStateOf<List<BrowserBookmarkFolderOption>>(emptyList())
     private var initialUrlToLoad = ""
     private var shouldOpenSearch = false
+    private var initialNavigationDispatched = false
     private var pendingFileChooserCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -76,7 +78,7 @@ class BrowserActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
 
         handleLaunchIntent(intent)
         bookmarkRepository = BrowserBookmarkRepository(this)
@@ -130,11 +132,7 @@ class BrowserActivity : BaseActivity() {
                     state = pageState,
                     onAttachWebView = { webView ->
                         browserWebViewController.attach(webView)
-                        if (initialUrlToLoad.isNotBlank()) {
-                            val targetUrl = initialUrlToLoad
-                            initialUrlToLoad = ""
-                            browserWebViewController.loadUrl(targetUrl)
-                        }
+                        dispatchInitialNavigation(webView)
                     },
                     onBackPressed = {
                         if (!browserWebViewController.exitCustomViewIfNeeded()) {
@@ -149,8 +147,13 @@ class BrowserActivity : BaseActivity() {
                         }
                     },
                     onOpenSettingsPage = {
-                        MainActivity.start(this, MainActivity.TAB_SETTINGS)
-                        applyOpenActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
+                        MainActivity.start(
+                            this,
+                            initialTab = MainActivity.TAB_SETTINGS,
+                            initialSettingsPage = MainActivity.SETTINGS_PAGE_BROWSER
+                        )
+                        finish()
+                        applyCloseActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     },
                     onToggleUrlBar = {
                         browserWebViewController.setUrlBarVisible(!pageState.showUrlBar)
@@ -175,6 +178,12 @@ class BrowserActivity : BaseActivity() {
                     onDeleteHistoryItem = browserWebViewController::deleteHistoryItem,
                     onClearHistory = browserWebViewController::clearHistory,
                     onSelectUserAgentMode = browserWebViewController::setUserAgentMode,
+                    getCustomGlobalUserAgent = browserWebViewController::getCustomGlobalUserAgent,
+                    getCustomSiteUserAgent = browserWebViewController::getCustomSiteUserAgent,
+                    getCurrentSiteHost = browserWebViewController::getCurrentSiteHost,
+                    onSaveCustomGlobalUserAgent = browserWebViewController::saveCustomGlobalUserAgent,
+                    onSaveCustomSiteUserAgent = browserWebViewController::saveCustomSiteUserAgent,
+                    onDownloadDetectedVideo = ::downloadDetectedVideo,
                     onRequestPageSource = browserWebViewController::requestPageSource,
                     bookmarkFolders = bookmarkFolders,
                     onSaveBookmark = { draft ->
@@ -187,10 +196,6 @@ class BrowserActivity : BaseActivity() {
                         bookmarkFolders = bookmarkRepository.getFolders().map {
                             BrowserBookmarkFolderOption(id = it.id, title = it.title)
                         }
-                    },
-                    onOpenBookmarksPage = {
-                        BrowserBookmarksActivity.start(this)
-                        applyOpenActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     }
                 )
             }
@@ -249,6 +254,29 @@ class BrowserActivity : BaseActivity() {
         }
         shouldOpenSearch = externalUrl.isBlank() &&
             (intent?.getBooleanExtra(EXTRA_OPEN_SEARCH, false) == true)
+    }
+
+    private fun dispatchInitialNavigation(webView: com.tencent.smtt.sdk.WebView) {
+        if (initialNavigationDispatched) {
+            return
+        }
+        initialNavigationDispatched = true
+        webView.post {
+            if (isFinishing || isDestroyed) {
+                return@post
+            }
+
+            when {
+                initialUrlToLoad.isNotBlank() -> {
+                    val targetUrl = initialUrlToLoad
+                    initialUrlToLoad = ""
+                    browserWebViewController.loadUrl(targetUrl)
+                }
+                !shouldOpenSearch -> {
+                    browserWebViewController.loadHome()
+                }
+            }
+        }
     }
 
     private fun openFileChooser(
@@ -313,49 +341,62 @@ class BrowserActivity : BaseActivity() {
             RemotePlaybackHeaders.deriveOrigin(sourcePageUrl)?.let { put("Origin", it) }
         }
 
-        val isPlayableMedia = UrlDetector.isVideo(url, mapOf("Content-Type" to mimeType)) ||
-            UrlDetector.isAudio(url, mapOf("Content-Type" to mimeType)) ||
-            mimeType.contains("mpegurl", ignoreCase = true) ||
-            mimeType.contains("dash+xml", ignoreCase = true)
+        val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType.ifBlank { null })
+        val sniffHeaders = buildMap {
+            if (mimeType.isNotBlank()) {
+                put("Content-Type", mimeType)
+            }
+            if (contentDisposition.isNotBlank()) {
+                put("Content-Disposition", contentDisposition)
+            }
+        }
 
-        if (isPlayableMedia) {
-            val detectedVideo = DetectedVideo(
+        requestDownloadWithPreferences(
+            context = this,
+            request = InternalDownloadRequest(
                 url = url,
-                headers = headers,
-                pageUrl = sourcePageUrl,
-                title = pageState.title.takeIf { it.isNotBlank() }.orEmpty(),
-                timestamp = System.currentTimeMillis()
-            )
-            BrowserPlaybackInteractor.play(this, detectedVideo)
+                title = fileName,
+                fileName = fileName,
+                mimeType = mimeType,
+                description = if (contentLength > 0L) "浏览器下载任务" else "准备下载",
+                sourcePageUrl = sourcePageUrl,
+                sourcePageTitle = pageState.title,
+                mediaType = when {
+                    UrlDetector.isVideo(url, sniffHeaders) -> "video"
+                    UrlDetector.isAudio(url, sniffHeaders) -> "audio"
+                    else -> ""
+                },
+                headers = headers
+            ),
+            contentLength = contentLength
+        )
+    }
+
+    private fun downloadDetectedVideo(candidate: BrowserVideoCandidate) {
+        val video = candidate.video
+        if (video.url.isBlank()) {
             return
         }
 
-        val request = DownloadManager.Request(Uri.parse(url)).apply {
-            setMimeType(mimeType.ifBlank { null })
-            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            setAllowedOverMetered(true)
-            setAllowedOverRoaming(true)
-            addRequestHeader("User-Agent", headers["User-Agent"].orEmpty())
-            headers["Referer"]?.let { addRequestHeader("Referer", it) }
-            headers["Origin"]?.let { addRequestHeader("Origin", it) }
-            val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
-            setTitle(fileName)
-            setDescription(
-                if (contentLength > 0L) "下载中" else "准备下载"
-            )
-            setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-        }
+        val contentDisposition = RemotePlaybackHeaders.get(video.headers, "Content-Disposition")
+        val headers = RemotePlaybackHeaders.enrich(video.headers, video.pageUrl)
+        val mimeType = UrlDetector.getMimeTypeForFormat(candidate.format, video.headers)
+        val fileName = URLUtil.guessFileName(video.url, contentDisposition, mimeType.ifBlank { null })
 
-        runCatching {
-            val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
-            downloadManager.enqueue(request)
-            Toast.makeText(this, "已加入下载队列", Toast.LENGTH_SHORT).show()
-        }.getOrElse {
-            Toast.makeText(this, "下载启动失败，已尝试交给外部应用", Toast.LENGTH_SHORT).show()
-            runCatching {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-            }
-        }
+        requestDownloadWithPreferences(
+            context = this,
+            request = InternalDownloadRequest(
+                url = video.url,
+                title = video.title.takeIf { it.isNotBlank() } ?: fileName,
+                fileName = fileName,
+                mimeType = mimeType,
+                description = "视频下载任务",
+                sourcePageUrl = video.pageUrl,
+                sourcePageTitle = video.title,
+                mediaType = "video",
+                headers = headers
+            )
+        )
     }
 
     private fun handleExternalUrl(url: String): Boolean {

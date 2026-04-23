@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -65,6 +64,7 @@ import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.remote.RemoteUrlParser
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
+import com.android.kiyori.utils.enableTransparentSystemBars
 
 class RemotePlaybackInputActivity : BaseActivity() {
 
@@ -76,7 +76,7 @@ class RemotePlaybackInputActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
 
         setContent {
             val themeColors = getThemeColors(ThemeManager.getCurrentTheme(this).themeName)
@@ -201,6 +201,7 @@ private fun RemotePlaybackInputScreen(
     )
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = {

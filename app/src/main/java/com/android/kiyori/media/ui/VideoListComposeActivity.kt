@@ -7,7 +7,6 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
@@ -24,6 +23,7 @@ import com.android.kiyori.utils.Logger
 import com.android.kiyori.utils.NoMediaChecker
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.enableTransparentSystemBars
 import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.parcelableArrayListExtraCompat
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +44,7 @@ class VideoListComposeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         // 启用边到边显示
-        enableEdgeToEdge()
+        enableTransparentSystemBars()
         
         // 应用主题
         val currentTheme = ThemeManager.getCurrentTheme(this)

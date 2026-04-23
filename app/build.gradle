@@ -82,6 +82,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        javaParameters = true
         freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
 
@@ -102,6 +103,10 @@ kapt {
         arg("room.schemaLocation", "$projectDir/schemas")
         arg("room.incremental", "true")
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ["-parameters"]
 }
 
 def abiVersionCodes = [

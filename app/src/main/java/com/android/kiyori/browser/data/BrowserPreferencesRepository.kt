@@ -1,10 +1,12 @@
 package com.android.kiyori.browser.data
 
 import android.content.Context
+import android.net.Uri
 import com.android.kiyori.browser.domain.BrowserSearchEngine
 import com.android.kiyori.browser.domain.BrowserUserAgentMode
 import com.android.kiyori.browser.security.BrowserSecurityPolicy
 import com.android.kiyori.manager.PreferencesManager
+import org.json.JSONObject
 
 class BrowserPreferencesRepository(context: Context) {
     private val preferencesManager = PreferencesManager.getInstance(context.applicationContext)
@@ -57,6 +59,36 @@ class BrowserPreferencesRepository(context: Context) {
         preferencesManager.setBrowserDesktopModeEnabled(mode == BrowserUserAgentMode.PC_DESKTOP)
     }
 
+    fun getCustomGlobalUserAgent(): String {
+        return preferencesManager.getBrowserCustomGlobalUserAgent().trim()
+    }
+
+    fun setCustomGlobalUserAgent(value: String) {
+        preferencesManager.setBrowserCustomGlobalUserAgent(value.trim())
+    }
+
+    fun getCustomSiteUserAgent(url: String): String {
+        val siteKey = extractSiteKey(url) ?: return ""
+        val allRules = readCustomSiteUserAgents()
+        return allRules.optString(siteKey, "").trim()
+    }
+
+    fun setCustomSiteUserAgent(url: String, value: String) {
+        val siteKey = extractSiteKey(url) ?: return
+        val allRules = readCustomSiteUserAgents()
+        val trimmedValue = value.trim()
+        if (trimmedValue.isBlank()) {
+            allRules.remove(siteKey)
+        } else {
+            allRules.put(siteKey, trimmedValue)
+        }
+        preferencesManager.setBrowserCustomSiteUserAgents(allRules.toString())
+    }
+
+    fun getCurrentSiteHost(url: String): String {
+        return extractSiteKey(url).orEmpty()
+    }
+
     fun isDesktopModeEnabled(): Boolean {
         return preferencesManager.isBrowserDesktopModeEnabled()
     }
@@ -80,5 +112,18 @@ class BrowserPreferencesRepository(context: Context) {
     fun setX5Enabled(enabled: Boolean) {
         preferencesManager.setBrowserX5Enabled(enabled)
     }
-}
 
+    private fun readCustomSiteUserAgents(): JSONObject {
+        val raw = preferencesManager.getBrowserCustomSiteUserAgents().trim()
+        if (raw.isBlank()) {
+            return JSONObject()
+        }
+        return runCatching { JSONObject(raw) }.getOrDefault(JSONObject())
+    }
+
+    private fun extractSiteKey(url: String): String? {
+        return runCatching { Uri.parse(url).host.orEmpty().lowercase() }
+            .getOrDefault("")
+            .takeIf { it.isNotBlank() }
+    }
+}

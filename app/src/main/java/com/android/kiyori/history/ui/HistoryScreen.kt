@@ -64,6 +64,8 @@ import java.util.Locale
 fun HistoryScreen(
     playbackHistoryManager: PlaybackHistoryManager,
     initialSection: HistorySection,
+    useStatusBarPadding: Boolean = true,
+    onHistoryChanged: () -> Unit = {},
     onBack: () -> Unit,
     onOpenBrowserHistory: (String) -> Unit,
     onOpenPlaybackHistory: (Uri, Long) -> Unit
@@ -110,6 +112,7 @@ fun HistoryScreen(
         HistoryTopBar(
             searchQuery = searchQuery,
             canDelete = hasItemsInCurrentSection,
+            useStatusBarPadding = useStatusBarPadding,
             onBack = onBack,
             onSearchQueryChange = { searchQuery = it },
             onDeleteClick = { showClearDialog = true }
@@ -202,10 +205,12 @@ fun HistoryScreen(
                             HistorySection.WEB -> {
                                 browserHistoryRepository.clearHistory()
                                 browserHistory = emptyList()
+                                onHistoryChanged()
                             }
                             HistorySection.PLAYBACK -> {
                                 playbackHistoryManager.clearHistory()
                                 playbackHistory = emptyList()
+                                onHistoryChanged()
                             }
                         }
                         showClearDialog = false
@@ -252,10 +257,12 @@ fun HistoryScreen(
                             is HistoryListEntry.Browser -> {
                                 browserHistoryRepository.deleteHistory(entry.item.id)
                                 browserHistory = browserHistoryRepository.getHistory()
+                                onHistoryChanged()
                             }
                             is HistoryListEntry.Playback -> {
                                 playbackHistoryManager.removeHistory(entry.item.uri)
                                 playbackHistory = playbackHistoryManager.getHistory()
+                                onHistoryChanged()
                             }
                         }
                         pendingDeleteItem = null
@@ -279,6 +286,7 @@ fun HistoryScreen(
 private fun HistoryTopBar(
     searchQuery: String,
     canDelete: Boolean,
+    useStatusBarPadding: Boolean,
     onBack: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onDeleteClick: () -> Unit
@@ -286,7 +294,7 @@ private fun HistoryTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
+            .then(if (useStatusBarPadding) Modifier.statusBarsPadding() else Modifier)
             .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

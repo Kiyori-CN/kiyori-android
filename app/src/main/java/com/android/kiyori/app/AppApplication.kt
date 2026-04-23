@@ -3,6 +3,7 @@ package com.android.kiyori.app
 import android.app.Application
 import com.android.kiyori.browser.x5.BrowserX5KernelManager
 import com.android.kiyori.database.VideoDatabase
+import com.android.kiyori.download.InternalDownloadManager
 import com.android.kiyori.manager.ThemeManager
 import com.android.kiyori.utils.CrashHandler
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,7 @@ class AppApplication : Application() {
 
         // 预初始化 X5 浏览内核，未就绪时自动回退到系统内核
         BrowserX5KernelManager.initialize(this)
+        InternalDownloadManager.initialize(this)
 
         // 后台预热数据库连接（减少首次查询延迟）
         applicationScope.launch {

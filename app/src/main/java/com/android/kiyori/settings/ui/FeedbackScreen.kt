@@ -55,6 +55,7 @@ fun FeedbackScreen(
     onOpenGithub: () -> Unit
 ) {
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text(text = "建议反馈", fontSize = 18.sp, fontWeight = FontWeight.Bold) },

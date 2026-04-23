@@ -26,18 +26,9 @@ data class DetectedVideo(
     fun toFullUrlString(): String = url
 
     fun getDisplayText(): String {
-        val format = when {
-            url.contains(".m3u8", ignoreCase = true) -> "M3U8"
-            url.contains(".mpd", ignoreCase = true) -> "DASH"
-            url.contains(".mp4", ignoreCase = true) -> "MP4"
-            url.contains(".flv", ignoreCase = true) -> "FLV"
-            url.contains(".avi", ignoreCase = true) -> "AVI"
-            url.contains(".mkv", ignoreCase = true) -> "MKV"
-            url.contains("rtmp://", ignoreCase = true) -> "RTMP"
-            url.contains("rtmps://", ignoreCase = true) -> "RTMPS"
-            url.contains("rtsp://", ignoreCase = true) -> "RTSP"
-            else -> "VIDEO"
-        }
+        val format = UrlDetector.getDetectedResourceFormat(url, headers)
+            .takeUnless { it == "UNKNOWN" }
+            ?: "FILE"
 
         return if (title.isNotEmpty()) {
             "$title ($format)"

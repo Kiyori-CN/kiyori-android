@@ -48,6 +48,15 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.VideoPlayer">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         <activity android:name=".app.MainActivity"
             android:theme="@style/Theme.VideoPlayer.Launcher"
             android:exported="true">
@@ -61,7 +70,10 @@
             android:exported="false"
             android:theme="@style/Theme.VideoPlayer" />
         <activity android:name=".settings.SettingsComposeActivity" />
-        <activity android:name=".download.ui.DownloadActivity" />
+        <activity
+            android:name=".download.ui.DownloadActivity"
+            android:theme="@style/Theme.VideoPlayer.TransparentOverlay" />
+        <activity android:name=".download.ui.BilibiliDownloadActivity" />
         <activity android:name=".settings.PlaybackSettingsComposeActivity" />
         <activity android:name=".history.ui.PlaybackHistoryComposeActivity" />
         <activity android:name=".history.ui.HistoryComposeActivity" />

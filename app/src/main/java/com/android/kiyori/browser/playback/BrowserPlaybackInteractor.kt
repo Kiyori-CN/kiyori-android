@@ -21,7 +21,8 @@ object BrowserPlaybackInteractor {
         val format: String,
         val score: Int,
         val summary: String,
-        val isRecommended: Boolean
+        val isRecommended: Boolean,
+        val canPreview: Boolean
     )
 
     private val noiseKeywords = listOf(
@@ -34,6 +35,21 @@ object BrowserPlaybackInteractor {
     private val segmentKeywords = listOf(
         ".ts", ".m4s", "init.mp4", "segment", "segments", "chunk", "frag", "fragment"
     )
+
+    private val streamingFormats = setOf("M3U8", "DASH", "RTMP", "RTSP")
+    private val videoFormats = setOf(
+        "MP4", "FLV", "WEBM", "MKV", "MOV", "AVI", "3GP", "ASF", "WMV",
+        "RMVB", "RM", "M4V", "MPEG", "MPG", "MPE", "OGV", "QT", "VIDEO"
+    )
+    private val audioFormats = setOf(
+        "AAC", "AIF", "M4A", "MP3", "MPA", "OGG", "RA", "WAV", "WMA", "AUDIO"
+    )
+    private val archiveFormats = setOf(
+        "7Z", "ACE", "ARJ", "BZ2", "GZIP", "GZ", "LZH", "RAR", "SEA",
+        "SIT", "SITX", "TAR", "Z", "ZIP", "R0", "R1"
+    )
+    private val packageFormats = setOf("APK", "BIN", "EXE", "IMG", "ISO", "MSI", "MSU")
+    private val documentFormats = setOf("PDF", "PLJ", "PPS", "PPT", "TIF", "TIFF")
 
     fun play(context: Context, video: DetectedVideo) {
         val request = video.toRemotePlaybackRequest().copy(
@@ -101,30 +117,60 @@ object BrowserPlaybackInteractor {
     private fun buildCandidate(video: DetectedVideo, pageHost: String): BrowserVideoCandidate {
         val url = video.url
         val lowerUrl = url.lowercase()
-        val format = UrlDetector.getVideoFormat(url)
+        val format = UrlDetector.getDetectedResourceFormat(url, video.headers)
         val contentType = RemotePlaybackHeaders.get(video.headers, "Content-Type")
             .orEmpty()
             .lowercase()
+        val contentDisposition = RemotePlaybackHeaders.get(video.headers, "Content-Disposition")
+            .orEmpty()
+            .lowercase()
         val requestHost = extractHost(url)
+        val canPreview = UrlDetector.isPlayableFormat(format)
 
         val reasons = mutableListOf<String>()
         var score = 0
 
         when (format) {
-            "M3U8", "DASH" -> {
+            in streamingFormats -> {
                 score += 120
                 reasons += "流媒体清单"
             }
 
-            "MP4", "FLV", "WEBM", "MKV", "MOV" -> {
+            in videoFormats -> {
                 score += 90
                 reasons += "直链媒体"
             }
 
+            in audioFormats -> {
+                score += 78
+                reasons += "音频资源"
+            }
+
+            in archiveFormats -> {
+                score += 70
+                reasons += "压缩包"
+            }
+
+            in packageFormats -> {
+                score += 66
+                reasons += "安装包/镜像"
+            }
+
+            in documentFormats -> {
+                score += 62
+                reasons += "文档资源"
+            }
+
             else -> {
-                if (contentType.contains("video/")) {
+                if (format != "UNKNOWN") {
+                    score += 54
+                    reasons += "可下载文件"
+                } else if (contentType.contains("video/")) {
                     score += 55
                     reasons += "服务端标记为视频"
+                } else if (contentType.contains("audio/")) {
+                    score += 48
+                    reasons += "服务端标记为音频"
                 }
             }
         }
@@ -132,6 +178,11 @@ object BrowserPlaybackInteractor {
         if (contentType.contains("mpegurl") || contentType.contains("dash+xml")) {
             score += 70
             reasons += "播放清单类型"
+        }
+
+        if (contentDisposition.contains("attachment")) {
+            score += 28
+            reasons += "下载响应"
         }
 
         if (pageHost.isNotBlank() && requestHost.isNotBlank() && isSameSite(pageHost, requestHost)) {
@@ -145,12 +196,12 @@ object BrowserPlaybackInteractor {
         }
 
         val qualityScore = calculateQualityScore(lowerUrl)
-        if (qualityScore > 0) {
+        if (canPreview && qualityScore > 0) {
             score += qualityScore
             reasons += "质量关键词"
         }
 
-        val hasSegmentPattern = segmentKeywords.any { lowerUrl.contains(it) }
+        val hasSegmentPattern = canPreview && segmentKeywords.any { lowerUrl.contains(it) }
         if (hasSegmentPattern) {
             score -= 130
             reasons += "疑似分片"
@@ -166,17 +217,19 @@ object BrowserPlaybackInteractor {
             score -= 15
         }
 
-        val recommended = !hasSegmentPattern &&
+        val recommended = canPreview &&
+            !hasSegmentPattern &&
             !hasNoisePattern &&
             score >= 60 &&
-            (format != "UNKNOWN" || contentType.contains("video/"))
+            (format != "UNKNOWN" || contentType.contains("video/") || contentType.contains("audio/"))
 
         return BrowserVideoCandidate(
             video = video,
             format = format,
             score = score,
             summary = reasons.distinct().joinToString(" / ").ifBlank { "普通候选资源" },
-            isRecommended = recommended
+            isRecommended = recommended,
+            canPreview = canPreview
         )
     }
 
@@ -263,4 +316,3 @@ object BrowserPlaybackInteractor {
         return score
     }
 }
-

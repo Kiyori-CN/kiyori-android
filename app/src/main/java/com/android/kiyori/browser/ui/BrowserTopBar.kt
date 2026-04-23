@@ -81,6 +81,7 @@ private val BrowserTopBarVerticalPadding = 8.dp
 private val BrowserTopBarItemSpacing = 5.dp
 private val BrowserTopBarSideButtonWidth = 26.dp
 private val BrowserTopBarSideButtonHeight = 30.dp
+private val BrowserTopBarSideIconSize = 22.dp
 
 @Composable
 fun BrowserTopBar(
@@ -120,7 +121,7 @@ fun BrowserTopBar(
                 icon = Icons.Default.Refresh,
                 contentDescription = "刷新",
                 onClick = onReload,
-                iconSize = 20.dp
+                iconSize = BrowserTopBarSideIconSize
             )
         }
     }
@@ -284,7 +285,7 @@ private fun BrowserSearchBackButton(
             imageVector = Icons.Default.ArrowBack,
             contentDescription = "返回上一页",
             tint = Color(0xFF111827),
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(BrowserTopBarSideIconSize)
         )
     }
 }

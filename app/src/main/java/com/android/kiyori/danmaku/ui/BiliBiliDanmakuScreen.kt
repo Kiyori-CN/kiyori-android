@@ -55,6 +55,7 @@ fun BiliBiliDanmakuScreen(
     }
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             ImmersiveTopAppBar(
                 title = { Text("B站弹幕下载", fontSize = 20.sp, fontWeight = FontWeight.Bold) },

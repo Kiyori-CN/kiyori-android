@@ -109,6 +109,7 @@ fun VideoListScreenPaging(
     }
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             if (showSearch) {
                 SearchTopBar(

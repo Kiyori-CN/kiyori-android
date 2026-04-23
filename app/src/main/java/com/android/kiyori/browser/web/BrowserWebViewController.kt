@@ -24,6 +24,8 @@ import com.android.kiyori.browser.domain.BrowserSearchEngine
 import com.android.kiyori.browser.domain.BrowserSearchRecord
 import com.android.kiyori.browser.domain.BrowserUserAgentMode
 import com.android.kiyori.browser.security.BrowserSecurityPolicy
+import com.android.kiyori.browser.web.BrowserNetworkLogManager
+import com.android.kiyori.browser.web.BrowserRequestBlocklistManager
 import com.android.kiyori.sniffer.VideoSnifferManager
 import com.tencent.smtt.export.external.interfaces.ConsoleMessage
 import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback
@@ -43,6 +45,7 @@ import com.tencent.smtt.sdk.WebChromeClient
 import com.tencent.smtt.sdk.WebView
 import com.tencent.smtt.sdk.WebViewClient
 import org.json.JSONArray
+import java.io.ByteArrayInputStream
 
 data class BrowserWebViewCallbacks(
     val onStateChanged: (BrowserPageState) -> Unit,
@@ -107,6 +110,32 @@ class BrowserWebViewController(
 
     fun currentState(): BrowserPageState = pageState
 
+    fun getCustomGlobalUserAgent(): String {
+        return preferencesRepository.getCustomGlobalUserAgent()
+    }
+
+    fun getCustomSiteUserAgent(url: String = pageState.currentUrl): String {
+        return preferencesRepository.getCustomSiteUserAgent(url)
+    }
+
+    fun getCurrentSiteHost(url: String = pageState.currentUrl): String {
+        return preferencesRepository.getCurrentSiteHost(url)
+    }
+
+    fun saveCustomGlobalUserAgent(value: String) {
+        preferencesRepository.setCustomGlobalUserAgent(value)
+        if (pageState.userAgentMode == BrowserUserAgentMode.CUSTOM_GLOBAL) {
+            applyUserAgent(pageState.currentUrl)
+        }
+    }
+
+    fun saveCustomSiteUserAgent(value: String, url: String = pageState.currentUrl) {
+        preferencesRepository.setCustomSiteUserAgent(url, value)
+        if (pageState.userAgentMode == BrowserUserAgentMode.CUSTOM_SITE) {
+            applyUserAgent(url)
+        }
+    }
+
     fun attach(webView: WebView) {
         if (this.webView === webView) {
             return
@@ -114,6 +143,8 @@ class BrowserWebViewController(
 
         this.webView = webView
         BrowserWebViewFactory.configure(webView)
+        webView.onResume()
+        webView.resumeTimers()
         defaultUserAgent = webView.settings.userAgentString.orEmpty()
         Log.i(
             LOG_TAG,
@@ -293,10 +324,25 @@ class BrowserWebViewController(
                 if (url.isBlank()) {
                     return true
                 }
+                if (BrowserRequestBlocklistManager.isBlocked(url)) {
+                    BrowserNetworkLogManager.addBlocked(
+                        url = url,
+                        pageUrl = pageState.currentUrl,
+                        pageTitle = pageState.title,
+                        headers = request?.requestHeaders.orEmpty()
+                    )
+                    updateState { copy(blockedExternalUrl = url) }
+                    return true
+                }
                 if (BrowserSecurityPolicy.shouldLoadInsideWebView(url)) {
-                    applyUserAgent()
+                    applyUserAgent(url)
                     return false
                 }
+                BrowserNetworkLogManager.addBlocked(
+                    url = url,
+                    pageUrl = pageState.currentUrl,
+                    pageTitle = pageState.title
+                )
                 val handledExternally = callbacks.onExternalUrlBlocked(url)
                 if (!handledExternally) {
                     updateState { copy(blockedExternalUrl = url) }
@@ -306,6 +352,8 @@ class BrowserWebViewController(
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 val safeUrl = url ?: BrowserSecurityPolicy.BLANK_HOME_URL
+                applyUserAgent(safeUrl)
+                BrowserNetworkLogManager.startNewPage()
                 VideoSnifferManager.startNewPage()
                 beginNavigation(targetUrl = safeUrl)
                 syncNavigationState()
@@ -436,6 +484,28 @@ class BrowserWebViewController(
                 request: WebResourceRequest?
             ): WebResourceResponse? {
                 request?.let { req ->
+                    if (BrowserRequestBlocklistManager.isBlocked(req.url.toString())) {
+                        BrowserNetworkLogManager.addBlocked(
+                            url = req.url.toString(),
+                            headers = req.requestHeaders,
+                            pageUrl = pageState.currentUrl,
+                            pageTitle = pageState.title
+                        )
+                        return WebResourceResponse(
+                            "text/plain",
+                            "UTF-8",
+                            403,
+                            "Blocked",
+                            emptyMap(),
+                            ByteArrayInputStream(ByteArray(0))
+                        )
+                    }
+                    BrowserNetworkLogManager.addResource(
+                        url = req.url.toString(),
+                        headers = req.requestHeaders,
+                        pageUrl = pageState.currentUrl,
+                        pageTitle = pageState.title
+                    )
                     VideoSnifferManager.processRequest(
                         url = req.url.toString(),
                         headers = req.requestHeaders,
@@ -466,19 +536,15 @@ class BrowserWebViewController(
                 )
             }
             syncNavigationState()
-        } else {
-            loadHome(closeUrlBar = true)
         }
     }
 
     fun onResume() {
         webView?.onResume()
-        webView?.resumeTimers()
     }
 
     fun onPause() {
         webView?.onPause()
-        webView?.pauseTimers()
     }
 
     fun exitCustomViewIfNeeded(): Boolean {
@@ -491,11 +557,18 @@ class BrowserWebViewController(
 
     fun destroy() {
         hideCustomView()
+        navigationGeneration += 1
         runCatching {
             webView?.x5WebViewExtension?.setWebViewClientExtension(null)
         }
         webView?.apply {
-            stopLoading()
+            runCatching { stopLoading() }
+            webChromeClient = null
+            webViewClient = null
+            setDownloadListener(null)
+            onPause()
+            removeAllViews()
+            (parent as? ViewGroup)?.removeView(this)
             destroy()
         }
         webView = null
@@ -533,6 +606,7 @@ class BrowserWebViewController(
     }
 
     private fun loadUrl(url: String, closeUrlBar: Boolean) {
+        val targetWebView = webView
         val normalizedInputUrl = BrowserSecurityPolicy.normalizeUserInput(
             input = url,
             searchEngine = pageState.searchEngine
@@ -557,10 +631,12 @@ class BrowserWebViewController(
                     blockedExternalUrl = null
                 )
             }
-            webView?.loadUrl(normalizedUrl, COMPATIBILITY_REQUEST_HEADERS)
+            cancelPendingLoadIfNeeded(targetWebView, normalizedUrl)
+            loadIntoWebView(targetWebView, normalizedUrl)
             syncNavigationState()
             return
         }
+        cancelPendingLoadIfNeeded(targetWebView, normalizedUrl)
         beginNavigation(
             targetUrl = normalizedUrl,
             closeUrlBar = closeUrlBar
@@ -572,8 +648,8 @@ class BrowserWebViewController(
                 showUrlBar = if (closeUrlBar) false else showUrlBar
             )
         }
-        applyUserAgent()
-        webView?.loadUrl(normalizedUrl, COMPATIBILITY_REQUEST_HEADERS)
+        applyUserAgent(normalizedUrl)
+        loadIntoWebView(targetWebView, normalizedUrl)
     }
 
     fun selectSearchEngine(engine: BrowserSearchEngine) {
@@ -618,7 +694,9 @@ class BrowserWebViewController(
     fun goBack() {
         val targetWebView = webView
         if (targetWebView?.canGoBack() == true) {
-            applyUserAgent()
+            val backUrl = peekNavigationUrl(targetWebView, offset = -1)
+            applyUserAgent(backUrl)
+            beginNavigation(targetUrl = backUrl, closeUrlBar = false)
             targetWebView.goBack()
             scheduleNavigationStateSync(targetWebView)
         }
@@ -627,20 +705,24 @@ class BrowserWebViewController(
     fun goForward() {
         val targetWebView = webView
         if (targetWebView?.canGoForward() == true) {
-            applyUserAgent()
+            val forwardUrl = peekNavigationUrl(targetWebView, offset = 1)
+            applyUserAgent(forwardUrl)
+            beginNavigation(targetUrl = forwardUrl, closeUrlBar = false)
             targetWebView.goForward()
             scheduleNavigationStateSync(targetWebView)
         }
     }
 
     fun reload() {
+        val targetWebView = webView ?: return
         if (pageState.currentUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
             loadHome()
             return
         }
-        applyUserAgent()
+        applyUserAgent(pageState.currentUrl)
         beginNavigation(targetUrl = pageState.currentUrl)
-        webView?.reload()
+        cancelPendingLoadIfNeeded(targetWebView, pageState.currentUrl)
+        targetWebView.reload()
     }
 
     fun toggleDesktopMode() {
@@ -653,6 +735,7 @@ class BrowserWebViewController(
     }
 
     fun setUserAgentMode(mode: BrowserUserAgentMode) {
+        val targetWebView = webView
         preferencesRepository.setUserAgentMode(mode)
         updateState {
             copy(
@@ -660,10 +743,11 @@ class BrowserWebViewController(
                 isDesktopMode = mode == BrowserUserAgentMode.PC_DESKTOP
             )
         }
-        applyUserAgent()
-        if (pageState.currentUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
+        applyUserAgent(pageState.currentUrl)
+        if (targetWebView != null && pageState.currentUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
             beginNavigation(targetUrl = pageState.currentUrl)
-            webView?.reload()
+            cancelPendingLoadIfNeeded(targetWebView, pageState.currentUrl)
+            targetWebView.reload()
         }
     }
 
@@ -700,13 +784,46 @@ class BrowserWebViewController(
         }
     }
 
-    private fun applyUserAgent() {
+    private fun resolveActiveUserAgent(targetUrl: String = pageState.currentUrl): String {
+        val customUserAgent = when (pageState.userAgentMode) {
+            BrowserUserAgentMode.CUSTOM_GLOBAL -> {
+                preferencesRepository.getCustomGlobalUserAgent()
+            }
+            BrowserUserAgentMode.CUSTOM_SITE -> {
+                preferencesRepository.getCustomSiteUserAgent(targetUrl)
+                    .ifBlank { preferencesRepository.getCustomGlobalUserAgent() }
+            }
+            else -> ""
+        }
+        return BrowserSecurityPolicy.resolveUserAgent(
+            mode = pageState.userAgentMode,
+            defaultUserAgent = defaultUserAgent,
+            customUserAgent = customUserAgent
+        )
+    }
+
+    private fun applyUserAgent(targetUrl: String = pageState.currentUrl) {
         val targetWebView = webView ?: return
         BrowserWebViewFactory.applyIdentity(
             webView = targetWebView,
-            mode = pageState.userAgentMode,
-            defaultUserAgent = defaultUserAgent
+            userAgent = resolveActiveUserAgent(targetUrl)
         )
+    }
+
+    private fun peekNavigationUrl(
+        targetWebView: WebView,
+        offset: Int
+    ): String {
+        return runCatching {
+            val historyList = targetWebView.copyBackForwardList()
+            val targetIndex = historyList.currentIndex + offset
+            if (targetIndex >= 0 && targetIndex < historyList.size) {
+                historyList.getItemAtIndex(targetIndex)?.url.orEmpty()
+            } else {
+                ""
+            }
+        }.getOrDefault("")
+            .ifBlank { pageState.currentUrl }
     }
 
     private fun showJavaScriptAlert(
@@ -984,11 +1101,24 @@ class BrowserWebViewController(
                 return@postDelayed
             }
 
+            val hasVisibleContent = hasRenderableMainFrameContent(
+                targetWebView = targetWebView,
+                progress = currentProgress
+            )
+            if (resolvedUrl != BrowserSecurityPolicy.BLANK_HOME_URL &&
+                attempt >= DOM_READY_PROBE_START_ATTEMPT
+            ) {
+                probeDocumentReadyState(
+                    targetWebView = targetWebView,
+                    generation = generation,
+                    attempt = attempt,
+                    resolvedUrl = resolvedUrl,
+                    fallbackHasVisibleContent = hasVisibleContent
+                )
+                return@postDelayed
+            }
+
             if (pageState.isLoading && attempt >= MAX_LOAD_RECOVERY_ATTEMPTS) {
-                val hasVisibleContent =
-                    currentProgress >= VISUAL_READY_PROGRESS_THRESHOLD ||
-                        targetWebView.contentHeight > 0 ||
-                        !targetWebView.title.isNullOrBlank()
                 if (resolvedUrl != BrowserSecurityPolicy.BLANK_HOME_URL && hasVisibleContent) {
                     Log.w(
                         LOG_TAG,
@@ -1008,6 +1138,50 @@ class BrowserWebViewController(
                 scheduleLoadStateRecovery(generation, attempt + 1)
             }
         }, LOAD_RECOVERY_DELAY_MS)
+    }
+
+    private fun probeDocumentReadyState(
+        targetWebView: WebView,
+        generation: Int,
+        attempt: Int,
+        resolvedUrl: String,
+        fallbackHasVisibleContent: Boolean
+    ) {
+        runCatching {
+            targetWebView.evaluateJavascript(DOCUMENT_READY_STATE_SCRIPT) { rawResult ->
+                if (generation != navigationGeneration ||
+                    this.webView !== targetWebView ||
+                    !pageState.isLoading
+                ) {
+                    return@evaluateJavascript
+                }
+
+                val readyState = decodeJavaScriptStringResult(rawResult).lowercase()
+                val latestProgress = targetWebView.progress.coerceIn(0, 100)
+                val latestHasVisibleContent = hasRenderableMainFrameContent(
+                    targetWebView = targetWebView,
+                    progress = latestProgress
+                ) || fallbackHasVisibleContent
+                val isDocumentReady = readyState == "interactive" || readyState == "complete"
+                if (resolvedUrl != BrowserSecurityPolicy.BLANK_HOME_URL &&
+                    isDocumentReady &&
+                    latestHasVisibleContent
+                ) {
+                    finishLoadingState(
+                        view = targetWebView,
+                        url = resolvedUrl,
+                        captureHistory = false,
+                        reason = "dom-ready-$readyState"
+                    )
+                } else if (attempt < MAX_LOAD_RECOVERY_ATTEMPTS) {
+                    scheduleLoadStateRecovery(generation, attempt + 1)
+                }
+            }
+        }.onFailure {
+            if (attempt < MAX_LOAD_RECOVERY_ATTEMPTS) {
+                scheduleLoadStateRecovery(generation, attempt + 1)
+            }
+        }
     }
 
     private fun scheduleNavigationStateSync(
@@ -1060,6 +1234,55 @@ class BrowserWebViewController(
                 captureHistory = false,
                 reason = "x5-visual-ready"
             )
+        }
+    }
+
+    private fun hasRenderableMainFrameContent(
+        targetWebView: WebView,
+        progress: Int = targetWebView.progress.coerceIn(0, 100)
+    ): Boolean {
+        val title = targetWebView.title.orEmpty()
+        return progress >= VISUAL_READY_PROGRESS_THRESHOLD ||
+            targetWebView.contentHeight > 0 ||
+            (title.isNotBlank() && title != "Kiyori")
+    }
+
+    private fun loadIntoWebView(
+        targetWebView: WebView?,
+        normalizedUrl: String
+    ) {
+        targetWebView ?: return
+        if (normalizedUrl == BrowserSecurityPolicy.BLANK_HOME_URL ||
+            normalizedUrl.startsWith("javascript:", ignoreCase = true) ||
+            normalizedUrl.startsWith("data:", ignoreCase = true) ||
+            normalizedUrl.startsWith("blob:", ignoreCase = true)
+        ) {
+            targetWebView.loadUrl(normalizedUrl)
+        } else {
+            targetWebView.loadUrl(normalizedUrl, COMPATIBILITY_REQUEST_HEADERS)
+        }
+    }
+
+    private fun cancelPendingLoadIfNeeded(
+        targetWebView: WebView?,
+        nextUrl: String
+    ) {
+        targetWebView ?: return
+        val currentWebUrl = targetWebView.url.orEmpty()
+        val currentProgress = targetWebView.progress.coerceIn(0, 100)
+        val hasInFlightLoad =
+            pageState.isLoading ||
+                currentProgress in 1..99 ||
+                (currentWebUrl.isNotBlank() &&
+                    currentWebUrl != BrowserSecurityPolicy.BLANK_HOME_URL &&
+                    currentWebUrl != nextUrl)
+        if (!hasInFlightLoad) {
+            return
+        }
+        runCatching {
+            targetWebView.stopLoading()
+        }.onFailure {
+            Log.w(LOG_TAG, "Failed to stop pending load before navigating to $nextUrl", it)
         }
     }
 
@@ -1212,9 +1435,12 @@ class BrowserWebViewController(
         private const val CAPTURE_DELAY_MS = 220L
         private const val LOAD_RECOVERY_DELAY_MS = 240L
         private const val MAX_LOAD_RECOVERY_ATTEMPTS = 18
+        private const val DOM_READY_PROBE_START_ATTEMPT = 2
         private const val NAVIGATION_STATE_SYNC_DELAY_MS = 120L
         private const val NAVIGATION_STATE_SYNC_ATTEMPTS = 8
         private const val VISUAL_READY_PROGRESS_THRESHOLD = 85
+        private const val DOCUMENT_READY_STATE_SCRIPT =
+            "(function(){return document && document.readyState ? document.readyState : '';})();"
         private val COMPATIBILITY_REQUEST_HEADERS = mapOf("X-Requested-With" to "")
     }
 }

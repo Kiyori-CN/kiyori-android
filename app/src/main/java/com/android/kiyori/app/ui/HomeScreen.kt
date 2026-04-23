@@ -15,10 +15,13 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -35,6 +38,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
@@ -58,12 +62,13 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.android.kiyori.R
 import com.android.kiyori.bilibili.auth.BiliBiliAuthManager
+import com.android.kiyori.app.MainActivity
 import com.android.kiyori.browser.data.BrowserBookmarkRepository
 import com.android.kiyori.browser.data.BrowserHistoryRepository
-import com.android.kiyori.browser.ui.BrowserBookmarksActivity
+import com.android.kiyori.browser.ui.BrowserBookmarksScreen
 import com.android.kiyori.history.PlaybackHistoryManager
-import com.android.kiyori.history.ui.HistoryComposeActivity
 import com.android.kiyori.history.ui.HistorySection
+import com.android.kiyori.history.ui.HistoryScreen
 import com.android.kiyori.manager.PreferencesManager
 import com.android.kiyori.manager.compose.BiliBiliLoginActivity
 import com.android.kiyori.media.ui.LocalMediaBrowserActivity
@@ -71,7 +76,8 @@ import com.android.kiyori.media.VideoFileParcelable
 import com.android.kiyori.bilibili.ui.BiliBiliPlayActivity
 import com.android.kiyori.danmaku.ui.BiliBiliDanmakuComposeActivity
 import com.android.kiyori.player.ui.VideoPlayerActivity
-import com.android.kiyori.download.ui.DownloadActivity
+import com.android.kiyori.download.ui.BilibiliDownloadActivity
+import com.android.kiyori.download.ui.DownloadCenterScreen
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
@@ -79,6 +85,7 @@ import com.android.kiyori.remote.RemoteUrlParser
 import com.android.kiyori.browser.ui.BrowserActivity
 import com.android.kiyori.settings.ui.SettingsScreen
 import com.android.kiyori.subtitle.ui.SubtitleSearchActivity
+import com.android.kiyori.ui.compose.KiyoriBottomDrawer
 import com.android.kiyori.webdav.WebDavComposeActivity
 import kotlinx.coroutines.launch
 
@@ -89,20 +96,45 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     historyManager: PlaybackHistoryManager,
-    initialTab: String? = null
+    initialTab: String? = null,
+    initialSettingsPage: String? = null,
+    navigationRequestId: Long = 0L
 ) {
+    val exitConfirmWindowMs = 2000L
     val context = LocalContext.current
     val activity = context as? Activity
     val authManager = remember(context) { BiliBiliAuthManager.getInstance(context) }
     var selectedTab by rememberSaveable { mutableStateOf(HomeTab.fromRoute(initialTab) ?: HomeTab.Home) }
+    var activeSettingsPage by rememberSaveable { mutableStateOf<String?>(initialSettingsPage) }
+    var activeSettingsRequestId by rememberSaveable { mutableLongStateOf(navigationRequestId) }
+    var isSettingsRootPage by rememberSaveable(initialSettingsPage) {
+        mutableStateOf(initialSettingsPage.isNullOrBlank())
+    }
     var homePlaceholderTitle by rememberSaveable { mutableStateOf<String?>(null) }
-    var fileSubPage by rememberSaveable { mutableStateOf(FileSubPage.Home) }
+    var showBookmarksSheet by rememberSaveable { mutableStateOf(false) }
+    var showHistorySheet by rememberSaveable { mutableStateOf(false) }
+    var showDownloadCenter by rememberSaveable { mutableStateOf(false) }
+    var appsSubPage by rememberSaveable { mutableStateOf(AppsSubPage.Home) }
     var filePlaceholderTitle by rememberSaveable { mutableStateOf<String?>(null) }
-    val homePagerState = rememberPagerState(initialPage = 1, pageCount = { 2 })
+    var lastExitAttemptAt by rememberSaveable { mutableLongStateOf(0L) }
+    val homePagerState = rememberPagerState(
+        initialPage = HomeTab.homePagerPage(initialTab),
+        pageCount = { 3 }
+    )
     val coroutineScope = rememberCoroutineScope()
-    val bookmarkCount = remember(context) { BrowserBookmarkRepository(context).getBookmarks().size }
-    val historyCount = remember(context) {
-        BrowserHistoryRepository(context).getHistory().size + historyManager.getHistory().size
+    val bookmarkRepository = remember(context) { BrowserBookmarkRepository(context) }
+    val browserHistoryRepository = remember(context) { BrowserHistoryRepository(context) }
+    var bookmarkCount by rememberSaveable { mutableIntStateOf(bookmarkRepository.getBookmarks().size) }
+    var historyCount by rememberSaveable {
+        mutableIntStateOf(browserHistoryRepository.getHistory().size + historyManager.getHistory().size)
+    }
+
+    fun refreshBookmarkCount() {
+        bookmarkCount = bookmarkRepository.getBookmarks().size
+    }
+
+    fun refreshHistoryCount() {
+        historyCount = browserHistoryRepository.getHistory().size + historyManager.getHistory().size
     }
 
     fun withBiliLogin(action: () -> Unit) {
@@ -117,28 +149,73 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(initialTab) {
-        HomeTab.fromRoute(initialTab)?.let { selectedTab = it }
+    LaunchedEffect(initialTab, initialSettingsPage, navigationRequestId) {
+        HomeTab.fromRoute(initialTab)?.let { tab ->
+            selectedTab = tab
+            activeSettingsPage = initialSettingsPage
+            activeSettingsRequestId = navigationRequestId
+            isSettingsRootPage = initialSettingsPage.isNullOrBlank()
+            lastExitAttemptAt = 0L
+            if (tab == HomeTab.Home) {
+                homePagerState.scrollToPage(HomeTab.homePagerPage(initialTab))
+            }
+        }
     }
 
-    BackHandler(enabled = filePlaceholderTitle != null || fileSubPage != FileSubPage.Home) {
+    val isTopLevelRootPage =
+        homePlaceholderTitle == null &&
+            filePlaceholderTitle == null &&
+            appsSubPage == AppsSubPage.Home &&
+            (selectedTab != HomeTab.Home || homePagerState.currentPage == 1) &&
+            (selectedTab != HomeTab.Settings || isSettingsRootPage)
+
+    BackHandler(
+        enabled = homePlaceholderTitle != null ||
+            filePlaceholderTitle != null ||
+            appsSubPage != AppsSubPage.Home ||
+            (selectedTab == HomeTab.Home && homePagerState.currentPage != 1)
+    ) {
         when {
+            homePlaceholderTitle != null -> homePlaceholderTitle = null
             filePlaceholderTitle != null -> filePlaceholderTitle = null
-            fileSubPage != FileSubPage.Home -> fileSubPage = FileSubPage.Home
+            appsSubPage != AppsSubPage.Home -> appsSubPage = AppsSubPage.Home
+            selectedTab == HomeTab.Home && homePagerState.currentPage != 1 -> {
+                coroutineScope.launch {
+                    homePagerState.animateScrollToPage(1)
+                }
+            }
+        }
+    }
+
+    BackHandler(enabled = isTopLevelRootPage) {
+        val now = System.currentTimeMillis()
+        if (now - lastExitAttemptAt <= exitConfirmWindowMs) {
+            activity?.finishAffinity()
+        } else {
+            lastExitAttemptAt = now
+            android.widget.Toast.makeText(
+                context,
+                "再按一次退出软件",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.White,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (!(selectedTab == HomeTab.Home && homePlaceholderTitle != null)) {
+            if (
+                !(selectedTab == HomeTab.Home && homePlaceholderTitle != null) &&
+                !(selectedTab == HomeTab.Settings && !isSettingsRootPage)
+            ) {
                 HomeBottomBar(
                     selectedTab = selectedTab,
                     onTabSelected = {
                         when (it) {
                             HomeTab.Browser -> {
-                                fileSubPage = FileSubPage.Home
+                                appsSubPage = AppsSubPage.Home
                                 filePlaceholderTitle = null
                                 BrowserActivity.start(context)
                                 activity?.overridePendingTransition(
@@ -149,15 +226,26 @@ fun HomeScreen(
                             HomeTab.Home -> {
                                 selectedTab = HomeTab.Home
                                 homePlaceholderTitle = null
-                                fileSubPage = FileSubPage.Home
+                                appsSubPage = AppsSubPage.Home
                                 filePlaceholderTitle = null
                                 coroutineScope.launch {
                                     homePagerState.animateScrollToPage(1)
                                 }
                             }
-                            else -> {
-                                fileSubPage = FileSubPage.Home
+                            HomeTab.Apps -> {
+                                homePlaceholderTitle = null
+                                appsSubPage = AppsSubPage.Home
                                 filePlaceholderTitle = null
+                                selectedTab = HomeTab.Apps
+                            }
+                            else -> {
+                                appsSubPage = AppsSubPage.Home
+                                filePlaceholderTitle = null
+                                if (it == HomeTab.Settings) {
+                                    activeSettingsPage = null
+                                    activeSettingsRequestId = System.currentTimeMillis()
+                                    isSettingsRootPage = true
+                                }
                                 selectedTab = it
                             }
                         }
@@ -180,7 +268,7 @@ fun HomeScreen(
                             onBackClick = { homePlaceholderTitle = null }
                         )
                     } else {
-                        HomeMinusOnePager(
+                        HomeMainPager(
                             pagerState = homePagerState,
                             bookmarkCount = bookmarkCount,
                             historyCount = historyCount,
@@ -191,29 +279,26 @@ fun HomeScreen(
                                     R.anim.no_anim
                                 )
                             },
-                            onAiClick = { selectedTab = HomeTab.AI },
+                            onAiClick = {
+                                coroutineScope.launch {
+                                    homePagerState.animateScrollToPage(2)
+                                }
+                            },
                             onCloseMinusOne = {
                                 coroutineScope.launch {
                                     homePagerState.animateScrollToPage(1)
                                 }
                             },
                             onOpenHistoryPage = {
-                                HistoryComposeActivity.start(
-                                    context,
-                                    initialSection = HistorySection.WEB
-                                )
-                                activity?.overridePendingTransition(
-                                    R.anim.slide_in_right,
-                                    R.anim.slide_out_left
-                                )
+                                refreshHistoryCount()
+                                showHistorySheet = true
                             },
                             onOpenMinusOnePage = { title ->
                                 if (title == "\u4e66\u7b7e") {
-                                    BrowserBookmarksActivity.start(context)
-                                    activity?.overridePendingTransition(
-                                        R.anim.slide_in_right,
-                                        R.anim.slide_out_left
-                                    )
+                                    refreshBookmarkCount()
+                                    showBookmarksSheet = true
+                                } else if (title == "下载") {
+                                    showDownloadCenter = true
                                 } else {
                                     homePlaceholderTitle = title
                                 }
@@ -222,15 +307,10 @@ fun HomeScreen(
                     }
                 }
 
-                HomeTab.Files -> {
-                    if (filePlaceholderTitle != null) {
-                        HomeBlankSubPage(
-                            title = filePlaceholderTitle.orEmpty(),
-                            onBackClick = { filePlaceholderTitle = null }
-                        )
-                    } else if (fileSubPage == FileSubPage.BiliBili) {
+                HomeTab.Apps -> {
+                    if (appsSubPage == AppsSubPage.BiliBili) {
                         FileBiliBiliPage(
-                            onBackClick = { fileSubPage = FileSubPage.Home },
+                            onBackClick = { appsSubPage = AppsSubPage.Home },
                             onLoginClick = {
                                 context.startActivity(Intent(context, BiliBiliLoginActivity::class.java))
                                 activity?.overridePendingTransition(
@@ -247,7 +327,7 @@ fun HomeScreen(
                             },
                             onVideoDownloadClick = {
                                 withBiliLogin {
-                                    context.startActivity(Intent(context, DownloadActivity::class.java))
+                                    context.startActivity(Intent(context, BilibiliDownloadActivity::class.java))
                                     activity?.overridePendingTransition(
                                         R.anim.slide_in_right,
                                         R.anim.slide_out_left
@@ -272,27 +352,25 @@ fun HomeScreen(
                             }
                         )
                     } else {
+                        MiniProgramPage(
+                            onOpenBiliBili = { appsSubPage = AppsSubPage.BiliBili }
+                        )
+                    }
+                }
+
+                HomeTab.Files -> {
+                    if (filePlaceholderTitle != null) {
+                        HomeBlankSubPage(
+                            title = filePlaceholderTitle.orEmpty(),
+                            onBackClick = { filePlaceholderTitle = null }
+                        )
+                    } else {
                         FileManagementPage(
-                            onOpenBiliBili = { fileSubPage = FileSubPage.BiliBili },
                             onOpenPlaceholder = { title ->
                                 filePlaceholderTitle = title
                             },
                             onLocalVideoClick = {
                                 context.startActivity(Intent(context, LocalMediaBrowserActivity::class.java))
-                                activity?.overridePendingTransition(
-                                    R.anim.slide_in_right,
-                                    R.anim.slide_out_left
-                                )
-                            },
-                            onLoginClick = {
-                                context.startActivity(Intent(context, BiliBiliLoginActivity::class.java))
-                                activity?.overridePendingTransition(
-                                    R.anim.slide_in_right,
-                                    R.anim.slide_out_left
-                                )
-                            },
-                            onBiliBiliClick = {
-                                context.startActivity(Intent(context, BiliBiliPlayActivity::class.java))
                                 activity?.overridePendingTransition(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
@@ -304,50 +382,184 @@ fun HomeScreen(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
                                 )
-                            },
-                            onVideoDownloadClick = {
-                                withBiliLogin {
-                                    context.startActivity(Intent(context, DownloadActivity::class.java))
-                                    activity?.overridePendingTransition(
-                                        R.anim.slide_in_right,
-                                        R.anim.slide_out_left
-                                    )
-                                }
-                            },
-                            onDanmakuDownloadClick = {
-                                withBiliLogin {
-                                    context.startActivity(Intent(context, BiliBiliDanmakuComposeActivity::class.java))
-                                    activity?.overridePendingTransition(
-                                        R.anim.slide_in_right,
-                                        R.anim.slide_out_left
-                                    )
-                                }
-                            },
-                            onSubtitleSearchClick = {
-                                context.startActivity(Intent(context, SubtitleSearchActivity::class.java))
-                                activity?.overridePendingTransition(
-                                    R.anim.slide_in_right,
-                                    R.anim.slide_out_left
-                                )
                             }
                         )
                     }
                 }
 
-                HomeTab.AI -> PlaceholderTabPage(title = selectedTab.title)
-                HomeTab.Browser,
+                HomeTab.Browser -> PlaceholderTabPage(title = selectedTab.title)
                 HomeTab.Settings -> SettingsScreen(
                     onNavigateBack = {},
-                    showBackButton = false
+                    showBackButton = false,
+                    initialPage = activeSettingsPage,
+                    navigationRequestId = activeSettingsRequestId,
+                    onRootPageStateChanged = { isSettingsRootPage = it }
                 )
             }
+        }
+    }
+
+    if (showDownloadCenter) {
+        DownloadCenterScreen(
+            onDismissRequest = { showDownloadCenter = false },
+            onOpenDownloadSettings = {
+                showDownloadCenter = false
+                selectedTab = HomeTab.Settings
+                activeSettingsPage = MainActivity.SETTINGS_PAGE_DOWNLOAD
+                activeSettingsRequestId = System.currentTimeMillis()
+                isSettingsRootPage = false
+            }
+        )
+    }
+
+    if (showBookmarksSheet) {
+        HomeBookmarksSheet(
+            repository = bookmarkRepository,
+            onDismissRequest = {
+                showBookmarksSheet = false
+                refreshBookmarkCount()
+            },
+            onOpenBookmark = { url ->
+                showBookmarksSheet = false
+                BrowserActivity.start(context, url = url)
+                activity?.overridePendingTransition(
+                    R.anim.no_anim,
+                    R.anim.no_anim
+                )
+            },
+            onBookmarksChanged = ::refreshBookmarkCount
+        )
+    }
+
+    if (showHistorySheet) {
+        HomeHistorySheet(
+            historyManager = historyManager,
+            onDismissRequest = {
+                showHistorySheet = false
+                refreshHistoryCount()
+            },
+            onOpenBrowserHistory = { url ->
+                showHistorySheet = false
+                BrowserActivity.start(context, url = url)
+                activity?.overridePendingTransition(
+                    R.anim.no_anim,
+                    R.anim.no_anim
+                )
+            },
+            onOpenPlaybackHistory = { uri, startPosition ->
+                showHistorySheet = false
+                context.startActivity(
+                    Intent(context, VideoPlayerActivity::class.java).apply {
+                        data = uri
+                        putExtra("lastPosition", startPosition)
+                    }
+                )
+                activity?.overridePendingTransition(
+                    R.anim.slide_in_right,
+                    R.anim.slide_out_left
+                )
+            },
+            onHistoryChanged = ::refreshHistoryCount
+        )
+    }
+}
+
+@Composable
+private fun HomeBookmarksSheet(
+    repository: BrowserBookmarkRepository,
+    onDismissRequest: () -> Unit,
+    onOpenBookmark: (String) -> Unit,
+    onBookmarksChanged: () -> Unit
+) {
+    var folders by remember { mutableStateOf(repository.getFolders()) }
+    var bookmarks by remember { mutableStateOf(repository.getBookmarks()) }
+
+    fun refreshState() {
+        folders = repository.getFolders()
+        bookmarks = repository.getBookmarks()
+        onBookmarksChanged()
+    }
+
+    KiyoriBottomDrawer(
+        onDismissRequest = onDismissRequest
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+        ) {
+            BrowserBookmarksScreen(
+                folders = folders,
+                bookmarks = bookmarks,
+                onNavigateBack = onDismissRequest,
+                onCreateFolder = { title, parentId ->
+                    repository.addFolder(title, parentId)
+                    refreshState()
+                },
+                onRenameFolder = { folderId, title ->
+                    repository.renameFolder(folderId, title)
+                    refreshState()
+                },
+                onMoveFolder = { folderId, parentId ->
+                    repository.moveFolder(folderId, parentId).also {
+                        refreshState()
+                    }
+                },
+                onDeleteFolder = { folderId ->
+                    repository.deleteFolder(folderId)
+                    refreshState()
+                },
+                onSaveBookmark = { draft ->
+                    repository.upsertBookmark(
+                        title = draft.title,
+                        url = draft.url,
+                        iconUrl = draft.iconUrl,
+                        folderId = draft.folderId
+                    )
+                    refreshState()
+                },
+                onDeleteBookmark = { bookmarkId ->
+                    repository.deleteBookmark(bookmarkId)
+                    refreshState()
+                },
+                onOpenBookmark = onOpenBookmark
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeHistorySheet(
+    historyManager: PlaybackHistoryManager,
+    onDismissRequest: () -> Unit,
+    onOpenBrowserHistory: (String) -> Unit,
+    onOpenPlaybackHistory: (Uri, Long) -> Unit,
+    onHistoryChanged: () -> Unit
+) {
+    KiyoriBottomDrawer(
+        onDismissRequest = onDismissRequest
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+        ) {
+            HistoryScreen(
+                playbackHistoryManager = historyManager,
+                initialSection = HistorySection.WEB,
+                useStatusBarPadding = false,
+                onHistoryChanged = onHistoryChanged,
+                onBack = onDismissRequest,
+                onOpenBrowserHistory = onOpenBrowserHistory,
+                onOpenPlaybackHistory = onOpenPlaybackHistory
+            )
         }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HomeMinusOnePager(
+private fun HomeMainPager(
     pagerState: androidx.compose.foundation.pager.PagerState,
     bookmarkCount: Int,
     historyCount: Int,
@@ -369,33 +581,37 @@ private fun HomeMinusOnePager(
                 onHistoryClick = onOpenHistoryPage,
                 onItemClick = onOpenMinusOnePage
             )
-            else -> HomeLandingPage(
+            1 -> HomeLandingPage(
                 onSearchClick = onSearchClick,
                 onAiClick = onAiClick
             )
+            else -> AiConversationPage()
         }
     }
 }
 
 private enum class HomeTab(val title: String, val iconRes: Int) {
-    Home("软件首页", R.drawable.ic_kiyori_nav_home),
-    Browser("浏览器", R.drawable.ic_kiyori_nav_globe),
-    AI("AI对话", R.drawable.ic_kiyori_nav_robot),
-    Files("文件管理", R.drawable.ic_kiyori_nav_folder),
-    Settings("设置页", R.drawable.ic_kiyori_nav_settings)
+    Home("软件主页", R.drawable.ic_kiyori_nav_home),
+    Browser("浏览器主页", R.drawable.ic_kiyori_nav_globe),
+    Apps("小程序主页", R.drawable.ic_kiyori_nav_apps),
+    Files("文件管理主页", R.drawable.ic_kiyori_nav_folder),
+    Settings("设置主页", R.drawable.ic_kiyori_nav_settings_gear)
     ;
     companion object {
         fun fromRoute(route: String?): HomeTab? = when (route) {
             "home" -> Home
+            "ai" -> Home
+            "apps" -> Apps
             "files" -> Files
-            "ai" -> AI
             "settings" -> Settings
             else -> null
         }
+
+        fun homePagerPage(route: String?): Int = if (route == "ai") 2 else 1
     }
 }
 
-private enum class FileSubPage {
+private enum class AppsSubPage {
     Home,
     BiliBili
 }
@@ -857,15 +1073,9 @@ private fun HomeSearchLibraryIconButton(
 
 @Composable
 private fun FileManagementPage(
-    onOpenBiliBili: () -> Unit,
     onOpenPlaceholder: (String) -> Unit,
     onLocalVideoClick: () -> Unit,
-    onLoginClick: () -> Unit,
-    onBiliBiliClick: () -> Unit,
-    onWebDavClick: () -> Unit,
-    onVideoDownloadClick: () -> Unit,
-    onDanmakuDownloadClick: () -> Unit,
-    onSubtitleSearchClick: () -> Unit
+    onWebDavClick: () -> Unit
 ) {
     val categoryItems = remember {
         listOf(
@@ -916,16 +1126,6 @@ private fun FileManagementPage(
                 count = "0项",
                 backgroundColors = listOf(Color(0xFFFFE7A6), Color(0xFFF5C14A)),
                 icon = Icons.Default.Download
-            )
-        )
-    }
-    val quickAccessItems = remember {
-        listOf(
-            FileEntryItem(
-                title = "哔哩哔哩",
-                count = "0项",
-                backgroundColors = listOf(Color(0xFFFFD8E6), Color(0xFFFFA9C9)),
-                icon = Icons.Default.VideoLibrary
             )
         )
     }
@@ -1021,27 +1221,6 @@ private fun FileManagementPage(
             onItemClick = { item ->
                 if (item.title == "视频") {
                     onLocalVideoClick()
-                } else {
-                    onOpenPlaceholder(item.title)
-                }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(34.dp))
-
-        FileSectionHeader(
-            title = "快捷访问",
-            actionText = "全部",
-            onClick = { onOpenPlaceholder("快捷访问全部") }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        FileEntryGrid(
-            items = quickAccessItems,
-            onItemClick = { item ->
-                if (item.title == "哔哩哔哩") {
-                    onOpenBiliBili()
                 } else {
                     onOpenPlaceholder(item.title)
                 }
@@ -1368,6 +1547,138 @@ private fun FileStorageRow(
 }
 
 @Composable
+private fun MiniProgramPage(
+    onOpenBiliBili: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "小程序",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF111111)
+            )
+            Text(
+                text = "把常用能力集中在一个独立入口，主页保持更纯粹。",
+                fontSize = 13.sp,
+                color = Color(0xFF8B8B8B)
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFF))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                HomeQuickActionButton(
+                    icon = Icons.Default.VideoLibrary,
+                    label = "哔哩哔哩",
+                    onClick = onOpenBiliBili
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AiConversationPage() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "AI对话",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF111111)
+            )
+            Text(
+                text = "主页搜索框右侧的 AI 入口会直接到这里。",
+                fontSize = 13.sp,
+                color = Color(0xFF8B8B8B)
+            )
+        }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFFEAF1FF)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "AI 对话",
+                            tint = Color(0xFF2A66F5),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "AI 正一屏",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF111111)
+                        )
+                        Text(
+                            text = "从主页向左滑即可进入。",
+                            fontSize = 12.sp,
+                            color = Color(0xFF8B8B8B)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "这里先作为独立 AI 入口保留，方便后续接入真实对话和智能工具能力。",
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = Color(0xFF3B3B3B)
+                )
+            }
+        }
+    }
+}
+
+private val HomeBottomBarIconRegularSize = 26.dp
+private val HomeBottomBarIconCenterSize = 25.dp
+private val HomeBottomBarItemSize = 44.dp
+
+@Composable
 private fun HomeBottomBar(
     selectedTab: HomeTab,
     onTabSelected: (HomeTab) -> Unit
@@ -1381,30 +1692,48 @@ private fun HomeBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 16.dp, top = 2.dp, end = 16.dp, bottom = 0.dp),
+                .padding(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             HomeTab.entries.forEach { tab ->
+                val iconSize = if (tab == HomeTab.Apps) {
+                    HomeBottomBarIconCenterSize
+                } else {
+                    HomeBottomBarIconRegularSize
+                }
+                val interactionSource = remember(tab) { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val pressedScale by animateFloatAsState(
+                    targetValue = if (isPressed) 0.84f else 1f,
+                    animationSpec = tween(
+                        durationMillis = if (isPressed) 80 else 150
+                    ),
+                    label = "home_bottom_bar_press_scale_${tab.name}"
+                )
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(HomeBottomBarItemSize)
                             .clip(CircleShape)
-                            .background(
-                                if (selectedTab == tab) Color(0xFFF1F4FF) else Color.Transparent
-                            )
-                            .clickable { onTabSelected(tab) },
+                            .graphicsLayer {
+                                scaleX = pressedScale
+                                scaleY = pressedScale
+                            }
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = LocalIndication.current
+                            ) { onTabSelected(tab) },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             painter = painterResource(id = tab.iconRes),
                             contentDescription = tab.title,
                             tint = Color(0xFF000000),
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(iconSize)
                         )
                     }
                 }

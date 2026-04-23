@@ -2,6 +2,7 @@ package com.android.kiyori.browser.web
 
 import android.util.Log
 import com.android.kiyori.browser.domain.BrowserPageState
+import com.android.kiyori.browser.web.BrowserNetworkLogManager
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.sniffer.DetectedVideo
 import com.android.kiyori.sniffer.UrlDetector
@@ -119,20 +120,24 @@ class BrowserX5ClientExtension(
             mergedHeaders["X-Kiyori-Status-Code"] = it.toString()
         }
 
-        if (!UrlDetector.isVideo(url, mergedHeaders)) {
-            return
-        }
-
         val pageState = pageStateProvider()
         val normalizedHeaders = RemotePlaybackHeaders.normalizeForBrowserPlayback(mergedHeaders)
-        VideoSnifferManager.addVideo(
-            DetectedVideo(
-                url = url,
-                title = pageState.title,
-                pageUrl = pageState.currentUrl,
-                headers = normalizedHeaders
-            )
+        BrowserNetworkLogManager.addResource(
+            url = url,
+            headers = mergedHeaders,
+            pageUrl = pageState.currentUrl,
+            pageTitle = pageState.title
         )
+        if (UrlDetector.isVideo(url, mergedHeaders)) {
+            VideoSnifferManager.addVideo(
+                DetectedVideo(
+                    url = url,
+                    title = pageState.title,
+                    pageUrl = pageState.currentUrl,
+                    headers = normalizedHeaders
+                )
+            )
+        }
         Log.d(
             LOG_TAG,
             "Detected media via $source: $url status=${statusCode ?: -1} headers=${normalizedHeaders.keys}"

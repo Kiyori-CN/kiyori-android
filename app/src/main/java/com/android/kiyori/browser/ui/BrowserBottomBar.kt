@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
@@ -28,6 +30,8 @@ import com.android.kiyori.browser.domain.BrowserPageState
 
 private val BottomBarIconColor = Color(0xFF000000)
 private val BottomBarIconDisabledColor = Color(0xFF9CA3AF)
+private val BrowserBottomBarIconSize = 26.dp
+private val BrowserBottomBarItemSize = 44.dp
 
 @Composable
 fun BrowserBottomBar(
@@ -49,7 +53,7 @@ fun BrowserBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 16.dp, top = 2.dp, end = 16.dp, bottom = 0.dp),
+                .padding(start = 16.dp, top = 0.dp, end = 16.dp, bottom = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -59,6 +63,7 @@ fun BrowserBottomBar(
             ) {
                 BrowserBottomBarIcon(
                     enabled = state.canGoBack,
+                    contentDescription = "返回上一页",
                     iconRes = R.drawable.ic_kiyori_browser_bottom_back,
                     onClick = onGoBack
                 )
@@ -70,6 +75,7 @@ fun BrowserBottomBar(
             ) {
                 BrowserBottomBarIcon(
                     enabled = state.canGoForward,
+                    contentDescription = "前进下一页",
                     iconRes = R.drawable.ic_kiyori_browser_bottom_forward,
                     onClick = onGoForward
                 )
@@ -81,6 +87,7 @@ fun BrowserBottomBar(
             ) {
                 BrowserBottomBarIcon(
                     enabled = true,
+                    contentDescription = "浏览器主页",
                     iconRes = R.drawable.ic_kiyori_browser_bottom_home,
                     onClick = onGoHome
                 )
@@ -92,6 +99,7 @@ fun BrowserBottomBar(
             ) {
                 BrowserBottomBarHistoryIcon(
                     count = windowCount,
+                    contentDescription = "浏览器窗口管理",
                     onClick = onShowHistory
                 )
             }
@@ -102,6 +110,7 @@ fun BrowserBottomBar(
             ) {
                 BrowserBottomBarIcon(
                     enabled = true,
+                    contentDescription = "浏览器工具箱",
                     iconRes = R.drawable.ic_kiyori_tool_toolbox,
                     onClick = onOpenToolbox
                 )
@@ -113,12 +122,13 @@ fun BrowserBottomBar(
 @Composable
 private fun BrowserBottomBarIcon(
     enabled: Boolean,
+    contentDescription: String,
     iconRes: Int,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(BrowserBottomBarItemSize)
             .clip(CircleShape)
             .background(Color.Transparent)
             .clickable(enabled = enabled, onClick = onClick),
@@ -126,9 +136,9 @@ private fun BrowserBottomBarIcon(
     ) {
         Icon(
             painter = painterResource(id = iconRes),
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = if (enabled) BottomBarIconColor else BottomBarIconDisabledColor,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(BrowserBottomBarIconSize)
         )
     }
 }
@@ -136,6 +146,7 @@ private fun BrowserBottomBarIcon(
 @Composable
 private fun BrowserBottomBarHistoryIcon(
     count: Int,
+    contentDescription: String,
     onClick: () -> Unit
 ) {
     val displayCount = when {
@@ -146,21 +157,23 @@ private fun BrowserBottomBarHistoryIcon(
 
     Box(
         modifier = Modifier
-            .size(42.dp)
+            .size(BrowserBottomBarItemSize)
             .clip(CircleShape)
             .background(Color.Transparent)
+            .semantics { this.contentDescription = contentDescription }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(18.dp)
+                .size(20.dp)
                 .clip(RoundedCornerShape(1.75.dp))
-                .border(1.7.dp, BottomBarIconColor, RoundedCornerShape(1.75.dp)),
+                .border(1.75.dp, BottomBarIconColor, RoundedCornerShape(1.75.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = displayCount,
+                modifier = Modifier.align(Alignment.Center),
                 color = BottomBarIconColor,
                 fontSize = if (displayCount.length > 2) 7.sp else 9.sp,
                 fontWeight = FontWeight.Bold,

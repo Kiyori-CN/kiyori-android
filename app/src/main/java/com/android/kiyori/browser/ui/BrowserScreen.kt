@@ -7,8 +7,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -77,19 +81,34 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.android.kiyori.R
+import com.android.kiyori.app.MainActivity
+import com.android.kiyori.browser.data.BrowserBookmarkRepository
+import com.android.kiyori.browser.domain.BrowserBookmarkFolder
+import com.android.kiyori.browser.domain.BrowserBookmarkItem
 import com.android.kiyori.browser.domain.BrowserBookmarkFolderOption
 import com.android.kiyori.browser.domain.BrowserHistoryEntry
 import com.android.kiyori.browser.domain.BrowserPageState
 import com.android.kiyori.browser.domain.BrowserSearchEngine
-import com.android.kiyori.browser.playback.BrowserPlaybackInteractor
 import com.android.kiyori.browser.playback.BrowserPlaybackInteractor.BrowserVideoCandidate
-import com.android.kiyori.browser.playback.BrowserPlaybackInteractor.BrowserVideoFilter
+import com.android.kiyori.browser.playback.BrowserPlaybackInteractor
 import com.android.kiyori.browser.domain.BrowserUserAgentMode
-import com.android.kiyori.browser.x5.BrowserX5KernelManager
-import com.android.kiyori.history.ui.HistoryComposeActivity
+import com.android.kiyori.download.InternalDownloadRequest
+import com.android.kiyori.download.requestDownloadWithPreferences
+import com.android.kiyori.download.ui.DownloadCenterScreen
+import com.android.kiyori.browser.web.BrowserNetworkLogEntry
+import com.android.kiyori.browser.web.BrowserNetworkLogManager
+import com.android.kiyori.browser.web.BrowserRequestBlocklistManager
+import com.android.kiyori.history.PlaybackHistoryManager
+import com.android.kiyori.history.ui.HistoryScreen
 import com.android.kiyori.history.ui.HistorySection
+import com.android.kiyori.player.ui.VideoPlayerActivity
+import com.android.kiyori.remote.RemotePlaybackHeaders
+import com.android.kiyori.sniffer.DetectedVideo
+import com.android.kiyori.sniffer.UrlDetector
 import com.android.kiyori.sniffer.VideoSnifferManager
+import com.android.kiyori.ui.compose.KiyoriBottomDrawer
 import com.tencent.smtt.sdk.WebView
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,21 +138,43 @@ fun BrowserScreen(
     onDeleteHistoryItem: (Long) -> Unit,
     onClearHistory: () -> Unit,
     onSelectUserAgentMode: (BrowserUserAgentMode) -> Unit,
+    getCustomGlobalUserAgent: () -> String,
+    getCustomSiteUserAgent: () -> String,
+    getCurrentSiteHost: () -> String,
+    onSaveCustomGlobalUserAgent: (String) -> Unit,
+    onSaveCustomSiteUserAgent: (String) -> Unit,
+    onDownloadDetectedVideo: (BrowserVideoCandidate) -> Unit,
     onRequestPageSource: ((String) -> Unit) -> Unit,
     bookmarkFolders: List<BrowserBookmarkFolderOption>,
-    onSaveBookmark: (BrowserBookmarkDraft) -> Unit,
-    onOpenBookmarksPage: () -> Unit
+    onSaveBookmark: (BrowserBookmarkDraft) -> Unit
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
+    val bookmarkRepository = remember(context) { BrowserBookmarkRepository(context) }
+    val playbackHistoryManager = remember(context) { PlaybackHistoryManager(context) }
     val detectedVideos by VideoSnifferManager.detectedVideos.collectAsStateWithLifecycle()
+    val networkLogs by BrowserNetworkLogManager.entries.collectAsStateWithLifecycle()
     var showDetectedVideos by remember { mutableStateOf(false) }
+    var showBookmarkDrawer by remember { mutableStateOf(false) }
+    var showHistoryDrawer by remember { mutableStateOf(false) }
+    var showDownloadDrawer by remember { mutableStateOf(false) }
+    var showNetworkLog by remember { mutableStateOf(false) }
     var showWindowPage by remember { mutableStateOf(false) }
     var showToolboxSheet by remember { mutableStateOf(false) }
     var addBookmarkDraft by remember { mutableStateOf<BrowserBookmarkDraft?>(null) }
     var toolboxPlaceholderTitle by remember { mutableStateOf<String?>(null) }
     var showUserAgentDialog by remember { mutableStateOf(false) }
+    var userAgentInputMode by remember { mutableStateOf<BrowserUserAgentMode?>(null) }
     var sourceCodeContent by remember { mutableStateOf<String?>(null) }
     var selectedWindowMode by remember { mutableStateOf(if (state.isIncognitoMode) BrowserWindowMode.Incognito else BrowserWindowMode.Normal) }
+    var bookmarkDrawerFolders by remember { mutableStateOf(bookmarkRepository.getFolders()) }
+    var bookmarkDrawerItems by remember { mutableStateOf(bookmarkRepository.getBookmarks()) }
+    var bookmarkFolderOptionsState by remember {
+        mutableStateOf(bookmarkDrawerFolders.map { folder ->
+            BrowserBookmarkFolderOption(id = folder.id, title = folder.title)
+        })
+    }
+    val hasFullscreenOverlay = showWindowPage || toolboxPlaceholderTitle != null || sourceCodeContent != null
     val normalWindowEntries = remember(state.currentUrl, state.title, state.historyEntries, state.isIncognitoMode) {
         buildWindowEntries(
             currentUrl = state.currentUrl,
@@ -163,6 +204,20 @@ fun BrowserScreen(
             currentPageUrl = state.currentUrl
         )
     }
+
+    fun refreshBookmarkDrawerState() {
+        val folders = bookmarkRepository.getFolders()
+        bookmarkDrawerFolders = folders
+        bookmarkDrawerItems = bookmarkRepository.getBookmarks()
+        bookmarkFolderOptionsState = folders.map { folder ->
+            BrowserBookmarkFolderOption(id = folder.id, title = folder.title)
+        }
+    }
+
+    LaunchedEffect(bookmarkFolders) {
+        refreshBookmarkDrawerState()
+    }
+
     LaunchedEffect(showWindowPage, state.isIncognitoMode) {
         if (showWindowPage) {
             selectedWindowMode = if (state.isIncognitoMode) BrowserWindowMode.Incognito else BrowserWindowMode.Normal
@@ -173,14 +228,24 @@ fun BrowserScreen(
             toolboxPlaceholderTitle = null
         } else if (sourceCodeContent != null) {
             sourceCodeContent = null
+        } else if (userAgentInputMode != null) {
+            userAgentInputMode = null
         } else if (showUserAgentDialog) {
             showUserAgentDialog = false
         } else if (addBookmarkDraft != null) {
             addBookmarkDraft = null
         } else if (showToolboxSheet) {
             showToolboxSheet = false
+        } else if (showDownloadDrawer) {
+            showDownloadDrawer = false
+        } else if (showHistoryDrawer) {
+            showHistoryDrawer = false
+        } else if (showBookmarkDrawer) {
+            showBookmarkDrawer = false
         } else if (showWindowPage) {
             showWindowPage = false
+        } else if (showNetworkLog) {
+            showNetworkLog = false
         } else if (showDetectedVideos) {
             showDetectedVideos = false
         } else if (state.showUrlBar) {
@@ -198,6 +263,7 @@ fun BrowserScreen(
     }
 
     Scaffold(
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             if (showWindowPage) {
                 Unit
@@ -243,6 +309,64 @@ fun BrowserScreen(
                     if (state.showUrlBar) baseModifier else baseModifier.padding(paddingValues)
                 }
         ) {
+            AndroidView(
+                factory = { webContext ->
+                    WebView(webContext).also(onAttachWebView)
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            if (false) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "ç©ºç™½é¦–é¡µ",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color(0xFF1F2937)
+                    )
+                    Text(
+                        text = "é¡¶éƒ¨æœç´¢æ æ”¯æŒè¾“å…¥ç½‘å€ï¼Œä¹Ÿæ”¯æŒç›´æŽ¥æœç´¢å…³é”®è¯ã€‚",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF6B7280)
+                    )
+                }
+            }
+
+            if (!hasFullscreenOverlay && state.isBlankPage) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "\u7a7a\u767d\u9996\u9875",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Color(0xFF1F2937)
+                    )
+                    Text(
+                        text = "\u9876\u90e8\u641c\u7d22\u680f\u652f\u6301\u8f93\u5165\u7f51\u5740\uff0c\u4e5f\u652f\u6301\u76f4\u63a5\u641c\u7d22\u5173\u952e\u8bcd\u3002",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF6B7280)
+                    )
+                }
+            }
+
+            if (!hasFullscreenOverlay && state.isLoading) {
+                LinearProgressIndicator(
+                    progress = state.progress.coerceIn(0, 100) / 100f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                )
+            }
+
             if (showWindowPage) {
                 BrowserWindowPage(
                     selectedMode = selectedWindowMode,
@@ -298,15 +422,9 @@ fun BrowserScreen(
                 )
             } else if (toolboxPlaceholderTitle != null) {
                 BrowserToolPlaceholderPage(title = toolboxPlaceholderTitle.orEmpty())
-            } else {
-                AndroidView(
-                factory = { webContext ->
-                    WebView(webContext).also(onAttachWebView)
-                },
-                modifier = Modifier.fillMaxSize()
-                )
+            }
 
-            if (state.isBlankPage) {
+            if (false) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -327,7 +445,7 @@ fun BrowserScreen(
                 }
             }
 
-            if (state.isLoading) {
+            if (false) {
                 LinearProgressIndicator(
                     progress = state.progress.coerceIn(0, 100) / 100f,
                     modifier = Modifier
@@ -336,7 +454,7 @@ fun BrowserScreen(
                 )
             }
 
-                BrowserUrlDropdownOverlay(
+                if (!hasFullscreenOverlay) BrowserUrlDropdownOverlay(
                 state = state,
                 onDismiss = onToggleUrlBar,
                 onInputChanged = onInputChanged,
@@ -352,7 +470,6 @@ fun BrowserScreen(
                 )
             }
         }
-    }
 
     if (showDetectedVideos) {
         ModalBottomSheet(
@@ -366,7 +483,21 @@ fun BrowserScreen(
                 },
                 onCopy = { candidate ->
                     copyBrowserUrl(context, candidate.video.url)
+                },
+                onDownload = { candidate ->
+                    onDownloadDetectedVideo(candidate)
                 }
+            )
+        }
+    }
+
+    if (showNetworkLog) {
+        KiyoriBottomDrawer(
+            onDismissRequest = { showNetworkLog = false }
+        ) {
+            BrowserNetworkLogSheet(
+                entries = networkLogs,
+                currentPageUrl = state.currentUrl
             )
         }
     }
@@ -391,7 +522,8 @@ fun BrowserScreen(
                 },
                 onOpenBookmarks = {
                     showToolboxSheet = false
-                    onOpenBookmarksPage()
+                    refreshBookmarkDrawerState()
+                    showBookmarkDrawer = true
                 },
                 onOpenDetectedVideos = {
                     showToolboxSheet = false
@@ -403,12 +535,7 @@ fun BrowserScreen(
                 },
                 onOpenNetworkLog = {
                     showToolboxSheet = false
-                    copyTextToClipboard(
-                        context = context,
-                        label = "x5_diagnostic",
-                        text = BrowserX5KernelManager.buildDiagnosticReport(context)
-                    )
-                    Toast.makeText(context, "已复制 X5 诊断信息", Toast.LENGTH_SHORT).show()
+                    showNetworkLog = true
                 },
                 onReload = {
                     showToolboxSheet = false
@@ -432,14 +559,9 @@ fun BrowserScreen(
                 onOpenPlaceholder = { title ->
                     showToolboxSheet = false
                     if (title == "\u5386\u53f2") {
-                        HistoryComposeActivity.start(
-                            context,
-                            initialSection = HistorySection.WEB
-                        )
-                        (context as? Activity)?.overridePendingTransition(
-                            R.anim.slide_in_right,
-                            R.anim.slide_out_left
-                        )
+                        showHistoryDrawer = true
+                    } else if (title == "下载") {
+                        showDownloadDrawer = true
                     } else {
                         toolboxPlaceholderTitle = title
                     }
@@ -457,11 +579,110 @@ fun BrowserScreen(
         }
     }
 
+    if (showDownloadDrawer) {
+        DownloadCenterScreen(
+            onDismissRequest = { showDownloadDrawer = false },
+            onOpenDownloadSettings = {
+                showDownloadDrawer = false
+                MainActivity.start(
+                    context = context,
+                    initialTab = MainActivity.TAB_SETTINGS,
+                    initialSettingsPage = MainActivity.SETTINGS_PAGE_DOWNLOAD
+                )
+                activity?.finish()
+                activity?.overridePendingTransition(
+                    R.anim.no_anim,
+                    R.anim.no_anim
+                )
+            }
+        )
+    }
+
+    if (showHistoryDrawer) {
+        KiyoriBottomDrawer(
+            onDismissRequest = { showHistoryDrawer = false }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+            ) {
+                HistoryScreen(
+                    playbackHistoryManager = playbackHistoryManager,
+                    initialSection = HistorySection.WEB,
+                    useStatusBarPadding = false,
+                    onBack = { showHistoryDrawer = false },
+                    onOpenBrowserHistory = { url ->
+                        showHistoryDrawer = false
+                        if (url != state.currentUrl) {
+                            onOpenHistoryItem(url)
+                        }
+                    },
+                    onOpenPlaybackHistory = { uri, startPosition ->
+                        showHistoryDrawer = false
+                        context.startActivity(
+                            Intent(context, VideoPlayerActivity::class.java).apply {
+                                data = uri
+                                putExtra("lastPosition", startPosition)
+                            }
+                        )
+                        activity?.overridePendingTransition(
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
+                        )
+                    }
+                )
+            }
+        }
+    }
+
+    if (showBookmarkDrawer) {
+        BrowserBookmarksDrawer(
+            folders = bookmarkDrawerFolders,
+            bookmarks = bookmarkDrawerItems,
+            onDismissRequest = {
+                showBookmarkDrawer = false
+                refreshBookmarkDrawerState()
+            },
+            onCreateFolder = { title, parentId ->
+                bookmarkRepository.addFolder(title, parentId)
+                refreshBookmarkDrawerState()
+            },
+            onRenameFolder = { folderId, title ->
+                bookmarkRepository.renameFolder(folderId, title)
+                refreshBookmarkDrawerState()
+            },
+            onMoveFolder = { folderId, parentId ->
+                bookmarkRepository.moveFolder(folderId, parentId).also {
+                    refreshBookmarkDrawerState()
+                }
+            },
+            onDeleteFolder = { folderId ->
+                bookmarkRepository.deleteFolder(folderId)
+                refreshBookmarkDrawerState()
+            },
+            onSaveBookmark = { draft ->
+                onSaveBookmark(draft)
+                refreshBookmarkDrawerState()
+            },
+            onDeleteBookmark = { bookmarkId ->
+                bookmarkRepository.deleteBookmark(bookmarkId)
+                refreshBookmarkDrawerState()
+            },
+            onOpenBookmark = { url ->
+                showBookmarkDrawer = false
+                if (url != state.currentUrl) {
+                    onOpenHistoryItem(url)
+                }
+            }
+        )
+    }
+
     if (addBookmarkDraft != null) {
         BrowserAddBookmarkDialog(
             title = "新建书签",
             initialDraft = addBookmarkDraft!!,
-            folderOptions = bookmarkFolders,
+            folderOptions = bookmarkFolderOptionsState,
             onDismiss = { addBookmarkDraft = null },
             onConfirm = { draft ->
                 if (draft.url.isBlank()) {
@@ -469,6 +690,7 @@ fun BrowserScreen(
                     return@BrowserAddBookmarkDialog
                 }
                 onSaveBookmark(draft)
+                refreshBookmarkDrawerState()
                 addBookmarkDraft = null
                 Toast.makeText(context, "书签已保存", Toast.LENGTH_SHORT).show()
             }
@@ -480,12 +702,50 @@ fun BrowserScreen(
             currentMode = state.userAgentMode,
             onDismiss = { showUserAgentDialog = false },
             onSelectMode = { mode ->
-                if (mode.isImplemented) {
+                if (mode == BrowserUserAgentMode.CUSTOM_GLOBAL) {
+                    showUserAgentDialog = false
+                    userAgentInputMode = mode
+                } else if (mode == BrowserUserAgentMode.CUSTOM_SITE) {
+                    if (getCurrentSiteHost().isBlank()) {
+                        Toast.makeText(context, "当前页面没有可保存的站点UA", Toast.LENGTH_SHORT).show()
+                    } else {
+                        showUserAgentDialog = false
+                        userAgentInputMode = mode
+                    }
+                } else if (mode.isImplemented) {
                     onSelectUserAgentMode(mode)
                     showUserAgentDialog = false
                 } else {
                     Toast.makeText(context, "${mode.displayName}暂未实现", Toast.LENGTH_SHORT).show()
                 }
+            }
+        )
+    }
+
+    if (userAgentInputMode != null) {
+        val inputMode = userAgentInputMode!!
+        val siteHost = getCurrentSiteHost()
+        BrowserSingleInputDialog(
+            title = if (inputMode == BrowserUserAgentMode.CUSTOM_GLOBAL) {
+                "自定义全局UA"
+            } else {
+                "自定义当前网站UA（$siteHost）"
+            },
+            initialValue = if (inputMode == BrowserUserAgentMode.CUSTOM_GLOBAL) {
+                getCustomGlobalUserAgent()
+            } else {
+                getCustomSiteUserAgent()
+            },
+            confirmText = "保存",
+            onDismiss = { userAgentInputMode = null },
+            onConfirm = { value ->
+                if (inputMode == BrowserUserAgentMode.CUSTOM_GLOBAL) {
+                    onSaveCustomGlobalUserAgent(value)
+                } else {
+                    onSaveCustomSiteUserAgent(value)
+                }
+                onSelectUserAgentMode(inputMode)
+                userAgentInputMode = null
             }
         )
     }
@@ -576,6 +836,43 @@ private fun BrowserSourceCodePage(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BrowserBookmarksDrawer(
+    folders: List<BrowserBookmarkFolder>,
+    bookmarks: List<BrowserBookmarkItem>,
+    onDismissRequest: () -> Unit,
+    onCreateFolder: (String, Long?) -> Unit,
+    onRenameFolder: (Long, String) -> Unit,
+    onMoveFolder: (Long, Long?) -> Boolean,
+    onDeleteFolder: (Long) -> Unit,
+    onSaveBookmark: (BrowserBookmarkDraft) -> Unit,
+    onDeleteBookmark: (Long) -> Unit,
+    onOpenBookmark: (String) -> Unit
+) {
+    KiyoriBottomDrawer(
+        onDismissRequest = onDismissRequest
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+        ) {
+            BrowserBookmarksScreen(
+                folders = folders,
+                bookmarks = bookmarks,
+                onNavigateBack = onDismissRequest,
+                onCreateFolder = onCreateFolder,
+                onRenameFolder = onRenameFolder,
+                onMoveFolder = onMoveFolder,
+                onDeleteFolder = onDeleteFolder,
+                onSaveBookmark = onSaveBookmark,
+                onDeleteBookmark = onDeleteBookmark,
+                onOpenBookmark = onOpenBookmark
             )
         }
     }
@@ -1042,11 +1339,42 @@ private fun BrowserWindowCard(
 private fun BrowserDetectedVideosSheet(
     candidates: List<BrowserVideoCandidate>,
     onPlay: (BrowserVideoCandidate) -> Unit,
-    onCopy: (BrowserVideoCandidate) -> Unit
+    onCopy: (BrowserVideoCandidate) -> Unit,
+    onDownload: (BrowserVideoCandidate) -> Unit
 ) {
-    var selectedFilter by remember { mutableStateOf(BrowserVideoFilter.RECOMMENDED) }
-    val visibleCandidates = remember(candidates, selectedFilter) {
-        BrowserPlaybackInteractor.filterCandidates(candidates, selectedFilter)
+    var selectedFormat by remember { mutableStateOf("ALL") }
+    val formatCounts = remember(candidates) {
+        candidates.groupingBy { it.format }
+            .eachCount()
+            .filterKeys { it.isNotBlank() && it != "UNKNOWN" }
+    }
+    val formatFilters = remember(formatCounts) {
+        buildList {
+            add("ALL")
+            addAll(
+                formatCounts.entries
+                    .sortedWith(
+                        compareByDescending<Map.Entry<String, Int>> { it.value }
+                            .thenBy { UrlDetector.getFormatSortOrder(it.key) }
+                            .thenBy { it.key }
+                    )
+                    .map { it.key }
+            )
+        }
+    }
+    val safeSelectedFormat = remember(selectedFormat, formatFilters) {
+        selectedFormat.takeIf { it == "ALL" || it in formatFilters } ?: "ALL"
+    }
+    LaunchedEffect(safeSelectedFormat) {
+        if (selectedFormat != safeSelectedFormat) {
+            selectedFormat = safeSelectedFormat
+        }
+    }
+    val visibleCandidates = remember(candidates, safeSelectedFormat) {
+        when (safeSelectedFormat) {
+            "ALL" -> candidates
+            else -> candidates.filter { it.format == safeSelectedFormat }
+        }
     }
 
     Column(
@@ -1058,22 +1386,6 @@ private fun BrowserDetectedVideosSheet(
             text = "嗅探结果",
             style = MaterialTheme.typography.titleLarge,
             color = Color(0xFF111827)
-        )
-        Text(
-            text = if (candidates.isEmpty()) {
-                "当前页面未发现可播放媒体资源。"
-            } else {
-                "已整理 ${candidates.size} 个候选资源，默认优先展示推荐结果。"
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF6B7280),
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
-        )
-        Text(
-            text = "规则：优先 m3u8/dash/mp4，降低分片、字幕、封面和广告类噪声。",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF6B7280),
-            modifier = Modifier.padding(bottom = 12.dp)
         )
 
         if (candidates.isEmpty()) {
@@ -1094,42 +1406,19 @@ private fun BrowserDetectedVideosSheet(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = 12.dp)
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            BrowserFilterChip(
-                label = "推荐",
-                count = BrowserPlaybackInteractor.filterCandidates(
-                    candidates,
-                    BrowserVideoFilter.RECOMMENDED
-                ).size,
-                selected = selectedFilter == BrowserVideoFilter.RECOMMENDED,
-                onClick = { selectedFilter = BrowserVideoFilter.RECOMMENDED }
-            )
-            BrowserFilterChip(
-                label = "M3U8/DASH",
-                count = BrowserPlaybackInteractor.filterCandidates(
-                    candidates,
-                    BrowserVideoFilter.MANIFEST
-                ).size,
-                selected = selectedFilter == BrowserVideoFilter.MANIFEST,
-                onClick = { selectedFilter = BrowserVideoFilter.MANIFEST }
-            )
-            BrowserFilterChip(
-                label = "MP4",
-                count = BrowserPlaybackInteractor.filterCandidates(
-                    candidates,
-                    BrowserVideoFilter.MP4
-                ).size,
-                selected = selectedFilter == BrowserVideoFilter.MP4,
-                onClick = { selectedFilter = BrowserVideoFilter.MP4 }
-            )
-            BrowserFilterChip(
-                label = "全部",
-                count = candidates.size,
-                selected = selectedFilter == BrowserVideoFilter.ALL,
-                onClick = { selectedFilter = BrowserVideoFilter.ALL }
-            )
+            formatFilters.forEach { format ->
+                val count = if (format == "ALL") candidates.size else (formatCounts[format] ?: 0)
+                BrowserFilterChip(
+                    label = if (format == "ALL") "全部" else format,
+                    count = count,
+                    selected = safeSelectedFormat == format,
+                    onClick = { selectedFormat = format }
+                )
+            }
         }
 
         if (visibleCandidates.isEmpty()) {
@@ -1140,7 +1429,7 @@ private fun BrowserDetectedVideosSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "当前筛选条件下没有结果，切换到“全部”可查看所有候选。",
+                    text = "当前格式下没有结果，切换到“全部”可查看所有候选。",
                     color = Color(0xFF6B7280)
                 )
             }
@@ -1169,17 +1458,9 @@ private fun BrowserDetectedVideosSheet(
                             color = Color(0xFF111827),
                             modifier = Modifier.weight(1f)
                         )
-                        if (candidate.isRecommended) {
-                            Text(
-                                text = "推荐",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(start = 12.dp)
-                            )
-                        }
                     }
                     Text(
-                        text = "${candidate.format} · 评分 ${candidate.score}",
+                        text = candidate.format,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF374151),
                         modifier = Modifier.padding(top = 4.dp)
@@ -1208,8 +1489,13 @@ private fun BrowserDetectedVideosSheet(
                         modifier = Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(onClick = { onPlay(candidate) }) {
-                            Text("播放")
+                        if (candidate.canPreview) {
+                            Button(onClick = { onPlay(candidate) }) {
+                                Text("播放")
+                            }
+                        }
+                        androidx.compose.material3.OutlinedButton(onClick = { onDownload(candidate) }) {
+                            Text("下载")
                         }
                         TextButton(onClick = { onCopy(candidate) }) {
                             Text("复制")
@@ -1219,6 +1505,433 @@ private fun BrowserDetectedVideosSheet(
             }
         }
     }
+}
+
+private enum class BrowserNetworkLogTab(
+    val label: String,
+    val category: UrlDetector.NetworkCategory?
+) {
+    ALL("全部", null),
+    VIDEO("视频", UrlDetector.NetworkCategory.VIDEO),
+    AUDIO("音乐", UrlDetector.NetworkCategory.AUDIO),
+    IMAGE("图片", UrlDetector.NetworkCategory.IMAGE),
+    WEB("网页", UrlDetector.NetworkCategory.WEB),
+    OTHER("其他", UrlDetector.NetworkCategory.OTHER),
+    BLOCKED("拦截", UrlDetector.NetworkCategory.BLOCKED)
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BrowserNetworkLogSheet(
+    entries: List<BrowserNetworkLogEntry>,
+    currentPageUrl: String
+) {
+    val context = LocalContext.current
+    var selectedTab by remember { mutableStateOf(BrowserNetworkLogTab.ALL) }
+    var actionEntry by remember { mutableStateOf<BrowserNetworkLogEntry?>(null) }
+    var fullLinkEntry by remember { mutableStateOf<BrowserNetworkLogEntry?>(null) }
+    val filteredEntries = remember(entries, selectedTab) {
+        when (selectedTab.category) {
+            null -> entries
+            else -> entries.filter { it.category == selectedTab.category }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            BrowserNetworkLogTab.values().forEach { tab ->
+                val count = if (tab.category == null) {
+                    entries.size
+                } else {
+                    entries.count { it.category == tab.category }
+                }
+                BrowserFilterChip(
+                    label = tab.label,
+                    count = count,
+                    selected = selectedTab == tab,
+                    onClick = { selectedTab = tab }
+                )
+            }
+        }
+
+        Text(
+            text = "当前加载的网址域名与原网站域名不一致时字体为黄色，红色则表示该链接被拦截",
+            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 13.sp,
+            color = Color(0xFF6B7280),
+            modifier = Modifier.padding(top = 14.dp)
+        )
+
+        if (filteredEntries.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "当前分类下还没有网络请求记录。",
+                    color = Color(0xFF6B7280),
+                    fontSize = 14.sp
+                )
+            }
+            return
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(filteredEntries, key = { "${it.timestamp}_${it.category}_${it.url}" }) { entry ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFF3F4F6))
+                        .combinedClickable(
+                            onClick = { actionEntry = entry },
+                            onLongClick = { actionEntry = entry }
+                        )
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (entry.category == UrlDetector.NetworkCategory.IMAGE) {
+                        AsyncImage(
+                            model = entry.url,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    Text(
+                        text = buildBrowserNetworkLogLabel(entry),
+                        color = resolveBrowserNetworkLogColor(
+                            entry = entry,
+                            currentPageUrl = currentPageUrl
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontSize = 14.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+
+    if (actionEntry != null) {
+        BrowserNetworkLogActionDialog(
+            entry = actionEntry!!,
+            onDismiss = { actionEntry = null },
+            onCopy = {
+                copyTextToClipboard(context, "network_log_url", actionEntry!!.url)
+                Toast.makeText(context, "已复制链接", Toast.LENGTH_SHORT).show()
+                actionEntry = null
+            },
+            onPlay = {
+                playBrowserNetworkLogEntry(context, actionEntry!!)
+                actionEntry = null
+            },
+            onDownload = {
+                downloadBrowserNetworkLogEntry(context, actionEntry!!)
+                actionEntry = null
+            },
+            onBlock = {
+                val entry = actionEntry!!
+                BrowserRequestBlocklistManager.add(entry.url)
+                BrowserNetworkLogManager.addBlocked(
+                    url = entry.url,
+                    pageUrl = entry.pageUrl,
+                    pageTitle = entry.title,
+                    headers = entry.headers
+                )
+                Toast.makeText(context, "已加入拦截列表", Toast.LENGTH_SHORT).show()
+                actionEntry = null
+            },
+            onOpenExternal = {
+                openBrowserUrlExternally(context, actionEntry!!.url)
+                actionEntry = null
+            },
+            onViewFullLink = {
+                fullLinkEntry = actionEntry
+                actionEntry = null
+            }
+        )
+    }
+
+    if (fullLinkEntry != null) {
+        BrowserNetworkLogFullLinkDialog(
+            entry = fullLinkEntry!!,
+            onDismiss = { fullLinkEntry = null },
+            onCopy = {
+                copyTextToClipboard(context, "network_log_full_url", fullLinkEntry!!.url)
+                Toast.makeText(context, "已复制完整链接", Toast.LENGTH_SHORT).show()
+                fullLinkEntry = null
+            }
+        )
+    }
+}
+
+private fun buildBrowserNetworkLogLabel(entry: BrowserNetworkLogEntry): String {
+    val displayUrl = buildBrowserNetworkLogDisplayUrl(entry.url)
+    val extension = runCatching {
+        Uri.parse(entry.url).lastPathSegment.orEmpty()
+    }.getOrDefault("")
+        .substringBefore("?")
+        .substringAfterLast('.', "")
+        .takeIf { it.isNotBlank() && it.length <= 10 }
+
+    val format = UrlDetector.getDetectedResourceFormat(entry.url, entry.headers)
+        .takeUnless { it == "UNKNOWN" || it == "VIDEO" || it == "AUDIO" }
+
+    val prefix = when {
+        extension != null -> "[.$extension] "
+        format != null -> "[${format.lowercase()}] "
+        entry.category == UrlDetector.NetworkCategory.BLOCKED -> "[blocked] "
+        else -> ""
+    }
+
+    return prefix + displayUrl
+}
+
+private fun buildBrowserNetworkLogDisplayUrl(url: String): String {
+    val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return url
+    val host = uri.host.orEmpty()
+    val path = uri.encodedPath.orEmpty()
+    val query = uri.encodedQuery.orEmpty()
+    val compactPath = when {
+        path.isBlank() -> ""
+        path.length <= 34 -> path
+        else -> {
+            val segments = path.split('/').filter { it.isNotBlank() }
+            when {
+                segments.isEmpty() -> path.take(34)
+                segments.size == 1 -> "/.../${segments.last().takeLast(22)}"
+                else -> "/${segments.first()}/.../${segments.last().takeLast(22)}"
+            }
+        }
+    }
+    val compactQuery = when {
+        query.isBlank() -> ""
+        query.length <= 16 -> "?$query"
+        else -> "?${query.take(16)}..."
+    }
+
+    return buildString {
+        append(host.ifBlank { url.take(44) })
+        append(compactPath)
+        append(compactQuery)
+    }
+}
+
+private fun resolveBrowserNetworkLogColor(
+    entry: BrowserNetworkLogEntry,
+    currentPageUrl: String
+): Color {
+    if (entry.isBlocked) {
+        return Color(0xFFD93025)
+    }
+
+    val currentHost = runCatching { Uri.parse(currentPageUrl).host.orEmpty().lowercase() }.getOrDefault("")
+    val requestHost = runCatching { Uri.parse(entry.url).host.orEmpty().lowercase() }.getOrDefault("")
+    val sameSite = currentHost.isNotBlank() &&
+        requestHost.isNotBlank() &&
+        (
+            currentHost == requestHost ||
+                currentHost.endsWith(".$requestHost") ||
+                requestHost.endsWith(".$currentHost")
+            )
+
+    return if (!sameSite && requestHost.isNotBlank()) {
+        Color(0xFFD4B24C)
+    } else {
+        Color(0xFF111111)
+    }
+}
+
+@Composable
+private fun BrowserNetworkLogActionDialog(
+    entry: BrowserNetworkLogEntry,
+    onDismiss: () -> Unit,
+    onCopy: () -> Unit,
+    onPlay: () -> Unit,
+    onDownload: () -> Unit,
+    onBlock: () -> Unit,
+    onOpenExternal: () -> Unit,
+    onViewFullLink: () -> Unit
+) {
+    val isPlayable = UrlDetector.isVideo(entry.url, entry.headers) || UrlDetector.isAudio(entry.url, entry.headers)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.72f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "请选择操作",
+                    color = Color(0xFF111111),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(vertical = 14.dp)
+                )
+                BrowserNetworkLogActionRow("复制链接", onCopy)
+                if (isPlayable) {
+                    BrowserNetworkLogActionRow("播放资源", onPlay)
+                }
+                BrowserNetworkLogActionRow("下载资源", onDownload)
+                BrowserNetworkLogActionRow("拦截网址", onBlock)
+                BrowserNetworkLogActionRow("外部打开", onOpenExternal)
+                BrowserNetworkLogActionRow("查看完整链接", onViewFullLink, drawDivider = false)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserNetworkLogActionRow(
+    title: String,
+    onClick: () -> Unit,
+    drawDivider: Boolean = true
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Text(
+            text = title,
+            color = Color(0xFF202124),
+            fontSize = 14.sp,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(vertical = 14.dp)
+        )
+        if (drawDivider) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.8.dp)
+                    .background(Color(0xFFF1F3F4))
+            )
+        }
+    }
+}
+
+@Composable
+private fun BrowserNetworkLogFullLinkDialog(
+    entry: BrowserNetworkLogEntry,
+    onDismiss: () -> Unit,
+    onCopy: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.82f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "完整链接",
+                    color = Color(0xFF111111),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = entry.url,
+                    color = Color(0xFF202124),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 14.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("关闭")
+                    }
+                    TextButton(onClick = onCopy) {
+                        Text("复制")
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun playBrowserNetworkLogEntry(context: Context, entry: BrowserNetworkLogEntry) {
+    if (UrlDetector.isVideo(entry.url, entry.headers) || UrlDetector.isAudio(entry.url, entry.headers)) {
+        BrowserPlaybackInteractor.play(
+            context,
+            DetectedVideo(
+                url = entry.url,
+                title = entry.title,
+                pageUrl = entry.pageUrl,
+                headers = entry.headers
+            )
+        )
+    } else {
+        Toast.makeText(context, "当前链接不是可播放的音视频资源", Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun downloadBrowserNetworkLogEntry(context: Context, entry: BrowserNetworkLogEntry) {
+    if (entry.url.isBlank()) {
+        return
+    }
+
+    val contentDisposition = RemotePlaybackHeaders.get(entry.headers, "Content-Disposition")
+    val mimeType = UrlDetector.getMimeTypeForFormat(
+        UrlDetector.getDetectedResourceFormat(entry.url, entry.headers),
+        entry.headers
+    )
+    val fileName = URLUtil.guessFileName(entry.url, contentDisposition, mimeType.ifBlank { null })
+    val headers = RemotePlaybackHeaders.enrich(entry.headers, entry.pageUrl)
+
+    requestDownloadWithPreferences(
+        context = context,
+        request = InternalDownloadRequest(
+            url = entry.url,
+            title = entry.title.takeIf { it.isNotBlank() } ?: fileName,
+            fileName = fileName,
+            mimeType = mimeType,
+            description = "网络日志下载任务",
+            sourcePageUrl = entry.pageUrl,
+            sourcePageTitle = entry.title,
+            mediaType = when (entry.category) {
+                UrlDetector.NetworkCategory.VIDEO -> "video"
+                UrlDetector.NetworkCategory.AUDIO -> "audio"
+                UrlDetector.NetworkCategory.IMAGE -> "image"
+                else -> ""
+            },
+            headers = headers
+        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

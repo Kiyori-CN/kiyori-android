@@ -69,16 +69,19 @@ object BrowserSecurityPolicy {
 
     fun resolveUserAgent(
         mode: BrowserUserAgentMode,
-        defaultUserAgent: String = MOBILE_USER_AGENT
+        defaultUserAgent: String = MOBILE_USER_AGENT,
+        customUserAgent: String = ""
     ): String {
-        return resolveUserAgentProfile(mode, defaultUserAgent).userAgent
+        return resolveUserAgentProfile(mode, defaultUserAgent, customUserAgent).userAgent
     }
 
     fun resolveUserAgentProfile(
         mode: BrowserUserAgentMode,
-        defaultUserAgent: String = MOBILE_USER_AGENT
+        defaultUserAgent: String = MOBILE_USER_AGENT,
+        customUserAgent: String = ""
     ): UserAgentProfile {
         val safeDefaultUserAgent = defaultUserAgent.ifBlank { MOBILE_USER_AGENT }
+        val trimmedCustomUserAgent = customUserAgent.trim()
         return when (mode) {
             BrowserUserAgentMode.ANDROID -> buildAndroidUserAgentProfile(safeDefaultUserAgent)
             BrowserUserAgentMode.PC_DESKTOP -> buildDesktopUserAgentProfile(safeDefaultUserAgent)
@@ -88,8 +91,14 @@ object BrowserSecurityPolicy {
                 mobile = true,
                 platform = "SymbianOS"
             )
-            BrowserUserAgentMode.CUSTOM_GLOBAL -> buildAndroidUserAgentProfile(safeDefaultUserAgent)
-            BrowserUserAgentMode.CUSTOM_SITE -> buildAndroidUserAgentProfile(safeDefaultUserAgent)
+            BrowserUserAgentMode.CUSTOM_GLOBAL,
+            BrowserUserAgentMode.CUSTOM_SITE -> {
+                if (trimmedCustomUserAgent.isNotBlank()) {
+                    buildCustomUserAgentProfile(trimmedCustomUserAgent)
+                } else {
+                    buildAndroidUserAgentProfile(safeDefaultUserAgent)
+                }
+            }
         }
     }
 
@@ -141,6 +150,30 @@ object BrowserSecurityPolicy {
             platform = "iOS",
             platformVersion = "17.4",
             model = "iPhone"
+        )
+    }
+
+    private fun buildCustomUserAgentProfile(userAgent: String): UserAgentProfile {
+        val lowerUserAgent = userAgent.lowercase()
+        val mobile = lowerUserAgent.contains("mobile") ||
+            lowerUserAgent.contains("android") ||
+            lowerUserAgent.contains("iphone") ||
+            lowerUserAgent.contains("ipad") ||
+            lowerUserAgent.contains("symbian")
+
+        return UserAgentProfile(
+            userAgent = userAgent,
+            mobile = mobile,
+            platform = when {
+                lowerUserAgent.contains("windows") -> "Windows"
+                lowerUserAgent.contains("android") -> "Android"
+                lowerUserAgent.contains("iphone") || lowerUserAgent.contains("ipad") || lowerUserAgent.contains("ios") -> "iOS"
+                lowerUserAgent.contains("mac os x") -> "macOS"
+                lowerUserAgent.contains("linux") -> "Linux"
+                else -> null
+            },
+            fullVersion = extractVersion(userAgent, "Chrome/([\\d.]+)")
+                ?: extractVersion(userAgent, "Version/([\\d.]+)")
         )
     }
 

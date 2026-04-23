@@ -857,6 +857,22 @@ class PreferencesManager private constructor(context: Context) {
         sharedPreferences.edit().putString("browser_user_agent_mode", value).apply()
     }
 
+    fun getBrowserCustomGlobalUserAgent(): String {
+        return sharedPreferences.getString("browser_custom_global_user_agent", "") ?: ""
+    }
+
+    fun setBrowserCustomGlobalUserAgent(value: String) {
+        sharedPreferences.edit().putString("browser_custom_global_user_agent", value).apply()
+    }
+
+    fun getBrowserCustomSiteUserAgents(): String {
+        return sharedPreferences.getString("browser_custom_site_user_agents", "") ?: ""
+    }
+
+    fun setBrowserCustomSiteUserAgents(value: String) {
+        sharedPreferences.edit().putString("browser_custom_site_user_agents", value).apply()
+    }
+
     fun isBrowserIncognitoModeEnabled(): Boolean {
         return sharedPreferences.getBoolean("browser_incognito_mode", false)
     }
@@ -871,6 +887,110 @@ class PreferencesManager private constructor(context: Context) {
 
     fun setBrowserX5Enabled(enabled: Boolean) {
         sharedPreferences.edit().putBoolean("browser_x5_enabled", enabled).apply()
+    }
+
+    fun getDownloadDefaultEngineId(): String {
+        return sharedPreferences.getString("download_default_engine", "internal") ?: "internal"
+    }
+
+    fun setDownloadDefaultEngineId(value: String) {
+        sharedPreferences.edit().putString("download_default_engine", value).apply()
+    }
+
+    fun getDownloadMaxConcurrentTasks(): Int {
+        return sharedPreferences.getInt("download_max_concurrent_tasks", 3)
+    }
+
+    fun setDownloadMaxConcurrentTasks(value: Int) {
+        sharedPreferences.edit().putInt("download_max_concurrent_tasks", value).apply()
+    }
+
+    fun getDownloadNormalThreadCount(): Int {
+        return sharedPreferences.getInt("download_normal_thread_count", 6)
+    }
+
+    fun setDownloadNormalThreadCount(value: Int) {
+        sharedPreferences.edit().putInt("download_normal_thread_count", value).apply()
+    }
+
+    fun getDownloadM3u8ThreadCount(): Int {
+        return sharedPreferences.getInt("download_m3u8_thread_count", 16)
+    }
+
+    fun setDownloadM3u8ThreadCount(value: Int) {
+        sharedPreferences.edit().putInt("download_m3u8_thread_count", value).apply()
+    }
+
+    fun isDownloadM3u8AutoMergeEnabled(): Boolean {
+        return sharedPreferences.getBoolean("download_m3u8_auto_merge", true)
+    }
+
+    fun setDownloadM3u8AutoMergeEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("download_m3u8_auto_merge", enabled).apply()
+    }
+
+    fun isDownloadAutoTransferPublicEnabled(): Boolean {
+        return sharedPreferences.getBoolean("download_auto_transfer_public", false)
+    }
+
+    fun setDownloadAutoTransferPublicEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("download_auto_transfer_public", enabled).apply()
+    }
+
+    fun getDownloadChunkSizeKb(): Int {
+        return sharedPreferences.getInt("download_chunk_size_kb", 2048)
+    }
+
+    fun setDownloadChunkSizeKb(value: Int) {
+        sharedPreferences.edit().putInt("download_chunk_size_kb", value).apply()
+    }
+
+    fun isDownloadApkAutoCleanEnabled(): Boolean {
+        return sharedPreferences.getBoolean("download_apk_auto_clean", false)
+    }
+
+    fun setDownloadApkAutoCleanEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("download_apk_auto_clean", enabled).apply()
+    }
+
+    fun isDownloadSkipConfirmEnabled(): Boolean {
+        return sharedPreferences.getBoolean("download_skip_confirm", false)
+    }
+
+    fun setDownloadSkipConfirmEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("download_skip_confirm", enabled).apply()
+    }
+
+    fun isDownloadCompletionTipEnabled(): Boolean {
+        return sharedPreferences.getBoolean("download_completion_tip", true)
+    }
+
+    fun setDownloadCompletionTipEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("download_completion_tip", enabled).apply()
+    }
+
+    fun isDownloadHttp2Enabled(): Boolean {
+        return sharedPreferences.getBoolean("download_http2_enabled", true)
+    }
+
+    fun setDownloadHttp2Enabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("download_http2_enabled", enabled).apply()
+    }
+
+    fun getDownloadCustomDirectoryUri(): String {
+        return sharedPreferences.getString("download_custom_directory_uri", "") ?: ""
+    }
+
+    fun setDownloadCustomDirectoryUri(value: String) {
+        sharedPreferences.edit().putString("download_custom_directory_uri", value).apply()
+    }
+
+    fun getDownloadCustomDirectoryName(): String {
+        return sharedPreferences.getString("download_custom_directory_name", "") ?: ""
+    }
+
+    fun setDownloadCustomDirectoryName(value: String) {
+        sharedPreferences.edit().putString("download_custom_directory_name", value).apply()
     }
 
     fun clearAll() {

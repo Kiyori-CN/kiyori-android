@@ -5,6 +5,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +52,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -61,6 +63,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,17 +75,29 @@ import com.android.kiyori.settings.PlaybackSettingsComposeActivity
 import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.ui.compose.SettingsColors as SettingsPalette
 
+private val SettingsCardBorderColor = Color(0xFFE8E8E2)
+
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    showBackButton: Boolean = true
+    showBackButton: Boolean = true,
+    initialPage: String? = null,
+    navigationRequestId: Long = 0L,
+    onRootPageStateChanged: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
     val browserPreferencesRepository = remember { BrowserPreferencesRepository(context) }
     var browserHomeUrl by remember { mutableStateOf(browserPreferencesRepository.getHomeUrl()) }
-    var currentPage by remember { mutableStateOf(SettingsPage.Root) }
+    var currentPage by remember(initialPage) {
+        mutableStateOf(settingsPageFromKey(initialPage) ?: SettingsPage.Root)
+    }
     var browserSubPage by remember { mutableStateOf<BrowserSubPage?>(null) }
+
+    LaunchedEffect(initialPage, navigationRequestId) {
+        currentPage = settingsPageFromKey(initialPage) ?: SettingsPage.Root
+        browserSubPage = null
+    }
 
     fun launchActivity(intent: Intent) {
         context.startActivity(intent)
@@ -104,9 +119,17 @@ fun SettingsScreen(
         BackHandler(onBack = ::handleBack)
     }
 
+    LaunchedEffect(currentPage, browserSubPage) {
+        onRootPageStateChanged(currentPage == SettingsPage.Root && browserSubPage == null)
+    }
+
+    val showPinnedHeaderBar = browserSubPage != null || currentPage != SettingsPage.Root
+
     Scaffold(
         containerColor = Color(0xFFF5F5F2),
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
+            if (showPinnedHeaderBar) {
             SettingsHeaderBar(
                 title = browserSubPage?.title ?: when (currentPage) {
                     SettingsPage.Browser -> "浏览器功能设置"
@@ -115,10 +138,11 @@ fun SettingsScreen(
                     SettingsPage.AdBlock -> ""
                     else -> currentPage.title
                 },
-                showBackButton = browserSubPage != null || currentPage != SettingsPage.Root || showBackButton,
-                showRootActions = currentPage == SettingsPage.Root && browserSubPage == null,
+                showBackButton = true,
+                showRootActions = false,
                 onBackClick = ::handleBack
             )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -184,6 +208,8 @@ fun SettingsScreen(
                 when (currentPage) {
                     SettingsPage.Root -> {
                         SettingsRootPage(
+                            showBackButton = showBackButton,
+                            onBackClick = ::handleBack,
                             onOpenPage = { currentPage = it }
                         )
                     }
@@ -216,7 +242,7 @@ fun SettingsScreen(
                     }
 
                     SettingsPage.Download -> {
-                        DownloadSettingsPage()
+                        DownloadSettingsContent()
                     }
 
                     SettingsPage.AdBlock -> {
@@ -336,6 +362,7 @@ private fun BrowserSettingsDetailPage(
                     .fillMaxWidth()
                     .padding(horizontal = 15.dp),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, SettingsCardBorderColor),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -475,7 +502,7 @@ private fun SettingsHeaderBar(
 private fun SettingsHeaderAction(icon: ImageVector) {
     Box(
         modifier = Modifier
-            .size(30.dp)
+            .size(36.dp)
             .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -483,13 +510,32 @@ private fun SettingsHeaderAction(icon: ImageVector) {
             imageVector = icon,
             contentDescription = null,
             tint = Color(0xFF72726E),
-            modifier = Modifier.size(18.dp)
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+@Composable
+private fun SettingsHeaderAction(iconRes: Int) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .padding(2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            tint = Color(0xFF72726E),
+            modifier = Modifier.size(22.dp)
         )
     }
 }
 
 @Composable
 private fun SettingsRootPage(
+    showBackButton: Boolean,
+    onBackClick: () -> Unit,
     onOpenPage: (SettingsPage) -> Unit
 ) {
     val groups = remember {
@@ -573,10 +619,14 @@ private fun SettingsRootPage(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(4.dp))
+            SettingsRootScrollableHeader(
+                title = SettingsPage.Root.title,
+                showBackButton = showBackButton,
+                onBackClick = onBackClick
+            )
         }
 
         itemsIndexed(groups) { _, group ->
@@ -593,6 +643,52 @@ private fun SettingsRootPage(
 }
 
 @Composable
+private fun SettingsRootScrollableHeader(
+    title: String,
+    showBackButton: Boolean,
+    onBackClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF5F5F2))
+            .statusBarsPadding()
+            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (showBackButton) {
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "返回",
+                    tint = Color(0xFF2B2B2B),
+                    modifier = Modifier.size(21.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(2.dp))
+        } else {
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+
+        Text(
+            text = title,
+            fontSize = 21.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF202020),
+            modifier = Modifier.weight(1f)
+        )
+
+        SettingsHeaderAction(iconRes = R.drawable.ic_kiyori_settings_header_top_search)
+        SettingsHeaderAction(iconRes = R.drawable.ic_kiyori_settings_header_scan)
+        SettingsHeaderAction(iconRes = R.drawable.ic_kiyori_settings_header_top_refresh)
+        SettingsHeaderAction(iconRes = R.drawable.ic_kiyori_settings_header_sun)
+    }
+}
+
+@Composable
 private fun SettingsRootGroupCard(
     entries: List<SettingsRootEntry>,
     onEntryClick: (SettingsRootEntry) -> Unit
@@ -602,6 +698,7 @@ private fun SettingsRootGroupCard(
             .fillMaxWidth()
             .padding(horizontal = 15.dp),
         shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, SettingsCardBorderColor),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -687,6 +784,7 @@ private fun SettingsDetailPage(
                     .fillMaxWidth()
                     .padding(horizontal = 15.dp),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, SettingsCardBorderColor),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -785,6 +883,7 @@ private fun BrowserHomepageCustomizationPage(
                     .fillMaxWidth()
                     .padding(horizontal = 15.dp),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, SettingsCardBorderColor),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -996,6 +1095,7 @@ private fun DownloadSettingsPage() {
                     .fillMaxWidth()
                     .padding(horizontal = 15.dp),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, SettingsCardBorderColor),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -1140,6 +1240,7 @@ private fun PlayerSettingsPage(
                     .fillMaxWidth()
                     .padding(horizontal = 15.dp),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, SettingsCardBorderColor),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -1258,6 +1359,7 @@ private fun AdBlockSettingsPage() {
                     .fillMaxWidth()
                     .padding(horizontal = 15.dp),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, SettingsCardBorderColor),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
@@ -1340,6 +1442,14 @@ private enum class SettingsPage(val title: String) {
     Developer("开发手册与模式"),
     Interface("界面定制"),
     More("更多功能")
+}
+
+private fun settingsPageFromKey(key: String?): SettingsPage? = when (key) {
+    "browser" -> SettingsPage.Browser
+    "player" -> SettingsPage.Player
+    "download" -> SettingsPage.Download
+    "ad_block" -> SettingsPage.AdBlock
+    else -> null
 }
 
 private data class SettingsRootEntry(

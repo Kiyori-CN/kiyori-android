@@ -6,6 +6,7 @@ import android.os.Looper
 import android.util.Log
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackRequest
+import com.android.kiyori.utils.UriUtils.resolveUri
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
 import java.lang.ref.WeakReference
@@ -107,15 +108,13 @@ class PlaybackEngine(
             com.android.kiyori.utils.Logger.d(TAG, "Loading video: $videoUri")
             com.android.kiyori.utils.Logger.d(TAG, "Start position: $startPosition seconds")
             
-            // 对于网络URL，直接使用原始字符串；对于本地文件，使用URI
+            // 网络资源直接交给 mpv；本地资源先解析成可访问的真实路径
             val filePath = when (videoUri.scheme) {
                 "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh", "tcp", "udp", "ftp", "sftp" -> {
-                    // 网络URL：直接使用toString()
                     videoUri.toString()
                 }
                 else -> {
-                    // 本地文件：使用toString()（保持原有逻辑）
-                    videoUri.toString()
+                    resolveLocalPlaybackPath(videoUri)
                 }
             }
             
@@ -205,6 +204,13 @@ class PlaybackEngine(
             Log.e(TAG, "Failed to load video from URL", e)
             eventCallback.onError("加载视频失败: ${e.message}")
         }
+    }
+
+    private fun resolveLocalPlaybackPath(videoUri: android.net.Uri): String {
+        val context = contextRef.get()
+            ?: throw IllegalStateException("Context unavailable")
+        return videoUri.resolveUri(context)
+            ?: throw IllegalStateException("无法解析本地文件")
     }
 
     fun loadRemote(request: RemotePlaybackRequest, startPosition: Double = 0.0) {
