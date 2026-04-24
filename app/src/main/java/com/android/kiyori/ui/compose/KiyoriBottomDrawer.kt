@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,6 +38,9 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.staticCompositionLocalOf
+
+val LocalKiyoriDrawerDragModifier = staticCompositionLocalOf<Modifier> { Modifier }
 
 private enum class KiyoriDrawerState {
     Partial,
@@ -158,82 +162,86 @@ fun KiyoriBottomDrawer(
                 }
         )
 
+        val drawerDragModifier = Modifier.draggable(
+            state = draggableState,
+            orientation = Orientation.Vertical,
+            onDragStarted = {
+                dragStartOffsetPx = offsetPx.value
+                dragDeltaPx = 0f
+                coroutineScope.launch {
+                    if (offsetPx.isRunning) {
+                        offsetPx.stop()
+                    }
+                }
+            },
+            onDragStopped = { velocity ->
+                val safeStartOffset = dragStartOffsetPx.takeIf { it.isFinite() } ?: currentOffsetPx
+                val velocityThreshold = 900f
+                val distanceThreshold = resolvedDrawerHeightPx * 0.08f
+                val movedEnough = kotlin.math.abs(dragDeltaPx) >= distanceThreshold
+                val flungEnough = kotlin.math.abs(velocity) >= velocityThreshold
+                val movingUp = dragDeltaPx < 0f || velocity < -velocityThreshold
+                val movingDown = dragDeltaPx > 0f || velocity > velocityThreshold
+
+                drawerState = when {
+                    !movedEnough && !flungEnough -> {
+                        when (safeStartOffset.roundToInt()) {
+                            resolveDrawerOffsetForState(
+                                state = KiyoriDrawerState.Expanded,
+                                drawerHeightPx = resolvedDrawerHeightPx,
+                                partialOffsetPx = resolvedPartialOffsetPx
+                            ).roundToInt() -> KiyoriDrawerState.Expanded
+
+                            resolveDrawerOffsetForState(
+                                state = KiyoriDrawerState.Hidden,
+                                drawerHeightPx = resolvedDrawerHeightPx,
+                                partialOffsetPx = resolvedPartialOffsetPx
+                            ).roundToInt() -> KiyoriDrawerState.Hidden
+
+                            else -> KiyoriDrawerState.Partial
+                        }
+                    }
+
+                    movingUp && safeStartOffset <= resolvedPartialOffsetPx * 0.5f -> KiyoriDrawerState.Expanded
+                    movingUp -> KiyoriDrawerState.Expanded
+                    movingDown -> KiyoriDrawerState.Hidden
+                    else -> KiyoriDrawerState.Partial
+                }
+                dragStartOffsetPx = Float.NaN
+                dragDeltaPx = 0f
+            }
+        )
+
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxSize()
-                .offset { IntOffset(0, currentOffsetPx.roundToInt()) }
-                .draggable(
-                    state = draggableState,
-                    orientation = Orientation.Vertical,
-                    onDragStarted = {
-                        dragStartOffsetPx = offsetPx.value
-                        dragDeltaPx = 0f
-                        coroutineScope.launch {
-                            if (offsetPx.isRunning) {
-                                offsetPx.stop()
-                            }
-                        }
-                    },
-                    onDragStopped = { velocity ->
-                        val safeStartOffset = dragStartOffsetPx.takeIf { it.isFinite() } ?: currentOffsetPx
-                        val velocityThreshold = 900f
-                        val distanceThreshold = resolvedDrawerHeightPx * 0.08f
-                        val movedEnough = kotlin.math.abs(dragDeltaPx) >= distanceThreshold
-                        val flungEnough = kotlin.math.abs(velocity) >= velocityThreshold
-                        val movingUp = dragDeltaPx < 0f || velocity < -velocityThreshold
-                        val movingDown = dragDeltaPx > 0f || velocity > velocityThreshold
-
-                        drawerState = when {
-                            !movedEnough && !flungEnough -> {
-                                when (safeStartOffset.roundToInt()) {
-                                    resolveDrawerOffsetForState(
-                                        state = KiyoriDrawerState.Expanded,
-                                        drawerHeightPx = resolvedDrawerHeightPx,
-                                        partialOffsetPx = resolvedPartialOffsetPx
-                                    ).roundToInt() -> KiyoriDrawerState.Expanded
-
-                                    resolveDrawerOffsetForState(
-                                        state = KiyoriDrawerState.Hidden,
-                                        drawerHeightPx = resolvedDrawerHeightPx,
-                                        partialOffsetPx = resolvedPartialOffsetPx
-                                    ).roundToInt() -> KiyoriDrawerState.Hidden
-
-                                    else -> KiyoriDrawerState.Partial
-                                }
-                            }
-
-                            movingUp && safeStartOffset <= resolvedPartialOffsetPx * 0.5f -> KiyoriDrawerState.Expanded
-                            movingUp -> KiyoriDrawerState.Expanded
-                            movingDown -> KiyoriDrawerState.Hidden
-                            else -> KiyoriDrawerState.Partial
-                        }
-                        dragStartOffsetPx = Float.NaN
-                        dragDeltaPx = 0f
-                    }
-                ),
+                .offset { IntOffset(0, currentOffsetPx.roundToInt()) },
             shape = shape,
             color = containerColor,
             shadowElevation = 0.dp
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(28.dp),
-                    contentAlignment = Alignment.Center
+            CompositionLocalProvider(LocalKiyoriDrawerDragModifier provides drawerDragModifier) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(42.dp)
-                            .height(4.dp)
-                            .background(Color(0xFFD6D6D6), RoundedCornerShape(999.dp))
-                    )
-                }
+                            .fillMaxWidth()
+                            .height(28.dp)
+                            .then(drawerDragModifier),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(42.dp)
+                                .height(4.dp)
+                                .background(Color(0xFFD6D6D6), RoundedCornerShape(999.dp))
+                        )
+                    }
 
-                content()
+                    content()
+                }
             }
         }
     }

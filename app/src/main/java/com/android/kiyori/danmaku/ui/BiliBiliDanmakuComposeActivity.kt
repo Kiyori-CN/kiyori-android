@@ -16,6 +16,7 @@ import com.android.kiyori.app.BaseActivity
 import com.android.kiyori.R
 import com.android.kiyori.danmaku.BiliBiliDanmakuDownloadManager
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -63,7 +64,7 @@ class BiliBiliDanmakuComposeActivity : BaseActivity() {
                     isDownloading = isDownloading,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onFolderSelected = { uri: Uri -> handleFolderSelected(uri) },
                     onDownloadDanmaku = { url: String, downloadWholeSeason: Boolean ->

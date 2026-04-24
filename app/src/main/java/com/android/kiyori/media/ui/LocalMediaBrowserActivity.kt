@@ -11,11 +11,11 @@ import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -25,6 +25,8 @@ import com.android.kiyori.media.VideoFileParcelable
 import com.android.kiyori.media.VideoFolder
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.NoMediaChecker
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.enableTransparentSystemBars
 import kotlinx.coroutines.Dispatchers
@@ -35,10 +37,13 @@ class LocalMediaBrowserActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "LocalMediaBrowser"
-        private const val PERMISSION_REQUEST_CODE = 1001
     }
 
     private lateinit var preferencesManager: com.android.kiyori.manager.PreferencesManager
+    private val requestReadStoragePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            setupContent()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,7 +85,7 @@ class LocalMediaBrowserActivity : ComponentActivity() {
                     onScanVideos = { callback -> scanVideoFiles(callback) },
                     onNavigateBack = { 
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onOpenFolder = { folder -> openVideoList(folder) },
                     preferencesManager = preferencesManager
@@ -108,22 +113,7 @@ class LocalMediaBrowserActivity : ComponentActivity() {
                 startActivity(intent)
             }
         } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-                PERMISSION_REQUEST_CODE
-            )
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            setupContent()
+            requestReadStoragePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
 
@@ -239,7 +229,7 @@ class LocalMediaBrowserActivity : ComponentActivity() {
             VideoFileParcelable(it.uri, it.name, it.path, it.size, it.duration, it.dateAdded)
         }))
         startActivity(intent)
-        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        applyOpenActivityTransitionCompat(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 }
 

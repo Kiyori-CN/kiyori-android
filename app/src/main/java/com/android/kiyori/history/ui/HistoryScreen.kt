@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,12 +16,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -54,7 +57,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.android.kiyori.browser.data.BrowserHistoryRepository
+import com.android.kiyori.browser.data.BrowserVideoHistoryRepository
 import com.android.kiyori.history.PlaybackHistoryManager
+import com.android.kiyori.remote.RemotePlaybackRequest
+import com.android.kiyori.ui.compose.LocalKiyoriDrawerDragModifier
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,14 +74,18 @@ fun HistoryScreen(
     onHistoryChanged: () -> Unit = {},
     onBack: () -> Unit,
     onOpenBrowserHistory: (String) -> Unit,
+    onOpenNetworkVideoHistory: (RemotePlaybackRequest) -> Unit,
     onOpenPlaybackHistory: (Uri, Long) -> Unit
 ) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
     val context = LocalContext.current
     val browserHistoryRepository = remember(context) { BrowserHistoryRepository(context) }
+    val browserVideoHistoryRepository = remember(context) { BrowserVideoHistoryRepository(context) }
 
     var selectedSection by rememberSaveable { mutableStateOf(initialSection) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var browserHistory by remember { mutableStateOf(browserHistoryRepository.getHistory()) }
+    var networkVideoHistory by remember { mutableStateOf(browserVideoHistoryRepository.getHistory()) }
     var playbackHistory by remember { mutableStateOf(playbackHistoryManager.getHistory()) }
     var showClearDialog by remember { mutableStateOf(false) }
     var pendingDeleteItem by remember { mutableStateOf<HistoryListEntry?>(null) }
@@ -84,23 +94,33 @@ fun HistoryScreen(
         selectedSection = initialSection
     }
 
-    val entries = remember(selectedSection, searchQuery, browserHistory, playbackHistory) {
+    val entries = remember(
+        selectedSection,
+        searchQuery,
+        browserHistory,
+        networkVideoHistory,
+        playbackHistory
+    ) {
         val normalizedQuery = searchQuery.trim()
         when (selectedSection) {
             HistorySection.MINI_PROGRAM -> emptyList()
             HistorySection.WEB -> browserHistory
                 .map { HistoryListEntry.Browser(it) }
                 .filter { it.matches(normalizedQuery) }
-            HistorySection.PLAYBACK -> playbackHistory
-                .map { HistoryListEntry.Playback(it) }
+            HistorySection.NETWORK_VIDEO -> networkVideoHistory
+                .map { HistoryListEntry.NetworkVideo(it) }
+                .filter { it.matches(normalizedQuery) }
+            HistorySection.LOCAL_VIDEO -> playbackHistory
+                .map { HistoryListEntry.LocalVideo(it) }
                 .filter { it.matches(normalizedQuery) }
         }
     }
 
-    val hasItemsInCurrentSection = when (selectedSection) {
+    val canDelete = when (selectedSection) {
         HistorySection.MINI_PROGRAM -> false
         HistorySection.WEB -> browserHistory.isNotEmpty()
-        HistorySection.PLAYBACK -> playbackHistory.isNotEmpty()
+        HistorySection.NETWORK_VIDEO -> networkVideoHistory.isNotEmpty()
+        HistorySection.LOCAL_VIDEO -> playbackHistory.isNotEmpty()
     }
 
     Column(
@@ -111,7 +131,8 @@ fun HistoryScreen(
     ) {
         HistoryTopBar(
             searchQuery = searchQuery,
-            canDelete = hasItemsInCurrentSection,
+            canDelete = canDelete,
+            drawerDragModifier = drawerDragModifier,
             useStatusBarPadding = useStatusBarPadding,
             onBack = onBack,
             onSearchQueryChange = { searchQuery = it },
@@ -121,12 +142,13 @@ fun HistoryScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             HistorySection.values().forEach { section ->
                 HistorySectionChip(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.width(84.dp),
                     label = section.label,
                     selected = selectedSection == section,
                     onClick = { selectedSection = section }
@@ -155,19 +177,18 @@ fun HistoryScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(
-                        items = entries,
-                        key = { it.key }
-                    ) { entry ->
+                    items(items = entries, key = { it.key }) { entry ->
                         HistoryRecordCard(
                             entry = entry,
                             onClick = {
                                 when (entry) {
                                     is HistoryListEntry.Browser -> onOpenBrowserHistory(entry.item.url)
-                                    is HistoryListEntry.Playback -> onOpenPlaybackHistory(
-                                        Uri.parse(entry.item.uri),
-                                        entry.item.position
-                                    )
+                                    is HistoryListEntry.NetworkVideo -> {
+                                        onOpenNetworkVideoHistory(entry.item.toRemotePlaybackRequest())
+                                    }
+                                    is HistoryListEntry.LocalVideo -> {
+                                        onOpenPlaybackHistory(Uri.parse(entry.item.uri), entry.item.position)
+                                    }
                                 }
                             },
                             onLongClick = { pendingDeleteItem = entry }
@@ -192,7 +213,8 @@ fun HistoryScreen(
                     text = when (selectedSection) {
                         HistorySection.MINI_PROGRAM -> "当前没有可删除的小程序历史。"
                         HistorySection.WEB -> "确定清空全部网页浏览历史吗？"
-                        HistorySection.PLAYBACK -> "确定清空全部播放记录吗？"
+                        HistorySection.NETWORK_VIDEO -> "确定清空全部网络视频记录吗？"
+                        HistorySection.LOCAL_VIDEO -> "确定清空全部本地视频记录吗？"
                     },
                     color = Color(0xFF666666)
                 )
@@ -207,7 +229,11 @@ fun HistoryScreen(
                                 browserHistory = emptyList()
                                 onHistoryChanged()
                             }
-                            HistorySection.PLAYBACK -> {
+                            HistorySection.NETWORK_VIDEO -> {
+                                browserVideoHistoryRepository.clearHistory()
+                                networkVideoHistory = emptyList()
+                            }
+                            HistorySection.LOCAL_VIDEO -> {
                                 playbackHistoryManager.clearHistory()
                                 playbackHistory = emptyList()
                                 onHistoryChanged()
@@ -215,11 +241,11 @@ fun HistoryScreen(
                         }
                         showClearDialog = false
                     },
-                    enabled = hasItemsInCurrentSection
+                    enabled = canDelete
                 ) {
                     Text(
                         text = "删除",
-                        color = if (hasItemsInCurrentSection) Color(0xFFCC4B4B) else Color(0xFFBDBDBD)
+                        color = if (canDelete) Color(0xFFCC4B4B) else Color(0xFFBDBDBD)
                     )
                 }
             },
@@ -259,7 +285,11 @@ fun HistoryScreen(
                                 browserHistory = browserHistoryRepository.getHistory()
                                 onHistoryChanged()
                             }
-                            is HistoryListEntry.Playback -> {
+                            is HistoryListEntry.NetworkVideo -> {
+                                browserVideoHistoryRepository.deleteHistory(entry.item.id)
+                                networkVideoHistory = browserVideoHistoryRepository.getHistory()
+                            }
+                            is HistoryListEntry.LocalVideo -> {
                                 playbackHistoryManager.removeHistory(entry.item.uri)
                                 playbackHistory = playbackHistoryManager.getHistory()
                                 onHistoryChanged()
@@ -286,6 +316,7 @@ fun HistoryScreen(
 private fun HistoryTopBar(
     searchQuery: String,
     canDelete: Boolean,
+    drawerDragModifier: Modifier,
     useStatusBarPadding: Boolean,
     onBack: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
@@ -295,37 +326,38 @@ private fun HistoryTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (useStatusBarPadding) Modifier.statusBarsPadding() else Modifier)
-            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 2.dp),
+            .height(64.dp)
+            .padding(start = 0.dp, end = 12.dp)
+            .then(drawerDragModifier),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
             onClick = onBack,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(52.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "返回",
-                tint = Color(0xFF1C1C1C),
-                modifier = Modifier.size(18.dp)
+                tint = Color(0xFF111827),
+                modifier = Modifier.size(25.dp)
             )
         }
-
-        Spacer(modifier = Modifier.width(4.dp))
 
         Text(
             text = "历史记录",
             fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF1C1C1C)
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF111827),
+            modifier = Modifier.offset(x = (-4).dp)
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
 
         Surface(
             modifier = Modifier
-                .weight(1.35f)
-                .height(38.dp),
-            shape = RoundedCornerShape(15.dp),
+                .weight(1f)
+                .height(32.dp),
+            shape = RoundedCornerShape(12.dp),
             color = Color(0xFFF1F1F1)
         ) {
             BasicTextField(
@@ -338,7 +370,7 @@ private fun HistoryTopBar(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 12.dp),
                 decorationBox = { innerTextField ->
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -357,21 +389,21 @@ private fun HistoryTopBar(
             )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(5.dp))
 
         Surface(
             modifier = Modifier
                 .alpha(if (canDelete) 1f else 0.55f)
-                .width(72.dp)
-                .height(38.dp),
-            shape = RoundedCornerShape(13.dp),
+                .width(58.dp)
+                .height(32.dp),
+            shape = RoundedCornerShape(11.dp),
             shadowElevation = 4.dp,
             color = Color.White
         ) {
             TextButton(
                 onClick = onDeleteClick,
                 enabled = canDelete,
-                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp)
+                contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
                     text = "删除",
@@ -418,81 +450,6 @@ private fun HistoryRecordCard(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
-    if (entry.preferMediaLayout) {
-        MediaHistoryRecordCard(
-            entry = entry,
-            onClick = onClick,
-            onLongClick = onLongClick
-        )
-    } else {
-        TextHistoryRecordCard(
-            entry = entry,
-            onClick = onClick,
-            onLongClick = onLongClick
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun TextHistoryRecordCard(
-    entry: HistoryListEntry,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 15.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = entry.title,
-                fontSize = 16.sp,
-                lineHeight = 22.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF111111),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = entry.secondaryText,
-                fontSize = 13.sp,
-                color = Color(0xFF8E8E93),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            entry.tertiaryText?.let { tertiaryText ->
-                Text(
-                    text = tertiaryText,
-                    fontSize = 13.sp,
-                    color = Color(0xFF8E8E93),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun MediaHistoryRecordCard(
-    entry: HistoryListEntry,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit
-) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -508,7 +465,8 @@ private fun MediaHistoryRecordCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             HistoryThumbnail(
                 previewPath = entry.previewPath,
@@ -517,7 +475,7 @@ private fun MediaHistoryRecordCard(
 
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = entry.title,
@@ -592,7 +550,8 @@ private fun HistoryEmptyState(
         hasSearchQuery -> "没有找到匹配的记录"
         section == HistorySection.MINI_PROGRAM -> "当前还没有小程序历史"
         section == HistorySection.WEB -> "继续浏览网页后，记录会显示在这里"
-        else -> "继续播放视频后，记录会显示在这里"
+        section == HistorySection.NETWORK_VIDEO -> "继续在浏览器播放网络视频后，记录会显示在这里"
+        else -> "继续播放本地视频后，记录会显示在这里"
     }
 
     Box(
@@ -615,7 +574,6 @@ private sealed interface HistoryListEntry {
     val secondaryText: String
     val tertiaryText: String?
     val previewPath: String?
-    val preferMediaLayout: Boolean
 
     fun matches(query: String): Boolean
 
@@ -626,10 +584,36 @@ private sealed interface HistoryListEntry {
         override val title: String = item.title.ifBlank {
             extractHost(item.url).ifBlank { item.url }
         }
-        override val secondaryText: String = extractHost(item.url).ifBlank { item.url }
-        override val tertiaryText: String? = null
+        override val secondaryText: String = item.url
+        override val tertiaryText: String = formatRecentTime(item.createdAt)
+        override val previewPath: String? = item.previewPath.takeIf { it.isNotBlank() }
+
+        override fun matches(query: String): Boolean {
+            if (query.isBlank()) {
+                return true
+            }
+            return title.contains(query, ignoreCase = true) ||
+                item.url.contains(query, ignoreCase = true)
+        }
+    }
+
+    data class NetworkVideo(
+        val item: BrowserVideoHistoryRepository.HistoryItem
+    ) : HistoryListEntry {
+        override val key: String = "network_video_${item.id}"
+        override val title: String = item.title.ifBlank {
+            extractHost(item.url).ifBlank { "网络视频" }
+        }
+        override val secondaryText: String = item.url
+        override val tertiaryText: String = buildString {
+            val sourceText = item.sourcePageUrl.takeIf { it.isNotBlank() }
+                ?.let { extractHost(it).ifBlank { it } }
+                ?: "浏览器播放"
+            append(sourceText)
+            append(" · ")
+            append(formatRecentTime(item.createdAt))
+        }
         override val previewPath: String? = null
-        override val preferMediaLayout: Boolean = false
 
         override fun matches(query: String): Boolean {
             if (query.isBlank()) {
@@ -637,14 +621,14 @@ private sealed interface HistoryListEntry {
             }
             return title.contains(query, ignoreCase = true) ||
                 item.url.contains(query, ignoreCase = true) ||
-                secondaryText.contains(query, ignoreCase = true)
+                item.sourcePageUrl.contains(query, ignoreCase = true)
         }
     }
 
-    data class Playback(
+    data class LocalVideo(
         val item: PlaybackHistoryManager.HistoryItem
     ) : HistoryListEntry {
-        override val key: String = "playback_${item.uri}"
+        override val key: String = "local_video_${item.uri}"
         override val title: String = item.fileName
         override val secondaryText: String = item.folderName.ifBlank {
             extractHost(item.uri).ifBlank { "本地视频" }
@@ -656,7 +640,6 @@ private sealed interface HistoryListEntry {
             append(formatRecentTime(item.lastPlayed))
         }
         override val previewPath: String? = item.thumbnailPath?.takeIf { it.isNotBlank() }
-        override val preferMediaLayout: Boolean = false
 
         override fun matches(query: String): Boolean {
             if (query.isBlank()) {

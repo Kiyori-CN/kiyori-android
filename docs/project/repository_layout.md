@@ -24,7 +24,7 @@
   维护脚本目录。当前按主题开始分层，`tools/icons/generate_launcher_icons.py` 用于从 `icons/软件图标/kiyori-app-icon-1024.png` 生成启动图标；后续新增脚本应优先放入对应主题子目录，而不是继续平铺在 `tools/` 根下。
 
 - `gradle/`、`gradlew`、`gradlew.bat`、`build.gradle`、`settings.gradle`、`gradle.properties`
-  Gradle 构建系统文件，属于必须提交内容。
+  Gradle 构建系统文件，属于必须提交内容。依赖与 SDK / 插件版本统一放在 `gradle/libs.versions.toml`，不要再分散到多个脚本里维护。
 
 - `local.properties.example`
   本地配置模板，允许提交。

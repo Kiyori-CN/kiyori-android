@@ -1,12 +1,15 @@
 plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-    id 'org.jetbrains.kotlin.kapt'
-    id 'org.jetbrains.kotlin.plugin.parcelize'
-    id 'com.mikepenz.aboutlibraries.plugin'
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.androidx.room)
+    alias(libs.plugins.aboutlibraries)
 }
 
-def versions = rootProject.ext.versions
+def appId = "com.android.kiyori"
+def roomSchemaDir = "$projectDir/schemas"
 
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
@@ -15,9 +18,9 @@ if (localPropertiesFile.exists()) {
 }
 
 android {
-    namespace 'com.android.kiyori'
-    compileSdk 34
-    ndkVersion versions.ndk
+    namespace appId
+    compileSdk libs.versions.androidCompileSdk.get().toInteger()
+    ndkVersion libs.versions.androidNdk.get()
 
     splits {
         abi {
@@ -29,21 +32,15 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.android.kiyori"
-        minSdk 26
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        applicationId appId
+        minSdk libs.versions.androidMinSdk.get().toInteger()
+        targetSdk libs.versions.androidTargetSdk.get().toInteger()
+        versionCode libs.versions.appVersionCode.get().toInteger()
+        versionName libs.versions.appVersionName.get()
 
         buildConfigField "String", "DANDANPLAY_APP_ID", "\"${localProperties.getProperty('dandanplay.appId', '')}\""
         buildConfigField "String", "DANDANPLAY_APP_SECRET", "\"${localProperties.getProperty('dandanplay.appSecret', '')}\""
         buildConfigField "String", "WYZIE_API_KEY", "\"${localProperties.getProperty('wyzie.apiKey', '')}\""
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
-            }
-        }
     }
 
     buildTypes {
@@ -92,17 +89,18 @@ android {
         buildConfig true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion versions.composeCompiler
-    }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+room {
+    schemaDirectory(roomSchemaDir)
 }
 
 kapt {
     correctErrorTypes true
-    arguments {
-        arg("room.schemaLocation", "$projectDir/schemas")
-        arg("room.incremental", "true")
-    }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -124,22 +122,22 @@ android.applicationVariants.all { variant ->
 }
 
 dependencies {
-    implementation "androidx.appcompat:appcompat:${versions.appcompat}"
-    implementation "androidx.recyclerview:recyclerview:${versions.recyclerview}"
-    implementation "androidx.swiperefreshlayout:swiperefreshlayout:${versions.swipeRefresh}"
-    implementation "com.google.android.material:material:${versions.material}"
-    implementation "androidx.cardview:cardview:${versions.cardview}"
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.swipeRefreshLayout
+    implementation libs.google.material
+    implementation libs.androidx.cardview
 
-    def composeBom = platform("androidx.compose:compose-bom:${versions.composeBom}")
+    def composeBom = platform(libs.androidx.compose.bom)
     implementation composeBom
-    implementation 'androidx.compose.ui:ui'
-    implementation 'androidx.compose.material3:material3'
-    implementation 'androidx.compose.ui:ui-tooling-preview'
-    implementation "androidx.activity:activity-compose:${versions.activityCompose}"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:${versions.lifecycle}"
-    implementation "androidx.lifecycle:lifecycle-runtime-compose:${versions.lifecycle}"
-    implementation 'androidx.compose.material:material-icons-extended'
-    debugImplementation 'androidx.compose.ui:ui-tooling'
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.material3
+    implementation libs.androidx.compose.ui.tooling.preview
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.lifecycle.viewmodel.compose
+    implementation libs.androidx.lifecycle.runtime.compose
+    implementation libs.androidx.compose.material.icons.extended
+    debugImplementation libs.androidx.compose.ui.tooling
 
     implementation(name: 'mpv-android-lib-v0.1.10', ext: 'aar')
     implementation(name: 'DanmakuFlameMaster', ext: 'aar')
@@ -147,26 +145,25 @@ dependencies {
     implementation files('libs/simple-xml-2.7.1.jar')
     implementation files('libs/tbs_sdk_thirdapp_v4.3.0.236_44136_sharewithdownloadwithfile_withoutGame_obfs_20211203_185750.jar')
 
-    implementation "com.github.bumptech.glide:glide:${versions.glide}"
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:${versions.lifecycle}"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${versions.coroutines}"
-    implementation "com.squareup.okhttp3:okhttp:${versions.okhttp}"
-    implementation "org.jsoup:jsoup:${versions.jsoup}"
-    implementation "androidx.room:room-runtime:${versions.room}"
-    implementation "androidx.room:room-ktx:${versions.room}"
-    kapt "androidx.room:room-compiler:${versions.room}"
-    implementation "androidx.work:work-runtime-ktx:${versions.work}"
-    implementation "androidx.paging:paging-runtime-ktx:${versions.paging}"
-    implementation "androidx.paging:paging-compose:${versions.paging}"
-    implementation "com.google.zxing:core:${versions.zxing}"
-    implementation "io.coil-kt:coil-compose:${versions.coil}"
-    implementation "io.coil-kt:coil-video:${versions.coil}"
-    implementation "com.google.code.gson:gson:${versions.gson}"
-    implementation "androidx.webkit:webkit:${versions.webkit}"
-    implementation "androidx.security:security-crypto:${versions.securityCrypto}"
-    implementation "com.mikepenz:aboutlibraries-core:${versions.aboutLibraries}"
-    implementation "com.mikepenz:aboutlibraries-compose:${versions.aboutLibraries}"
+    implementation libs.glide
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.kotlinx.coroutines.android
+    implementation libs.okhttp
+    implementation libs.jsoup
+    implementation libs.androidx.room.runtime
+    implementation libs.androidx.room.ktx
+    kapt libs.androidx.room.compiler
+    implementation libs.androidx.work.runtime.ktx
+    implementation libs.androidx.paging.runtime.ktx
+    implementation libs.androidx.paging.compose
+    implementation libs.zxing.core
+    implementation libs.coil.compose
+    implementation libs.coil.video
+    implementation libs.gson
+    implementation libs.androidx.webkit
+    implementation libs.androidx.security.crypto
+    implementation libs.aboutlibraries.core
+    implementation libs.aboutlibraries.compose
 
-    testImplementation 'junit:junit:4.13.2'
+    testImplementation libs.junit4
 }
-

@@ -17,6 +17,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,9 +28,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -40,12 +45,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -74,6 +79,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -85,6 +91,9 @@ import coil.compose.AsyncImage
 import com.android.kiyori.R
 import com.android.kiyori.app.MainActivity
 import com.android.kiyori.browser.data.BrowserBookmarkRepository
+import com.android.kiyori.browser.data.BrowserPluginEntry
+import com.android.kiyori.browser.data.BrowserPluginRepository
+import com.android.kiyori.browser.data.BrowserPluginStore
 import com.android.kiyori.browser.domain.BrowserBookmarkFolder
 import com.android.kiyori.browser.domain.BrowserBookmarkItem
 import com.android.kiyori.browser.domain.BrowserBookmarkFolderOption
@@ -104,11 +113,15 @@ import com.android.kiyori.history.PlaybackHistoryManager
 import com.android.kiyori.history.ui.HistoryScreen
 import com.android.kiyori.history.ui.HistorySection
 import com.android.kiyori.player.ui.VideoPlayerActivity
+import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.sniffer.DetectedVideo
 import com.android.kiyori.sniffer.UrlDetector
 import com.android.kiyori.sniffer.VideoSnifferManager
 import com.android.kiyori.ui.compose.KiyoriBottomDrawer
+import com.android.kiyori.ui.compose.LocalKiyoriDrawerDragModifier
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.tencent.smtt.sdk.WebView
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,11 +164,13 @@ fun BrowserScreen(
     val context = LocalContext.current
     val activity = context as? Activity
     val bookmarkRepository = remember(context) { BrowserBookmarkRepository(context) }
+    val pluginRepository = remember(context) { BrowserPluginRepository(context) }
     val playbackHistoryManager = remember(context) { PlaybackHistoryManager(context) }
     val detectedVideos by VideoSnifferManager.detectedVideos.collectAsStateWithLifecycle()
     val networkLogs by BrowserNetworkLogManager.entries.collectAsStateWithLifecycle()
-    var showDetectedVideos by remember { mutableStateOf(false) }
+    var showResourceSnifferDrawer by remember { mutableStateOf(false) }
     var showBookmarkDrawer by remember { mutableStateOf(false) }
+    var showPluginDrawer by remember { mutableStateOf(false) }
     var showHistoryDrawer by remember { mutableStateOf(false) }
     var showDownloadDrawer by remember { mutableStateOf(false) }
     var showNetworkLog by remember { mutableStateOf(false) }
@@ -169,6 +184,7 @@ fun BrowserScreen(
     var selectedWindowMode by remember { mutableStateOf(if (state.isIncognitoMode) BrowserWindowMode.Incognito else BrowserWindowMode.Normal) }
     var bookmarkDrawerFolders by remember { mutableStateOf(bookmarkRepository.getFolders()) }
     var bookmarkDrawerItems by remember { mutableStateOf(bookmarkRepository.getBookmarks()) }
+    var pluginEntries by remember { mutableStateOf(pluginRepository.getPlugins()) }
     var bookmarkFolderOptionsState by remember {
         mutableStateOf(bookmarkDrawerFolders.map { folder ->
             BrowserBookmarkFolderOption(id = folder.id, title = folder.title)
@@ -214,6 +230,10 @@ fun BrowserScreen(
         }
     }
 
+    fun refreshPluginDrawerState() {
+        pluginEntries = pluginRepository.getPlugins()
+    }
+
     LaunchedEffect(bookmarkFolders) {
         refreshBookmarkDrawerState()
     }
@@ -234,6 +254,8 @@ fun BrowserScreen(
             showUserAgentDialog = false
         } else if (addBookmarkDraft != null) {
             addBookmarkDraft = null
+        } else if (showPluginDrawer) {
+            showPluginDrawer = false
         } else if (showToolboxSheet) {
             showToolboxSheet = false
         } else if (showDownloadDrawer) {
@@ -246,8 +268,8 @@ fun BrowserScreen(
             showWindowPage = false
         } else if (showNetworkLog) {
             showNetworkLog = false
-        } else if (showDetectedVideos) {
-            showDetectedVideos = false
+        } else if (showResourceSnifferDrawer) {
+            showResourceSnifferDrawer = false
         } else if (state.showUrlBar) {
             onToggleUrlBar()
         } else if (state.canGoBack) {
@@ -284,7 +306,7 @@ fun BrowserScreen(
                     onBackPressed = onBackPressed,
                     onToggleUrlBar = onToggleUrlBar,
                     onReload = onReload,
-                    onShowDetectedVideos = { showDetectedVideos = true }
+                    onShowDetectedVideos = { showResourceSnifferDrawer = true }
                 )
             }
         },
@@ -471,14 +493,14 @@ fun BrowserScreen(
             }
         }
 
-    if (showDetectedVideos) {
-        ModalBottomSheet(
-            onDismissRequest = { showDetectedVideos = false }
+    if (showResourceSnifferDrawer) {
+        KiyoriBottomDrawer(
+            onDismissRequest = { showResourceSnifferDrawer = false }
         ) {
-            BrowserDetectedVideosSheet(
+            BrowserResourceSnifferSheet(
                 candidates = candidates,
                 onPlay = { candidate ->
-                    showDetectedVideos = false
+                    showResourceSnifferDrawer = false
                     BrowserPlaybackInteractor.play(context, candidate.video)
                 },
                 onCopy = { candidate ->
@@ -498,6 +520,37 @@ fun BrowserScreen(
             BrowserNetworkLogSheet(
                 entries = networkLogs,
                 currentPageUrl = state.currentUrl
+            )
+        }
+    }
+
+    if (showPluginDrawer) {
+        KiyoriBottomDrawer(
+            onDismissRequest = { showPluginDrawer = false }
+        ) {
+            BrowserPluginSheet(
+                plugins = pluginEntries,
+                onClose = { showPluginDrawer = false },
+                onAddPlugin = { name, matchRule, sourceUrl ->
+                    pluginRepository.addPlugin(
+                        name = name,
+                        matchRule = matchRule,
+                        sourceUrl = sourceUrl
+                    )
+                    refreshPluginDrawerState()
+                },
+                onDeletePlugin = { entry ->
+                    pluginRepository.deletePlugin(entry.id)
+                    refreshPluginDrawerState()
+                },
+                onOpenPluginStore = { store ->
+                    showPluginDrawer = false
+                    onOpenHistoryItem(store.url)
+                },
+                onOpenPluginSource = { entry ->
+                    showPluginDrawer = false
+                    onOpenHistoryItem(entry.sourceUrl)
+                }
             )
         }
     }
@@ -525,9 +578,14 @@ fun BrowserScreen(
                     refreshBookmarkDrawerState()
                     showBookmarkDrawer = true
                 },
-                onOpenDetectedVideos = {
+                onOpenPlugins = {
                     showToolboxSheet = false
-                    showDetectedVideos = true
+                    refreshPluginDrawerState()
+                    showPluginDrawer = true
+                },
+                onOpenResourceSniffer = {
+                    showToolboxSheet = false
+                    showResourceSnifferDrawer = true
                 },
                 onOpenUserAgent = {
                     showToolboxSheet = false
@@ -590,7 +648,7 @@ fun BrowserScreen(
                     initialSettingsPage = MainActivity.SETTINGS_PAGE_DOWNLOAD
                 )
                 activity?.finish()
-                activity?.overridePendingTransition(
+                activity?.applyCloseActivityTransitionCompat(
                     R.anim.no_anim,
                     R.anim.no_anim
                 )
@@ -618,6 +676,14 @@ fun BrowserScreen(
                             onOpenHistoryItem(url)
                         }
                     },
+                    onOpenNetworkVideoHistory = { request ->
+                        showHistoryDrawer = false
+                        RemotePlaybackLauncher.start(context, request)
+                        activity?.applyOpenActivityTransitionCompat(
+                            R.anim.slide_in_right,
+                            R.anim.slide_out_left
+                        )
+                    },
                     onOpenPlaybackHistory = { uri, startPosition ->
                         showHistoryDrawer = false
                         context.startActivity(
@@ -626,7 +692,7 @@ fun BrowserScreen(
                                 putExtra("lastPosition", startPosition)
                             }
                         )
-                        activity?.overridePendingTransition(
+                        activity?.applyOpenActivityTransitionCompat(
                             R.anim.slide_in_right,
                             R.anim.slide_out_left
                         )
@@ -886,13 +952,16 @@ private fun BrowserHistorySheet(
     onDelete: (Long) -> Unit,
     onClearAll: () -> Unit
 ) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(drawerDragModifier),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1106,12 +1175,12 @@ private fun BrowserWindowPage(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
-            .padding(top = 16.dp)
+            .padding(top = 24.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(top = 10.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1262,10 +1331,12 @@ private fun BrowserWindowCard(
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -1277,6 +1348,7 @@ private fun BrowserWindowCard(
                     )
                     Text(
                         text = entry.title.ifBlank { "新标签页" },
+                        modifier = Modifier.weight(1f),
                         color = Color(0xFF111111),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
@@ -1335,13 +1407,17 @@ private fun BrowserWindowCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun BrowserDetectedVideosSheet(
+private fun BrowserResourceSnifferSheet(
     candidates: List<BrowserVideoCandidate>,
     onPlay: (BrowserVideoCandidate) -> Unit,
     onCopy: (BrowserVideoCandidate) -> Unit,
     onDownload: (BrowserVideoCandidate) -> Unit
 ) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
+    var actionCandidate by remember { mutableStateOf<BrowserVideoCandidate?>(null) }
+    var fullLinkCandidate by remember { mutableStateOf<BrowserVideoCandidate?>(null) }
     var selectedFormat by remember { mutableStateOf("ALL") }
     val formatCounts = remember(candidates) {
         candidates.groupingBy { it.format }
@@ -1380,33 +1456,13 @@ private fun BrowserDetectedVideosSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .fillMaxHeight()
             .padding(horizontal = 20.dp, vertical = 8.dp)
     ) {
-        Text(
-            text = "嗅探结果",
-            style = MaterialTheme.typography.titleLarge,
-            color = Color(0xFF111827)
-        )
-
-        if (candidates.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "继续浏览页面后，新的请求会自动出现在这里。",
-                    color = Color(0xFF6B7280)
-                )
-            }
-            return
-        }
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp)
+                .then(drawerDragModifier)
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -1421,11 +1477,40 @@ private fun BrowserDetectedVideosSheet(
             }
         }
 
+        Text(
+            text = "资源嗅探",
+            style = MaterialTheme.typography.titleLarge,
+            color = Color(0xFF111827),
+            modifier = Modifier.padding(top = 14.dp)
+        )
+        Text(
+            text = "汇总当前页面捕获到的可播放或可下载资源，点击条目可进行播放、下载或复制链接。",
+            style = MaterialTheme.typography.bodyMedium,
+            fontSize = 13.sp,
+            color = Color(0xFF6B7280),
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
+        if (candidates.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "继续浏览页面后，新的请求会自动出现在这里。",
+                    color = Color(0xFF6B7280)
+                )
+            }
+            return
+        }
+
         if (visibleCandidates.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp),
+                    .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -1439,13 +1524,21 @@ private fun BrowserDetectedVideosSheet(
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp)
+                .fillMaxHeight()
+                .padding(top = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(visibleCandidates, key = { "${it.video.url}_${it.video.timestamp}" }) { candidate ->
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFFF3F4F6))
+                        .combinedClickable(
+                            onClick = { actionCandidate = candidate },
+                            onLongClick = { actionCandidate = candidate }
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1456,11 +1549,20 @@ private fun BrowserDetectedVideosSheet(
                             text = candidate.video.getDisplayText(),
                             style = MaterialTheme.typography.titleMedium,
                             color = Color(0xFF111827),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = if (candidate.isRecommended) "推荐" else candidate.format,
+                            color = if (candidate.isRecommended) Color(0xFF0F766E) else Color(0xFF374151),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 12.dp)
                         )
                     }
                     Text(
-                        text = candidate.format,
+                        text = buildBrowserNetworkLogDisplayUrl(candidate.video.url),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF374151),
                         modifier = Modifier.padding(top = 4.dp)
@@ -1482,28 +1584,749 @@ private fun BrowserDetectedVideosSheet(
                             text = "来源页: ${candidate.video.pageUrl}",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF6B7280),
-                            modifier = Modifier.padding(top = 2.dp)
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
-                    }
-                    Row(
-                        modifier = Modifier.padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        if (candidate.canPreview) {
-                            Button(onClick = { onPlay(candidate) }) {
-                                Text("播放")
-                            }
-                        }
-                        androidx.compose.material3.OutlinedButton(onClick = { onDownload(candidate) }) {
-                            Text("下载")
-                        }
-                        TextButton(onClick = { onCopy(candidate) }) {
-                            Text("复制")
-                        }
                     }
                 }
             }
         }
+    }
+
+    if (actionCandidate != null) {
+        BrowserResourceSnifferActionDialog(
+            candidate = actionCandidate!!,
+            onDismiss = { actionCandidate = null },
+            onPlay = {
+                onPlay(actionCandidate!!)
+                actionCandidate = null
+            },
+            onDownload = {
+                onDownload(actionCandidate!!)
+                actionCandidate = null
+            },
+            onCopy = {
+                onCopy(actionCandidate!!)
+                actionCandidate = null
+            },
+            onViewFullLink = {
+                fullLinkCandidate = actionCandidate
+                actionCandidate = null
+            }
+        )
+    }
+
+    if (fullLinkCandidate != null) {
+        BrowserResourceSnifferFullLinkDialog(
+            candidate = fullLinkCandidate!!,
+            onDismiss = { fullLinkCandidate = null },
+            onCopy = {
+                onCopy(fullLinkCandidate!!)
+                fullLinkCandidate = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun BrowserResourceSnifferActionDialog(
+    candidate: BrowserVideoCandidate,
+    onDismiss: () -> Unit,
+    onPlay: () -> Unit,
+    onDownload: () -> Unit,
+    onCopy: () -> Unit,
+    onViewFullLink: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.72f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "资源操作",
+                    color = Color(0xFF111111),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(vertical = 14.dp)
+                )
+                if (candidate.canPreview) {
+                    BrowserNetworkLogActionRow("播放资源", onPlay)
+                }
+                BrowserNetworkLogActionRow("下载资源", onDownload)
+                BrowserNetworkLogActionRow("复制链接", onCopy)
+                BrowserNetworkLogActionRow("查看完整链接", onViewFullLink, drawDivider = false)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserResourceSnifferFullLinkDialog(
+    candidate: BrowserVideoCandidate,
+    onDismiss: () -> Unit,
+    onCopy: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.82f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "完整链接",
+                    color = Color(0xFF111111),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = candidate.video.url,
+                    color = Color(0xFF202124),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 14.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 14.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("关闭")
+                    }
+                    TextButton(onClick = onCopy) {
+                        Text("复制")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BrowserPluginSheet(
+    plugins: List<BrowserPluginEntry>,
+    onClose: () -> Unit,
+    onAddPlugin: (name: String, matchRule: String, sourceUrl: String) -> Unit,
+    onDeletePlugin: (BrowserPluginEntry) -> Unit,
+    onOpenPluginStore: (BrowserPluginStore) -> Unit,
+    onOpenPluginSource: (BrowserPluginEntry) -> Unit
+) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
+    val context = LocalContext.current
+    var searchKeyword by remember { mutableStateOf("") }
+    var showStoreDialog by remember { mutableStateOf(false) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editingPlugin by remember { mutableStateOf<BrowserPluginEntry?>(null) }
+    var actionPlugin by remember { mutableStateOf<BrowserPluginEntry?>(null) }
+    val filteredPlugins = remember(plugins, searchKeyword) {
+        val key = searchKeyword.trim()
+        if (key.isBlank()) {
+            plugins
+        } else {
+            plugins.filter { plugin ->
+                plugin.name.contains(key, ignoreCase = true) ||
+                    plugin.matchRule.contains(key, ignoreCase = true) ||
+                    plugin.sourceUrl.contains(key, ignoreCase = true)
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .navigationBarsPadding()
+            .padding(horizontal = 18.dp, vertical = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(drawerDragModifier),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "返回",
+                    tint = Color(0xFF111827),
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 2.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "网页插件",
+                    color = Color(0xFF111827),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.offset(x = (-4).dp)
+                )
+                BrowserPluginMenuTrigger(
+                    modifier = Modifier.padding(start = 8.dp, top = 1.dp)
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BrowserPluginTopButton(
+                    title = "插件库",
+                    onClick = { showStoreDialog = true }
+                )
+                BrowserPluginTopButton(
+                    title = "新增",
+                    onClick = { showAddDialog = true }
+                )
+            }
+        }
+
+        BrowserPluginSearchField(
+            value = searchKeyword,
+            onValueChange = { searchKeyword = it },
+            onClear = { searchKeyword = "" },
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+                .height(620.dp)
+                .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                .background(Color(0xFFF2F8FB))
+        ) {
+            if (filteredPlugins.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (plugins.isEmpty()) {
+                            "还没有网页插件，点击右上角新增或从插件库查看来源。"
+                        } else {
+                            "没有匹配到相关插件。"
+                        },
+                        color = Color(0xFF7A7A7A),
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    gridItems(filteredPlugins, key = { it.id }) { plugin ->
+                        BrowserPluginCard(
+                            entry = plugin,
+                            onClick = { actionPlugin = plugin }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showStoreDialog) {
+        BrowserPluginStoreDialog(
+            stores = BrowserPluginRepository.storeEntries,
+            onDismiss = { showStoreDialog = false },
+            onSelect = { store ->
+                showStoreDialog = false
+                onOpenPluginStore(store)
+            }
+        )
+    }
+
+    if (showAddDialog) {
+        BrowserAddPluginDialog(
+            title = if (editingPlugin == null) "新增网页插件" else "编辑网页插件",
+            initialName = editingPlugin?.name.orEmpty(),
+            initialMatchRule = editingPlugin?.matchRule.orEmpty(),
+            initialSourceUrl = editingPlugin?.sourceUrl.orEmpty(),
+            onDismiss = {
+                showAddDialog = false
+                editingPlugin = null
+            },
+            onConfirm = { name, matchRule, sourceUrl ->
+                val isEditing = editingPlugin != null
+                if (name.isBlank()) {
+                    Toast.makeText(context, "插件名不能为空", Toast.LENGTH_SHORT).show()
+                    return@BrowserAddPluginDialog
+                }
+                editingPlugin?.let { onDeletePlugin(it) }
+                onAddPlugin(name, matchRule, sourceUrl)
+                showAddDialog = false
+                editingPlugin = null
+                Toast.makeText(
+                    context,
+                    if (isEditing) "网页插件已更新" else "网页插件已保存",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        )
+    }
+
+    if (actionPlugin != null) {
+        BrowserPluginActionDialog(
+            entry = actionPlugin!!,
+            onDismiss = { actionPlugin = null },
+            onEdit = {
+                editingPlugin = actionPlugin
+                actionPlugin = null
+                showAddDialog = true
+            },
+            onOpenSource = {
+                val entry = actionPlugin!!
+                actionPlugin = null
+                if (entry.sourceUrl.isNotBlank()) {
+                    onOpenPluginSource(entry)
+                }
+            },
+            onCopySource = {
+                val entry = actionPlugin!!
+                if (entry.sourceUrl.isNotBlank()) {
+                    copyTextToClipboard(context, "browser_plugin_source", entry.sourceUrl)
+                    Toast.makeText(context, "已复制插件来源链接", Toast.LENGTH_SHORT).show()
+                }
+                actionPlugin = null
+            },
+            onDelete = {
+                onDeletePlugin(actionPlugin!!)
+                actionPlugin = null
+                Toast.makeText(context, "已删除网页插件", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+}
+
+@Composable
+private fun BrowserPluginMenuTrigger(
+    modifier: Modifier = Modifier,
+    color: Color = Color(0xFF6B6B6B)
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BrowserPluginMenuBar(
+            color = color,
+            width = 2.dp,
+            height = 10.dp
+        )
+        BrowserPluginMenuBar(
+            color = color,
+            width = 2.dp,
+            height = 14.dp
+        )
+        BrowserPluginMenuBar(
+            color = color,
+            width = 2.dp,
+            height = 14.dp
+        )
+        BrowserPluginMenuBar(
+            color = color,
+            width = 2.dp,
+            height = 10.dp
+        )
+    }
+}
+
+@Composable
+private fun BrowserPluginMenuBar(
+    color: Color,
+    width: androidx.compose.ui.unit.Dp,
+    height: androidx.compose.ui.unit.Dp
+) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .height(height)
+            .background(color, RoundedCornerShape(999.dp))
+    )
+}
+
+@Composable
+private fun BrowserPluginTopButton(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .height(38.dp)
+            .border(
+                width = 1.dp,
+                color = Color(0xFFDADDE1),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        shadowElevation = 0.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = title,
+                color = Color(0xFF222222),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun BrowserPluginSearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 2.dp, vertical = 7.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFF6F6F6))
+            .height(35.dp)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            textStyle = TextStyle(
+                color = Color(0xFF202124),
+                fontSize = 12.sp
+            ),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (value.isBlank()) {
+                        Text(
+                            text = "搜索插件名、域名",
+                            color = Color(0xFFC6C6C6),
+                            fontSize = 12.sp
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+        if (value.isNotBlank()) {
+            IconButton(
+                onClick = onClear,
+                modifier = Modifier.size(18.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "清空插件搜索",
+                    tint = Color(0xFF8C8C8C),
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserPluginCard(
+    entry: BrowserPluginEntry,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 128.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = Color.White,
+        shadowElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+        ) {
+            Text(
+                text = entry.name,
+                color = Color(0xFF161616),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = entry.matchRule.toBrowserPluginScopeLabel(),
+                color = Color(0xFF2F2F2F),
+                fontSize = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 10.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BrowserPluginStoreDialog(
+    stores: List<BrowserPluginStore>,
+    onDismiss: () -> Unit,
+    onSelect: (BrowserPluginStore) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.widthIn(min = 280.dp, max = 280.dp),
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                stores.forEachIndexed { index, store ->
+                    BrowserNetworkLogActionRow(
+                        title = store.title,
+                        onClick = { onSelect(store) },
+                        drawDivider = index != stores.lastIndex
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserPluginActionDialog(
+    entry: BrowserPluginEntry,
+    onDismiss: () -> Unit,
+    onEdit: () -> Unit,
+    onOpenSource: () -> Unit,
+    onCopySource: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.72f),
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = entry.name,
+                    color = Color(0xFF111111),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                )
+                BrowserNetworkLogActionRow("编辑插件", onEdit)
+                if (entry.sourceUrl.isNotBlank()) {
+                    BrowserNetworkLogActionRow("打开来源", onOpenSource)
+                    BrowserNetworkLogActionRow("复制来源链接", onCopySource)
+                }
+                BrowserNetworkLogActionRow("删除插件", onDelete, drawDivider = false)
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserAddPluginDialog(
+    title: String,
+    initialName: String,
+    initialMatchRule: String,
+    initialSourceUrl: String,
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, matchRule: String, sourceUrl: String) -> Unit
+) {
+    var name by remember(initialName) { mutableStateOf(initialName) }
+    var matchRule by remember(initialMatchRule) { mutableStateOf(initialMatchRule) }
+    var sourceUrl by remember(initialSourceUrl) { mutableStateOf(initialSourceUrl) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier.widthIn(min = 320.dp, max = 320.dp),
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 22.dp)
+            ) {
+                Text(
+                    text = title,
+                    color = Color(0xFF1F2937),
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(horizontal = 18.dp)
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+                BrowserPluginDialogField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = "请输入插件名",
+                    modifier = Modifier.padding(horizontal = 18.dp)
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+                BrowserPluginDialogField(
+                    value = matchRule,
+                    onValueChange = { matchRule = it },
+                    placeholder = "请输入域名或 global",
+                    modifier = Modifier.padding(horizontal = 18.dp)
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+                BrowserPluginDialogField(
+                    value = sourceUrl,
+                    onValueChange = { sourceUrl = it },
+                    placeholder = "请输入来源链接（可选）",
+                    modifier = Modifier.padding(horizontal = 18.dp)
+                )
+                Spacer(modifier = Modifier.height(18.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(0.5.dp, Color(0xFFF3F4F6))
+                        .height(58.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BrowserPluginDialogActionButton(
+                        text = "取消",
+                        modifier = Modifier.weight(1f),
+                        onClick = onDismiss
+                    )
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFF3F4F6))
+                            .size(width = 0.5.dp, height = 58.dp)
+                    )
+                    BrowserPluginDialogActionButton(
+                        text = "保存",
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            onConfirm(
+                                name.trim(),
+                                matchRule.trim(),
+                                sourceUrl.trim()
+                            )
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserPluginDialogField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 32.dp),
+            singleLine = true,
+            textStyle = TextStyle(
+                color = Color(0xFF111827),
+                fontSize = 14.sp
+            ),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (value.isBlank()) {
+                        Text(
+                            text = placeholder,
+                            color = Color(0xFFBDBDBD),
+                            fontSize = 14.sp
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFBDBDBD))
+        )
+    }
+}
+
+@Composable
+private fun BrowserPluginDialogActionButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(58.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = Color(0xFF374151),
+            fontSize = 16.sp
+        )
+    }
+}
+
+private fun String.toBrowserPluginScopeLabel(): String {
+    val normalized = trim()
+    return when {
+        normalized.isBlank() -> "全局插件 (global)"
+        normalized == "*" -> "全局插件 (global)"
+        normalized.equals("global", ignoreCase = true) -> "全局插件 (global)"
+        else -> normalized
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .ifBlank { "全局插件 (global)" }
     }
 }
 
@@ -1526,6 +2349,7 @@ private fun BrowserNetworkLogSheet(
     entries: List<BrowserNetworkLogEntry>,
     currentPageUrl: String
 ) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
     val context = LocalContext.current
     var selectedTab by remember { mutableStateOf(BrowserNetworkLogTab.ALL) }
     var actionEntry by remember { mutableStateOf<BrowserNetworkLogEntry?>(null) }
@@ -1546,6 +2370,7 @@ private fun BrowserNetworkLogSheet(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(drawerDragModifier)
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -1957,7 +2782,7 @@ private fun BrowserUserAgentDialog(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(0.82f),
             shape = RoundedCornerShape(22.dp),
             color = Color.White
         ) {

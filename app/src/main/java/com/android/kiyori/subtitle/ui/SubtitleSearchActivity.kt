@@ -19,6 +19,7 @@ import com.android.kiyori.subtitle.SubtitleDownloadManager
 import com.android.kiyori.subtitle.SubtitleInfo
 import com.android.kiyori.subtitle.TmdbMediaResult
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -85,7 +86,7 @@ class SubtitleSearchActivity : BaseActivity() {
                     selectedMedia = selectedMedia,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onFolderSelected = { uri -> handleFolderSelected(uri) },
                     onSearchOptionsChanged = { options -> handleSearchOptionsChanged(options) },

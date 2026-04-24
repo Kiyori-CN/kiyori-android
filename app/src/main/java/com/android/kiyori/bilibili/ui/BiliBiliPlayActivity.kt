@@ -37,6 +37,7 @@ import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.manager.compose.BiliBiliLoginActivity
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.enableTransparentSystemBars
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,7 +76,7 @@ class BiliBiliPlayActivity : ComponentActivity() {
                     authManager = authManager,
                     onBack = { 
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onPlayEpisode = { epId, cid, title ->
                         playEpisode(epId, cid, title)
@@ -94,7 +95,7 @@ class BiliBiliPlayActivity : ComponentActivity() {
                     authManager = authManager,
                     onBack = { 
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onPlayEpisode = { epId, cid, title ->
                         playEpisode(epId, cid, title)

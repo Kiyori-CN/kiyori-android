@@ -84,9 +84,6 @@ class DownloadActivity : ComponentActivity() {
                             initialSettingsPage = MainActivity.SETTINGS_PAGE_DOWNLOAD
                         )
                         finish()
-                    },
-                    onOpenBilibiliDownloader = {
-                        startActivity(Intent(this, BilibiliDownloadActivity::class.java))
                     }
                 )
             }

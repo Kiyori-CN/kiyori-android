@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -58,6 +59,7 @@ import com.android.kiyori.R
 import com.android.kiyori.browser.domain.BrowserBookmarkFolder
 import com.android.kiyori.browser.domain.BrowserBookmarkFolderOption
 import com.android.kiyori.browser.domain.BrowserBookmarkItem
+import com.android.kiyori.ui.compose.LocalKiyoriDrawerDragModifier
 
 private data class BookmarkFolderRow(
     val folder: BrowserBookmarkFolder,
@@ -78,6 +80,7 @@ fun BrowserBookmarksScreen(
     onDeleteBookmark: (Long) -> Unit,
     onOpenBookmark: (String) -> Unit
 ) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
     val context = LocalContext.current
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var currentFolderId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -150,7 +153,8 @@ fun BrowserBookmarksScreen(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 18.sp,
                         maxLines = 1,
-                        overflow = TextOverflow.Clip
+                        overflow = TextOverflow.Clip,
+                        modifier = Modifier.offset(x = (-6).dp)
                     )
                 },
                 navigationIcon = {
@@ -177,7 +181,7 @@ fun BrowserBookmarksScreen(
                 actions = {
                     Box {
                         IconButton(
-                            modifier = Modifier.size(52.dp),
+                            modifier = Modifier.size(44.dp),
                             onClick = { topMenuExpanded = true }
                         ) {
                             Icon(
@@ -241,6 +245,7 @@ fun BrowserBookmarksScreen(
                 modifier = Modifier
                     .background(Color.White)
                     .height(64.dp)
+                    .then(drawerDragModifier)
             )
         },
         containerColor = Color.White

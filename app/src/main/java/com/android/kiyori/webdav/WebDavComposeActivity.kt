@@ -9,6 +9,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import com.android.kiyori.R
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.enableTransparentSystemBars
 
@@ -42,13 +44,13 @@ class WebDavComposeActivity : ComponentActivity() {
                 WebDavAccountListScreen(
                     onNavigateBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onAccountSelected = { account ->
                         val intent = Intent(this, WebDavFileBrowserActivity::class.java)
                         intent.putExtra("account_id", account.id)
                         startActivity(intent)
-                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                        applyOpenActivityTransitionCompat(R.anim.slide_in_right, R.anim.slide_out_left)
                     }
                 )
             }

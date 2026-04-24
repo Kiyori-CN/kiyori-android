@@ -9,6 +9,7 @@ import com.android.kiyori.R
 import com.android.kiyori.app.BaseActivity
 import com.android.kiyori.settings.ui.LicenseScreen
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 
 /**
@@ -43,7 +44,7 @@ class LicenseActivity : BaseActivity() {
                 LicenseScreen(
                     onBack = {
                         activity.finish()
-                        activity.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        activity.applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     }
                 )
             }

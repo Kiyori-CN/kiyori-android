@@ -21,7 +21,7 @@ object UpdateManager {
     fun getAppVersionName(context: Context): String {
         return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            packageInfo.versionName
+            packageInfo.versionName ?: "æœªçŸ¥"
         } catch (e: Exception) {
             "未知"
         }

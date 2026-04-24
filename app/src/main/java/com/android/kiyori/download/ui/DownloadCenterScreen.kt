@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,12 +38,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -80,6 +84,7 @@ import com.android.kiyori.download.InternalDownloadRequest
 import com.android.kiyori.download.InternalDownloadStatus
 import com.android.kiyori.download.InternalDownloadViewModel
 import com.android.kiyori.ui.compose.KiyoriBottomDrawer
+import com.android.kiyori.ui.compose.LocalKiyoriDrawerDragModifier
 
 private enum class DownloadPageTab(val label: String) {
     Downloaded("已下载"),
@@ -116,7 +121,6 @@ private data class DownloadActionButton(
 fun DownloadCenterScreen(
     onDismissRequest: () -> Unit,
     onOpenDownloadSettings: () -> Unit,
-    onOpenBilibiliDownloader: () -> Unit = {},
     viewModel: InternalDownloadViewModel = viewModel()
 ) {
     KiyoriBottomDrawer(
@@ -124,6 +128,7 @@ fun DownloadCenterScreen(
     ) {
         DownloadCenterSheetContent(
             viewModel = viewModel,
+            onDismissRequest = onDismissRequest,
             onOpenDownloadSettings = onOpenDownloadSettings
         )
     }
@@ -132,8 +137,10 @@ fun DownloadCenterScreen(
 @Composable
 private fun DownloadCenterSheetContent(
     viewModel: InternalDownloadViewModel,
+    onDismissRequest: () -> Unit,
     onOpenDownloadSettings: () -> Unit
 ) {
+    val drawerDragModifier = LocalKiyoriDrawerDragModifier.current
     val context = LocalContext.current
     val records by viewModel.records.collectAsState()
     var selectedTab by remember { mutableStateOf(DownloadPageTab.Downloaded) }
@@ -229,18 +236,35 @@ private fun DownloadCenterSheetContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 22.dp, end = 16.dp, top = 14.dp),
+                .height(64.dp)
+                .padding(start = 0.dp, top = 0.dp, end = 12.dp, bottom = 0.dp)
+                .then(drawerDragModifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(
+                onClick = onDismissRequest,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "返回",
+                    tint = Color(0xFF111827),
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(0.dp))
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
                     text = "我的下载",
-                    color = Color(0xFF111111),
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Medium
+                    color = Color(0xFF111827),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.offset(x = (-4).dp)
                 )
                 Box {
                     DownloadMenuTrigger(

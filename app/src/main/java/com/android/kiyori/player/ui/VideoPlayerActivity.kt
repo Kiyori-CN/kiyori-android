@@ -30,6 +30,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -193,6 +194,9 @@ class VideoPlayerActivity : AppCompatActivity(),
         ThemeManager.applyTheme(this)
         
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this) {
+            handleBackNavigation()
+        }
 
         val portraitUi = intent.getBooleanExtra(EXTRA_PORTRAIT_UI, false)
         if (intent.getBooleanExtra(EXTRA_AUTO_ROTATE, false)) {
@@ -2026,11 +2030,6 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
             }
         }
-    }
-    
-    @SuppressLint("MissingSuperCall")
-    override fun onBackPressed() {
-        handleBackNavigation()
     }
     
     /**

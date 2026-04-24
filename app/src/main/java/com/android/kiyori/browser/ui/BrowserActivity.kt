@@ -156,7 +156,11 @@ class BrowserActivity : BaseActivity() {
                         applyCloseActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     },
                     onToggleUrlBar = {
-                        browserWebViewController.setUrlBarVisible(!pageState.showUrlBar)
+                        if (pageState.showUrlBar && pageState.isBlankPage) {
+                            browserWebViewController.loadHome()
+                        } else {
+                            browserWebViewController.setUrlBarVisible(!pageState.showUrlBar)
+                        }
                     },
                     onInputChanged = browserWebViewController::updateInputUrl,
                     onSubmitInput = browserWebViewController::submitInputUrl,

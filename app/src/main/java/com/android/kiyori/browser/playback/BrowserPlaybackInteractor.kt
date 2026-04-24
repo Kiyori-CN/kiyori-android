@@ -2,6 +2,7 @@ package com.android.kiyori.browser.playback
 
 import android.content.Context
 import android.net.Uri
+import com.android.kiyori.browser.data.BrowserVideoHistoryRepository
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.sniffer.DetectedVideo
@@ -52,6 +53,12 @@ object BrowserPlaybackInteractor {
     private val documentFormats = setOf("PDF", "PLJ", "PPS", "PPT", "TIF", "TIFF")
 
     fun play(context: Context, video: DetectedVideo) {
+        BrowserVideoHistoryRepository(context).upsertHistory(
+            url = video.url,
+            title = video.title.ifEmpty { "网络视频" },
+            sourcePageUrl = video.pageUrl,
+            headers = video.headers
+        )
         val request = video.toRemotePlaybackRequest().copy(
             title = video.title.ifEmpty { "在线视频" }
         )

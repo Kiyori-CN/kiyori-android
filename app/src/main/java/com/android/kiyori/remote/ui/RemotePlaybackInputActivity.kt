@@ -63,6 +63,8 @@ import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.remote.RemoteUrlParser
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.enableTransparentSystemBars
 
@@ -97,11 +99,11 @@ class RemotePlaybackInputActivity : BaseActivity() {
                 RemotePlaybackInputScreen(
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onPlayRequest = { request ->
                         RemotePlaybackLauncher.start(this, request)
-                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+                        applyOpenActivityTransitionCompat(R.anim.slide_in_right, R.anim.slide_out_left)
                     }
                 )
             }

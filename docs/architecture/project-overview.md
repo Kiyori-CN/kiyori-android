@@ -11,7 +11,7 @@
 - 本地/网络弹幕加载、匹配与控制
 - 哔哩哔哩扫码登录、番剧解析、在线播放、下载
 - WebDAV 远程视频浏览与播放
-- TV/WebView 视频嗅探与跳转播放
+- 内置浏览器/WebView 视频嗅探与跳转播放
 - 播放历史、记忆播放、缩略图、章节跳过等播放器增强能力
 
 从产品形态上看，这不是一个“单模块播放器”，而是一个“浏览器入口 + 媒体播放内核 + 在线资源接入 + 多种增强能力”的复合型应用。
@@ -23,13 +23,14 @@
 - 单模块 Android 工程：仅 `:app`
 - Gradle Groovy DSL
 - Kotlin 为主，少量 Java
-- `compileSdkVersion 34`、`targetSdkVersion 34`、`minSdkVersion 26`
+- `compileSdkVersion 35`、`targetSdkVersion 35`、`minSdkVersion 26`
 - Java/Kotlin 目标版本为 17
 
 关键位置：
 
 - 构建入口：`build.gradle`
 - 模块配置：`app/build.gradle`
+- 版本目录：`gradle/libs.versions.toml`
 - 清单声明：`app/src/main/AndroidManifest.xml`
 
 ### 2.2 核心三方依赖
@@ -129,7 +130,7 @@
 - 弹弹 play：`dandanplay/`
 - Wyzie 字幕：`subtitle/`
 - WebDAV：`webdav/`
-- 网页嗅探：`sniffer/` + `tv/`
+- 网页嗅探：`sniffer/` + `browser/`
 
 这些能力基本都直接从 Activity、ViewModel 或 manager 发起网络调用，没有统一 API 抽象层。
 
@@ -282,7 +283,7 @@ WebDAV 能力也很直接：
 
 这条链路与本地播放复用播放器本身，因此在线与离线播放在后半段是统一的。
 
-### 4.9 TV/Web 嗅探链路
+### 4.9 浏览器/WebView 嗅探链路
 
 浏览器内网页视频嗅探能力由 `BrowserActivity` 提供：
 
@@ -329,13 +330,13 @@ WebDAV 能力也很直接：
 - 缩略图
 - 主题模式
 
-### 5.4 `compose/`
+### 5.4 `ui/`
 
-新式页面 UI 组件与 Compose 屏幕。
+跨功能复用的 Compose UI 基础组件、主题与通用抽屉能力。
 
-### 5.5 `database/` + `paging/`
+### 5.5 `database/` + `media/`
 
-本地缓存与分页支撑层。
+本地缓存、Room 数据库入口与媒体列表分页支撑层。
 
 ### 5.6 `bilibili/`、`download/`、`subtitle/`、`dandanplay/`、`webdav/`
 
@@ -345,9 +346,9 @@ WebDAV 能力也很直接：
 
 外挂弹幕系统。
 
-### 5.8 `sniffer/` + `tv/`
+### 5.8 `sniffer/` + `browser/`
 
-网页嗅探与浏览器功能。
+网页嗅探、网络日志、UA、下载入口与内置浏览器功能。
 
 ### 5.9 `utils/`
 
@@ -573,7 +574,7 @@ WebDAV 能力也很直接：
 - `LocalMediaBrowserActivity.kt`
 - `VideoListComposeActivity.kt`
 - `database/VideoCacheDao.kt`
-- `paging/VideoPagingSource.kt`
+- `media/paging/VideoPagingSource.kt`
 
 ### 9.4 想改弹幕/字幕
 
@@ -653,7 +654,7 @@ WebDAV 能力也很直接：
 - `CustomMPVView` 和 `PlaybackEngine.loadVideoFromUrl()` 都会改写 mpv 的 HTTP 相关 option，但目前没有清晰的“每次播放前重置远程请求上下文”的机制，后续容易出现上一次请求头污染下一次播放的问题。
 - `VideoPlayerActivity.playVideo(uri)` 对在线 URI 与本地 URI 没有统一走同一条远程播放分支，这会让后续“多链接切换 / 清晰度切换 / 播放列表”变得不稳定。
 - `UrlDetector` 当前主要依赖扩展名、路径关键词和 `Content-Type` 启发式判断，足够覆盖简单 `mp4/m3u8`，但对短链、跳转链、签名 URL、无扩展名媒体接口、主清单/子清单切换的兼容性还不够。
-- 主页目前没有“直接输入 URL 播放”的明确入口；现有“输入网址”更多是 TV/WebView 浏览入口，不是远程播放入口。
+- 主页目前没有“直接输入 URL 播放”的明确入口；现有“输入网址”更多是内置浏览器/WebView 浏览入口，不是远程播放入口。
 - WebDAV 仍通过把账号密码直接嵌入 URL 来播放，这和后续要建设的“统一远程请求模型”是冲突的。
 
 ### 11.3 对你要做的目标功能，最合理的改造方向

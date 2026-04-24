@@ -16,6 +16,8 @@ import com.android.kiyori.browser.data.BrowserBookmarkRepository
 import com.android.kiyori.browser.domain.BrowserBookmarkFolder
 import com.android.kiyori.browser.domain.BrowserBookmarkItem
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.enableTransparentSystemBars
 
@@ -58,7 +60,7 @@ class BrowserBookmarksActivity : ComponentActivity() {
                     bookmarks = bookmarks,
                     onNavigateBack = {
                         finish()
-                        overridePendingTransition(R.anim.no_anim, R.anim.no_anim)
+                        applyCloseActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     },
                     onCreateFolder = { title, parentId ->
                         repository.addFolder(title, parentId)
@@ -92,7 +94,7 @@ class BrowserBookmarksActivity : ComponentActivity() {
                     },
                     onOpenBookmark = { url ->
                         BrowserActivity.start(this, url = url)
-                        overridePendingTransition(R.anim.no_anim, R.anim.no_anim)
+                        applyOpenActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     }
                 )
             }

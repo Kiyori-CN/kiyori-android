@@ -86,6 +86,7 @@ import com.android.kiyori.browser.ui.BrowserActivity
 import com.android.kiyori.settings.ui.SettingsScreen
 import com.android.kiyori.subtitle.ui.SubtitleSearchActivity
 import com.android.kiyori.ui.compose.KiyoriBottomDrawer
+import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.webdav.WebDavComposeActivity
 import kotlinx.coroutines.launch
 
@@ -211,14 +212,13 @@ fun HomeScreen(
                 !(selectedTab == HomeTab.Settings && !isSettingsRootPage)
             ) {
                 HomeBottomBar(
-                    selectedTab = selectedTab,
                     onTabSelected = {
                         when (it) {
                             HomeTab.Browser -> {
                                 appsSubPage = AppsSubPage.Home
                                 filePlaceholderTitle = null
                                 BrowserActivity.start(context)
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.no_anim,
                                     R.anim.no_anim
                                 )
@@ -274,7 +274,7 @@ fun HomeScreen(
                             historyCount = historyCount,
                             onSearchClick = {
                                 BrowserActivity.start(context, openSearch = true)
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.no_anim,
                                     R.anim.no_anim
                                 )
@@ -313,14 +313,14 @@ fun HomeScreen(
                             onBackClick = { appsSubPage = AppsSubPage.Home },
                             onLoginClick = {
                                 context.startActivity(Intent(context, BiliBiliLoginActivity::class.java))
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
                                 )
                             },
                             onBiliBiliClick = {
                                 context.startActivity(Intent(context, BiliBiliPlayActivity::class.java))
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
                                 )
@@ -328,7 +328,7 @@ fun HomeScreen(
                             onVideoDownloadClick = {
                                 withBiliLogin {
                                     context.startActivity(Intent(context, BilibiliDownloadActivity::class.java))
-                                    activity?.overridePendingTransition(
+                                    activity?.applyOpenActivityTransitionCompat(
                                         R.anim.slide_in_right,
                                         R.anim.slide_out_left
                                     )
@@ -337,7 +337,7 @@ fun HomeScreen(
                             onDanmakuDownloadClick = {
                                 withBiliLogin {
                                     context.startActivity(Intent(context, BiliBiliDanmakuComposeActivity::class.java))
-                                    activity?.overridePendingTransition(
+                                    activity?.applyOpenActivityTransitionCompat(
                                         R.anim.slide_in_right,
                                         R.anim.slide_out_left
                                     )
@@ -345,7 +345,7 @@ fun HomeScreen(
                             },
                             onSubtitleSearchClick = {
                                 context.startActivity(Intent(context, SubtitleSearchActivity::class.java))
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
                                 )
@@ -371,14 +371,14 @@ fun HomeScreen(
                             },
                             onLocalVideoClick = {
                                 context.startActivity(Intent(context, LocalMediaBrowserActivity::class.java))
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
                                 )
                             },
                             onWebDavClick = {
                                 context.startActivity(Intent(context, WebDavComposeActivity::class.java))
-                                activity?.overridePendingTransition(
+                                activity?.applyOpenActivityTransitionCompat(
                                     R.anim.slide_in_right,
                                     R.anim.slide_out_left
                                 )
@@ -422,7 +422,7 @@ fun HomeScreen(
             onOpenBookmark = { url ->
                 showBookmarksSheet = false
                 BrowserActivity.start(context, url = url)
-                activity?.overridePendingTransition(
+                activity?.applyOpenActivityTransitionCompat(
                     R.anim.no_anim,
                     R.anim.no_anim
                 )
@@ -441,7 +441,7 @@ fun HomeScreen(
             onOpenBrowserHistory = { url ->
                 showHistorySheet = false
                 BrowserActivity.start(context, url = url)
-                activity?.overridePendingTransition(
+                activity?.applyOpenActivityTransitionCompat(
                     R.anim.no_anim,
                     R.anim.no_anim
                 )
@@ -454,7 +454,7 @@ fun HomeScreen(
                         putExtra("lastPosition", startPosition)
                     }
                 )
-                activity?.overridePendingTransition(
+                activity?.applyOpenActivityTransitionCompat(
                     R.anim.slide_in_right,
                     R.anim.slide_out_left
                 )
@@ -536,6 +536,7 @@ private fun HomeHistorySheet(
     onOpenPlaybackHistory: (Uri, Long) -> Unit,
     onHistoryChanged: () -> Unit
 ) {
+    val context = LocalContext.current
     KiyoriBottomDrawer(
         onDismissRequest = onDismissRequest
     ) {
@@ -551,6 +552,9 @@ private fun HomeHistorySheet(
                 onHistoryChanged = onHistoryChanged,
                 onBack = onDismissRequest,
                 onOpenBrowserHistory = onOpenBrowserHistory,
+                onOpenNetworkVideoHistory = { request ->
+                    RemotePlaybackLauncher.start(context, request)
+                },
                 onOpenPlaybackHistory = onOpenPlaybackHistory
             )
         }
@@ -1680,7 +1684,6 @@ private val HomeBottomBarItemSize = 44.dp
 
 @Composable
 private fun HomeBottomBar(
-    selectedTab: HomeTab,
     onTabSelected: (HomeTab) -> Unit
 ) {
     Box(
@@ -2663,7 +2666,7 @@ private fun continueLastPlay(
         }
         
         context.startActivity(intent)
-        (context as? android.app.Activity)?.overridePendingTransition(
+        (context as? android.app.Activity)?.applyOpenActivityTransitionCompat(
             R.anim.slide_in_right,
             R.anim.slide_out_left
         )

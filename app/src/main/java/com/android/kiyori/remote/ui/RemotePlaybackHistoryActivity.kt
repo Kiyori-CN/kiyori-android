@@ -57,6 +57,7 @@ import com.android.kiyori.remote.RemotePlaybackHistoryRepository
 import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.enableTransparentSystemBars
 import java.util.Date
@@ -88,7 +89,7 @@ class RemotePlaybackHistoryActivity : BaseActivity() {
                     historyType = historyType,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     }
                 )
             }

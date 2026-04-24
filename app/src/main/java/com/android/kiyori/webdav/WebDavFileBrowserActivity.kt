@@ -5,8 +5,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.addCallback
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import com.android.kiyori.R
 import com.android.kiyori.player.ui.VideoPlayerActivity
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 
 /**
@@ -43,6 +44,15 @@ class WebDavFileBrowserActivity : ComponentActivity() {
             finish()
             return
         }
+
+        onBackPressedDispatcher.addCallback(this) {
+            if (onBackCallback != null) {
+                onBackCallback?.invoke()
+            } else {
+                finish()
+                applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
+            }
+        }
         
         setContent {
             val themeColors = getThemeColors(ThemeManager.getCurrentTheme(this).themeName)
@@ -64,7 +74,7 @@ class WebDavFileBrowserActivity : ComponentActivity() {
                     account = account,
                     onNavigateBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onPlayVideo = { file, client ->
                         playVideo(file, client)
@@ -113,18 +123,6 @@ class WebDavFileBrowserActivity : ComponentActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "播放失败: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-    
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // 如果有回调，先执行回调（处理文件夹返回）
-        if (onBackCallback != null) {
-            onBackCallback?.invoke()
-        } else {
-            // 否则关闭 Activity
-            super.onBackPressed()
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
         }
     }
 }

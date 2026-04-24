@@ -9,7 +9,7 @@ class PlaybackHistoryComposeActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         HistoryComposeActivity.start(
             this,
-            initialSection = HistorySection.PLAYBACK
+            initialSection = HistorySection.LOCAL_VIDEO
         )
         startActivityWithDefaultTransition()
         finish()

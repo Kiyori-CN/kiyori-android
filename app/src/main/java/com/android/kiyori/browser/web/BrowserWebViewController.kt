@@ -125,14 +125,14 @@ class BrowserWebViewController(
     fun saveCustomGlobalUserAgent(value: String) {
         preferencesRepository.setCustomGlobalUserAgent(value)
         if (pageState.userAgentMode == BrowserUserAgentMode.CUSTOM_GLOBAL) {
-            applyUserAgent(pageState.currentUrl)
+            refreshCurrentPageForUserAgent(pageState.currentUrl)
         }
     }
 
     fun saveCustomSiteUserAgent(value: String, url: String = pageState.currentUrl) {
         preferencesRepository.setCustomSiteUserAgent(url, value)
         if (pageState.userAgentMode == BrowserUserAgentMode.CUSTOM_SITE) {
-            applyUserAgent(url)
+            refreshCurrentPageForUserAgent(url)
         }
     }
 
@@ -735,7 +735,6 @@ class BrowserWebViewController(
     }
 
     fun setUserAgentMode(mode: BrowserUserAgentMode) {
-        val targetWebView = webView
         preferencesRepository.setUserAgentMode(mode)
         updateState {
             copy(
@@ -743,12 +742,7 @@ class BrowserWebViewController(
                 isDesktopMode = mode == BrowserUserAgentMode.PC_DESKTOP
             )
         }
-        applyUserAgent(pageState.currentUrl)
-        if (targetWebView != null && pageState.currentUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
-            beginNavigation(targetUrl = pageState.currentUrl)
-            cancelPendingLoadIfNeeded(targetWebView, pageState.currentUrl)
-            targetWebView.reload()
-        }
+        refreshCurrentPageForUserAgent(pageState.currentUrl)
     }
 
     fun clearCookiesForCurrentPage() {
@@ -785,6 +779,12 @@ class BrowserWebViewController(
     }
 
     private fun resolveActiveUserAgent(targetUrl: String = pageState.currentUrl): String {
+        return resolveActiveUserAgentProfile(targetUrl).userAgent
+    }
+
+    private fun resolveActiveUserAgentProfile(
+        targetUrl: String = pageState.currentUrl
+    ): BrowserSecurityPolicy.UserAgentProfile {
         val customUserAgent = when (pageState.userAgentMode) {
             BrowserUserAgentMode.CUSTOM_GLOBAL -> {
                 preferencesRepository.getCustomGlobalUserAgent()
@@ -795,7 +795,7 @@ class BrowserWebViewController(
             }
             else -> ""
         }
-        return BrowserSecurityPolicy.resolveUserAgent(
+        return BrowserSecurityPolicy.resolveUserAgentProfile(
             mode = pageState.userAgentMode,
             defaultUserAgent = defaultUserAgent,
             customUserAgent = customUserAgent
@@ -806,7 +806,23 @@ class BrowserWebViewController(
         val targetWebView = webView ?: return
         BrowserWebViewFactory.applyIdentity(
             webView = targetWebView,
-            userAgent = resolveActiveUserAgent(targetUrl)
+            profile = resolveActiveUserAgentProfile(targetUrl)
+        )
+    }
+
+    private fun refreshCurrentPageForUserAgent(targetUrl: String = pageState.currentUrl) {
+        val targetWebView = webView ?: return
+        applyUserAgent(targetUrl)
+        if (targetUrl == BrowserSecurityPolicy.BLANK_HOME_URL) {
+            syncNavigationState()
+            return
+        }
+        beginNavigation(targetUrl = targetUrl)
+        cancelPendingLoadIfNeeded(targetWebView, targetUrl)
+        loadIntoWebView(
+            targetWebView = targetWebView,
+            normalizedUrl = targetUrl,
+            bypassCache = true
         )
     }
 
@@ -1249,7 +1265,8 @@ class BrowserWebViewController(
 
     private fun loadIntoWebView(
         targetWebView: WebView?,
-        normalizedUrl: String
+        normalizedUrl: String,
+        bypassCache: Boolean = false
     ) {
         targetWebView ?: return
         if (normalizedUrl == BrowserSecurityPolicy.BLANK_HOME_URL ||
@@ -1259,7 +1276,29 @@ class BrowserWebViewController(
         ) {
             targetWebView.loadUrl(normalizedUrl)
         } else {
-            targetWebView.loadUrl(normalizedUrl, COMPATIBILITY_REQUEST_HEADERS)
+            targetWebView.loadUrl(
+                normalizedUrl,
+                buildCompatibilityRequestHeaders(
+                    targetUrl = normalizedUrl,
+                    bypassCache = bypassCache
+                )
+            )
+        }
+    }
+
+    private fun buildCompatibilityRequestHeaders(
+        targetUrl: String,
+        bypassCache: Boolean
+    ): Map<String, String> {
+        return linkedMapOf<String, String>().apply {
+            put("X-Requested-With", "")
+            resolveActiveUserAgent(targetUrl)
+                .takeIf { it.isNotBlank() }
+                ?.let { put("User-Agent", it) }
+            if (bypassCache) {
+                put("Cache-Control", "no-cache")
+                put("Pragma", "no-cache")
+            }
         }
     }
 
@@ -1441,6 +1480,5 @@ class BrowserWebViewController(
         private const val VISUAL_READY_PROGRESS_THRESHOLD = 85
         private const val DOCUMENT_READY_STATE_SCRIPT =
             "(function(){return document && document.readyState ? document.readyState : '';})();"
-        private val COMPATIBILITY_REQUEST_HEADERS = mapOf("X-Requested-With" to "")
     }
 }

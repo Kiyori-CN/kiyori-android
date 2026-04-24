@@ -9,13 +9,20 @@
 ### 必需工具
 
 - **Android Studio**：Arctic Fox (2020.3.1) 或更高版本，推荐使用最新稳定版
-- **JDK**：JDK 11 或更高版本
+- **JDK**：JDK 17
 - **Gradle**：项目使用 Gradle Wrapper，无需手动安装
 - **Android SDK**：
-  - 最低 SDK：28 (Android 9.0)
-  - 目标 SDK：34 (Android 14)
-  - 编译 SDK：34
+  - 最低 SDK：26 (Android 8.0)
+  - 目标 SDK：35 (Android 15)
+  - 编译 SDK：35
 - **Android NDK**：r25c 或更高版本（用于 libmpv 原生库）
+
+版本维护约定：
+
+- Gradle / AGP / Kotlin / AndroidX 版本统一维护在 `gradle/libs.versions.toml`
+- 模块构建逻辑维护在 `app/build.gradle`
+- Compose 编译器跟随 Kotlin Compose Gradle 插件维护，不再单独写死 `kotlinCompilerExtensionVersion`
+- 本地敏感配置继续放在 `local.properties`
 
 ### 硬件建议
 
@@ -38,8 +45,8 @@ cd kiyori-android
 
 1. 下载并安装 [Android Studio](https://developer.android.com/studio)
 2. 打开 Android Studio，通过 SDK Manager 安装必需组件：
-   - Android SDK Platform 34
-   - Android SDK Build-Tools 34.0.0
+   - Android SDK Platform 35
+   - Android SDK Build-Tools 35.x
    - Android SDK Platform-Tools
    - Android Emulator（如果需要使用模拟器）
 

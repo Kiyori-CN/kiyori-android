@@ -10,6 +10,7 @@ import com.android.kiyori.R
 import com.android.kiyori.app.BaseActivity
 import com.android.kiyori.settings.ui.AboutScreen
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 
 class AboutComposeActivity : BaseActivity() {
@@ -22,7 +23,7 @@ class AboutComposeActivity : BaseActivity() {
 
         // 获取版本号
         val versionName = try {
-            packageManager.getPackageInfo(packageName, 0).versionName
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "Unknown"
         } catch (e: Exception) {
             "Unknown"
         }
@@ -47,7 +48,7 @@ class AboutComposeActivity : BaseActivity() {
                     versionName = versionName,
                     onBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onNavigateToLicense = {
                         startActivity(Intent(this, LicenseActivity::class.java))

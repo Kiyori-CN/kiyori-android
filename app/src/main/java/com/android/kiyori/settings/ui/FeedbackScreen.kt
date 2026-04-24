@@ -80,7 +80,6 @@ fun FeedbackScreen(
             item {
                 FeedbackActionCard(
                     email = email,
-                    githubUrl = githubUrl,
                     onOpenEmail = onOpenEmail,
                     onOpenGithub = onOpenGithub
                 )
@@ -138,7 +137,6 @@ private fun ContactRow(icon: ImageVector, label: String, value: String) {
 @Composable
 private fun FeedbackActionCard(
     email: String,
-    githubUrl: String,
     onOpenEmail: () -> Unit,
     onOpenGithub: () -> Unit
 ) {

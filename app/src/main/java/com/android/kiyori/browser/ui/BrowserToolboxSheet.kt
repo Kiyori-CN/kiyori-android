@@ -37,7 +37,8 @@ fun BrowserToolboxSheet(
     isIncognitoMode: Boolean,
     onAddBookmark: () -> Unit,
     onOpenBookmarks: () -> Unit,
-    onOpenDetectedVideos: () -> Unit,
+    onOpenPlugins: () -> Unit,
+    onOpenResourceSniffer: () -> Unit,
     onOpenUserAgent: () -> Unit,
     onOpenNetworkLog: () -> Unit,
     onReload: () -> Unit,
@@ -54,10 +55,10 @@ fun BrowserToolboxSheet(
             BrowserToolboxItem("书签", R.drawable.ic_kiyori_tool_bookmarks, onClick = onOpenBookmarks),
             BrowserToolboxItem("历史", R.drawable.ic_kiyori_tool_history, onClick = { onOpenPlaceholder("历史") }),
             BrowserToolboxItem("下载", R.drawable.ic_kiyori_tool_download, onClick = { onOpenPlaceholder("下载") }),
-            BrowserToolboxItem("插件", R.drawable.ic_kiyori_tool_plugin, onClick = { onOpenPlaceholder("插件") })
+            BrowserToolboxItem("插件", R.drawable.ic_kiyori_tool_plugin, onClick = onOpenPlugins)
         ),
         listOf(
-            BrowserToolboxItem("悬浮嗅探", R.drawable.ic_kiyori_tool_sniffer, onClick = onOpenDetectedVideos),
+            BrowserToolboxItem("资源嗅探", R.drawable.ic_kiyori_tool_sniffer, onClick = onOpenResourceSniffer),
             BrowserToolboxItem("UA标识", R.drawable.ic_kiyori_tool_ua, onClick = onOpenUserAgent),
             BrowserToolboxItem("网络日志", R.drawable.ic_kiyori_tool_network_log, onClick = onOpenNetworkLog),
             BrowserToolboxItem("刷新", R.drawable.ic_kiyori_tool_refresh, onClick = onReload),

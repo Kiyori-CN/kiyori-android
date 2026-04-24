@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import com.android.kiyori.R
 import com.android.kiyori.settings.ui.SettingsScreen
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.enableTransparentSystemBars
 import com.android.kiyori.utils.ThemeManager
 
@@ -60,7 +61,7 @@ class SettingsComposeActivity : ComponentActivity() {
                 SettingsScreen(
                     onNavigateBack = {
                         finish()
-                        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     initialPage = intent.getStringExtra(EXTRA_INITIAL_PAGE)
                 )

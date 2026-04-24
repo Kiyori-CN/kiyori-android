@@ -36,7 +36,7 @@
 
 - `player/`：播放器核心控制、手势、缩略图、Anime4K、对话框与 Activity。
 - `media/`：本地媒体浏览、分页、缓存实体与本地视频列表页面。
-- `history/`：播放历史数据与页面。
+- `history/`：浏览历史、播放历史与对应抽屉/页面。
 - `subtitle/`：字幕搜索、下载与模型。
 - `danmaku/`：弹幕配置、弹幕渲染、下载与 Compose 页面。
 - `dandanplay/`：弹弹play 接口与模型。
@@ -46,7 +46,7 @@
 ### 3.4 集成能力
 
 - `bilibili/`：Bilibili 登录、模型与播放入口。
-- `download/`：Bilibili 下载管理、下载状态与下载页。
+- `download/`：内置下载器、下载设置、下载状态与 Bilibili 下载能力。
 
 ### 3.5 数据与基础设施
 

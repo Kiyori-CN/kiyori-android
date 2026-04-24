@@ -13,6 +13,7 @@ import com.android.kiyori.app.AppConstants
 import com.android.kiyori.app.BaseActivity
 import com.android.kiyori.settings.ui.FeedbackScreen
 import com.android.kiyori.ui.theme.getThemeColors
+import com.android.kiyori.utils.applyCloseActivityTransitionCompat
 import com.android.kiyori.utils.ThemeManager
 
 /**
@@ -51,7 +52,7 @@ class FeedbackActivity : BaseActivity() {
                     githubUrl = githubUrl,
                     onBack = {
                         activity.finish()
-                        activity.overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+                        activity.applyCloseActivityTransitionCompat(R.anim.slide_in_left, R.anim.slide_out_right)
                     },
                     onOpenEmail = { openEmail(email) },
                     onOpenGithub = { openUrl(githubUrl) }

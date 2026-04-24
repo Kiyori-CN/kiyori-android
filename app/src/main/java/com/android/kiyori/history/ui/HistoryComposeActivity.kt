@@ -12,6 +12,8 @@ import com.android.kiyori.app.BaseActivity
 import com.android.kiyori.browser.ui.BrowserActivity
 import com.android.kiyori.history.PlaybackHistoryManager
 import com.android.kiyori.player.ui.VideoPlayerActivity
+import com.android.kiyori.remote.RemotePlaybackLauncher
+import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.ui.theme.getThemeColors
 import com.android.kiyori.utils.ThemeManager
 import com.android.kiyori.utils.applyCloseActivityTransitionCompat
@@ -72,6 +74,10 @@ class HistoryComposeActivity : BaseActivity() {
                         BrowserActivity.start(this, url = url)
                         startActivityWithDefaultTransition()
                     },
+                    onOpenNetworkVideoHistory = { request: RemotePlaybackRequest ->
+                        RemotePlaybackLauncher.start(this, request)
+                        startActivityWithDefaultTransition()
+                    },
                     onOpenPlaybackHistory = { uri, startPosition ->
                         startActivity(
                             Intent(this, VideoPlayerActivity::class.java).apply {
@@ -93,11 +99,15 @@ enum class HistorySection(
 ) {
     MINI_PROGRAM("mini_program", "小程序"),
     WEB("web", "网页浏览"),
-    PLAYBACK("playback", "播放记录");
+    NETWORK_VIDEO("network_video", "网络视频"),
+    LOCAL_VIDEO("local_video", "本地视频");
 
     companion object {
         fun fromValue(value: String?): HistorySection {
-            return values().firstOrNull { it.value == value } ?: WEB
+            return when (value) {
+                "playback" -> LOCAL_VIDEO
+                else -> values().firstOrNull { it.value == value } ?: WEB
+            }
         }
     }
 }
