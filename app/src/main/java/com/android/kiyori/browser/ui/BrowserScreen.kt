@@ -141,6 +141,8 @@ fun BrowserScreen(
     onGoForward: () -> Unit,
     onGoHome: () -> Unit,
     onSelectSearchEngine: (BrowserSearchEngine) -> Unit,
+    onSearchAgainWithEngine: (BrowserSearchEngine) -> Unit,
+    onDismissSearchEngineQuickSwitchBar: () -> Unit,
     onOpenCurrentUrl: () -> Unit,
     onEditCurrentUrl: () -> Unit,
     onOpenSearchRecord: (String) -> Unit,
@@ -306,7 +308,9 @@ fun BrowserScreen(
                     onBackPressed = onBackPressed,
                     onToggleUrlBar = onToggleUrlBar,
                     onReload = onReload,
-                    onShowDetectedVideos = { showResourceSnifferDrawer = true }
+                    onShowDetectedVideos = { showResourceSnifferDrawer = true },
+                    onSelectQuickSearchEngine = onSearchAgainWithEngine,
+                    onDismissQuickSearchEngineBar = onDismissSearchEngineQuickSwitchBar
                 )
             }
         },

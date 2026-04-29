@@ -2,51 +2,62 @@ package com.android.kiyori.settings.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.android.kiyori.R
-import com.android.kiyori.ui.compose.ImmersiveTopAppBar
 import com.android.kiyori.manager.PreferencesManager
+import com.android.kiyori.ui.compose.ImmersiveTopAppBar
 import com.android.kiyori.ui.compose.SettingsColors as SettingsPalette
 
 /**
- * Compose 版本的播放设置页面
+ * Compose 版本的播放设置页面。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaybackSettingsScreen(
     onNavigateBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val preferencesManager = remember { PreferencesManager.getInstance(context) }
-    
-    var preciseSeeking by remember { mutableStateOf(preferencesManager.isPreciseSeekingEnabled()) }
-    var volumeBoost by remember { mutableStateOf(preferencesManager.isVolumeBoostEnabled()) }
-    var anime4KMemory by remember { mutableStateOf(preferencesManager.isAnime4KMemoryEnabled()) }
-    var seekTime by remember { mutableIntStateOf(preferencesManager.getSeekTime()) }
-    var longPressSpeed by remember { mutableFloatStateOf(preferencesManager.getLongPressSpeed()) }
-    var showSeekTimeDialog by remember { mutableStateOf(false) }
-    var showSpeedDialog by remember { mutableStateOf(false) }
-    
-    // 双击手势设置
-    var doubleTapMode by remember { mutableIntStateOf(preferencesManager.getDoubleTapMode()) }
-    var doubleTapSeekSeconds by remember { mutableIntStateOf(preferencesManager.getDoubleTapSeekSeconds()) }
-    var showDoubleTapSeekDialog by remember { mutableStateOf(false) }
-    
     Scaffold(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
@@ -54,158 +65,29 @@ fun PlaybackSettingsScreen(
                 title = { Text("播放设置", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
         }
     ) { padding ->
-        LazyColumn(
+        PlaybackSettingsContent(
             modifier = Modifier
                 .fillMaxSize()
                 .background(SettingsPalette.ScreenBackground)
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-        ) {
-            // 进度控制
-            item {
-                SectionHeader("进度控制")
-            }
-            
-            item {
-                SwitchSettingCard(
-                    title = "精确进度定位",
-                    description = if (preciseSeeking) "定位更准确但可能较慢" else "定位更快但使用关键帧",
-                    checked = preciseSeeking,
-                    onCheckedChange = {
-                        preciseSeeking = it
-                        preferencesManager.setPreciseSeekingEnabled(it)
-                    }
-                )
-            }
-            
-            item {
-                ClickableSettingCard(
-                    title = "快进/快退时长",
-                    value = "${seekTime}秒",
-                    onClick = { showSeekTimeDialog = true }
-                )
-            }
-            
-            // 手势控制
-            item {
-                SectionHeader("手势控制")
-            }
-            
-            item {
-                DoubleTapModeCard(
-                    currentMode = doubleTapMode,
-                    onModeChange = {
-                        doubleTapMode = it
-                        preferencesManager.setDoubleTapMode(it)
-                    }
-                )
-            }
-            
-            // 只有在快进/快退模式时才显示秒数设置
-            if (doubleTapMode == 1) {
-                item {
-                    ClickableSettingCard(
-                        title = "双击跳转时长",
-                        value = "${doubleTapSeekSeconds}秒",
-                        onClick = { showDoubleTapSeekDialog = true }
-                    )
-                }
-            }
-            
-            // 音量控制
-            item {
-                SectionHeader("音量控制")
-            }
-            
-            item {
-                SwitchSettingCard(
-                    title = "音量增强",
-                    description = if (volumeBoost) "音量可超过100%,最高300%" else "音量范围限制在1-100%",
-                    checked = volumeBoost,
-                    onCheckedChange = {
-                        volumeBoost = it
-                        preferencesManager.setVolumeBoostEnabled(it)
-                    }
-                )
-            }
-            
-            // 倍速控制
-            item {
-                SectionHeader("倍速控制")
-            }
-            
-            item {
-                ClickableSettingCard(
-                    title = "长按倍速",
-                    value = String.format("%.1fx", longPressSpeed),
-                    onClick = { showSpeedDialog = true }
-                )
-            }
-            
-            // 画质增强
-            item {
-                SectionHeader("画质增强")
-            }
-            
-            item {
-                SwitchSettingCard(
-                    title = "记忆超分模式",
-                    description = if (anime4KMemory) "记住上次使用的Anime4K模式" else "每次播放都从关闭状态开始",
-                    checked = anime4KMemory,
-                    onCheckedChange = {
-                        anime4KMemory = it
-                        preferencesManager.setAnime4KMemoryEnabled(it)
-                    }
-                )
-            }
-            
-            item { Spacer(Modifier.height(16.dp)) }
-        }
-    }
-    
-    // 快进时长选择对话框
-    if (showSeekTimeDialog) {
-        SeekTimeDialog(
-            currentValue = seekTime,
-            onDismiss = { showSeekTimeDialog = false },
-            onConfirm = { newValue ->
-                seekTime = newValue
-                preferencesManager.setSeekTime(newValue)
-                showSeekTimeDialog = false
-            }
         )
     }
-    
-    // 长按倍速选择对话框
-    if (showSpeedDialog) {
-        SpeedDialog(
-            currentValue = longPressSpeed,
-            onDismiss = { showSpeedDialog = false },
-            onConfirm = { newValue ->
-                longPressSpeed = newValue
-                preferencesManager.setLongPressSpeed(newValue)
-                showSpeedDialog = false
-            }
-        )
-    }
-    
-    // 双击跳转时长选择对话框
-    if (showDoubleTapSeekDialog) {
-        DoubleTapSeekDialog(
-            currentValue = doubleTapSeekSeconds,
-            onDismiss = { showDoubleTapSeekDialog = false },
-            onConfirm = { newValue ->
-                doubleTapSeekSeconds = newValue
-                preferencesManager.setDoubleTapSeekSeconds(newValue)
-                showDoubleTapSeekDialog = false
-            }
-        )
+}
+
+@Composable
+fun PlaybackSettingsContent(
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
@@ -244,13 +126,20 @@ fun SwitchSettingCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, 
-                     color = SettingsPalette.PrimaryText)
-                Spacer(Modifier.height(4.dp))
-                 Text(description, fontSize = 13.sp, 
-                     color = SettingsPalette.SecondaryText)
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = SettingsPalette.PrimaryText
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    fontSize = 13.sp,
+                    color = SettingsPalette.SecondaryText
+                )
             }
-            
+
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
@@ -286,79 +175,26 @@ fun ClickableSettingCard(
                 .padding(20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-              Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, 
-                  color = SettingsPalette.PrimaryText, modifier = Modifier.weight(1f))
-            
-              Text(value, fontSize = 15.sp, color = SettingsPalette.AccentText, fontWeight = FontWeight.Medium)
-            
-            Spacer(Modifier.width(8.dp))
-            
-            Icon(Icons.Default.KeyboardArrowRight, null, 
-                 tint = Color(0xFFCCCCCC), 
-                 modifier = Modifier.size(24.dp))
-        }
-    }
-}
-
-@Composable
-fun SliderSettingCard(
-    title: String,
-    value: String,
-    sliderValue: Float,
-    onValueChange: (Float) -> Unit,
-    onValueChangeFinished: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SettingsPalette.CardBackground),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.Medium, 
-                     color = SettingsPalette.PrimaryText, 
-                     modifier = Modifier.weight(1f))
-                 Text(value, fontSize = 15.sp, 
-                     color = SettingsPalette.AccentText, 
-                     fontWeight = FontWeight.Medium)
-            }
-            
-            Spacer(Modifier.height(12.dp))
-            
-            Slider(
-                value = sliderValue,
-                onValueChange = onValueChange,
-                onValueChangeFinished = onValueChangeFinished,
-                valueRange = 0f..4f,
-                steps = 3,
-                colors = SliderDefaults.colors(
-                    thumbColor = SettingsPalette.AccentText,
-                    activeTrackColor = SettingsPalette.AccentText,
-                    inactiveTrackColor = SettingsPalette.Divider
-                )
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = SettingsPalette.PrimaryText,
+                modifier = Modifier.weight(1f)
             )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                 Text("1.5x", fontSize = 12.sp, 
-                     color = SettingsPalette.TertiaryText)
-                 Text("2.0x", fontSize = 12.sp, 
-                     color = SettingsPalette.TertiaryText)
-                 Text("2.5x", fontSize = 12.sp, 
-                     color = SettingsPalette.TertiaryText)
-                 Text("3.0x", fontSize = 12.sp, 
-                     color = SettingsPalette.TertiaryText)
-                 Text("3.5x", fontSize = 12.sp, 
-                     color = SettingsPalette.TertiaryText)
-            }
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                color = SettingsPalette.AccentText,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = Color(0xFFCCCCCC),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -372,21 +208,19 @@ fun SeekTimeDialog(
     var selected by remember { mutableIntStateOf(currentValue) }
     val options = listOf(3, 5, 10, 15, 20, 25, 30)
     val accentColor = MaterialTheme.colorScheme.primary
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
-                "快进/快退时长", 
-                fontSize = 16.sp, 
-                fontWeight = FontWeight.Bold, 
+                text = "快进/快退时长",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
                 color = SettingsPalette.PrimaryText
-            ) 
+            )
         },
         text = {
-            Column(
-                modifier = Modifier.width(280.dp)
-            ) {
+            Column(modifier = Modifier.width(280.dp)) {
                 options.forEach { seconds ->
                     Row(
                         modifier = Modifier
@@ -409,9 +243,9 @@ fun SeekTimeDialog(
                                 unselectedColor = SettingsPalette.PrimaryText.copy(alpha = 0.4f)
                             )
                         )
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            "${seconds}秒",
+                            text = "${seconds}秒",
                             fontSize = 15.sp,
                             color = if (selected == seconds) accentColor else SettingsPalette.PrimaryText,
                             fontWeight = if (selected == seconds) FontWeight.SemiBold else FontWeight.Normal
@@ -422,12 +256,12 @@ fun SeekTimeDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selected) }) {
-                Text("确定", color = SettingsPalette.AccentText, fontSize = 14.sp)
+                Text(text = "确定", color = SettingsPalette.AccentText, fontSize = 14.sp)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = SettingsPalette.SecondaryText, fontSize = 14.sp)
+                Text(text = "取消", color = SettingsPalette.SecondaryText, fontSize = 14.sp)
             }
         },
         shape = RoundedCornerShape(12.dp),
@@ -455,14 +289,13 @@ fun DoubleTapModeCard(
                 .padding(20.dp)
         ) {
             Text(
-                "双击手势",
+                text = "双击手势",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = SettingsPalette.PrimaryText
             )
-            Spacer(Modifier.height(12.dp))
-            
-            // 模式 0: 暂停/播放
+            Spacer(modifier = Modifier.height(12.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -484,26 +317,24 @@ fun DoubleTapModeCard(
                         unselectedColor = SettingsPalette.PrimaryText.copy(alpha = 0.4f)
                     )
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        "暂停/播放",
+                        text = "暂停/播放",
                         fontSize = 15.sp,
-                        color = if (currentMode == 0) MaterialTheme.colorScheme.primary 
-                                else SettingsPalette.PrimaryText,
+                        color = if (currentMode == 0) MaterialTheme.colorScheme.primary else SettingsPalette.PrimaryText,
                         fontWeight = if (currentMode == 0) FontWeight.SemiBold else FontWeight.Normal
                     )
                     Text(
-                        "双击任意位置暂停或播放",
+                        text = "双击任意位置暂停或播放",
                         fontSize = 12.sp,
                         color = SettingsPalette.SecondaryText
                     )
                 }
             }
-            
-            Spacer(Modifier.height(8.dp))
-            
-            // 模式 1: 快进/快退
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -525,17 +356,16 @@ fun DoubleTapModeCard(
                         unselectedColor = SettingsPalette.PrimaryText.copy(alpha = 0.4f)
                     )
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        "快进/快退",
+                        text = "快进/快退",
                         fontSize = 15.sp,
-                        color = if (currentMode == 1) MaterialTheme.colorScheme.primary 
-                                else SettingsPalette.PrimaryText,
+                        color = if (currentMode == 1) MaterialTheme.colorScheme.primary else SettingsPalette.PrimaryText,
                         fontWeight = if (currentMode == 1) FontWeight.SemiBold else FontWeight.Normal
                     )
                     Text(
-                        "双击左半屏快退，右半屏快进",
+                        text = "双击左半屏快退，右半屏快进",
                         fontSize = 12.sp,
                         color = SettingsPalette.SecondaryText
                     )
@@ -554,21 +384,19 @@ fun DoubleTapSeekDialog(
     var selected by remember { mutableIntStateOf(currentValue) }
     val options = listOf(5, 10, 15, 20, 30)
     val accentColor = MaterialTheme.colorScheme.primary
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
-                "双击跳转时长", 
-                fontSize = 16.sp, 
-                fontWeight = FontWeight.Bold, 
+                text = "双击跳转时长",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
                 color = SettingsPalette.PrimaryText
-            ) 
+            )
         },
         text = {
-            Column(
-                modifier = Modifier.width(280.dp)
-            ) {
+            Column(modifier = Modifier.width(280.dp)) {
                 options.forEach { seconds ->
                     Row(
                         modifier = Modifier
@@ -591,9 +419,9 @@ fun DoubleTapSeekDialog(
                                 unselectedColor = SettingsPalette.PrimaryText.copy(alpha = 0.4f)
                             )
                         )
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            "${seconds}秒",
+                            text = "${seconds}秒",
                             fontSize = 15.sp,
                             color = if (selected == seconds) accentColor else SettingsPalette.PrimaryText,
                             fontWeight = if (selected == seconds) FontWeight.SemiBold else FontWeight.Normal
@@ -604,12 +432,12 @@ fun DoubleTapSeekDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selected) }) {
-                Text("确定", color = SettingsPalette.AccentText, fontSize = 14.sp)
+                Text(text = "确定", color = SettingsPalette.AccentText, fontSize = 14.sp)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = SettingsPalette.SecondaryText, fontSize = 14.sp)
+                Text(text = "取消", color = SettingsPalette.SecondaryText, fontSize = 14.sp)
             }
         },
         shape = RoundedCornerShape(12.dp),
@@ -617,78 +445,3 @@ fun DoubleTapSeekDialog(
         modifier = Modifier.width(320.dp)
     )
 }
-
-@Composable
-fun SpeedDialog(
-    currentValue: Float,
-    onDismiss: () -> Unit,
-    onConfirm: (Float) -> Unit
-) {
-    var selected by remember { mutableFloatStateOf(currentValue) }
-    val options = listOf(1.5f, 2.0f, 2.5f, 3.0f, 3.5f)
-    val accentColor = MaterialTheme.colorScheme.primary
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { 
-            Text(
-                "长按倍速", 
-                fontSize = 16.sp, 
-                fontWeight = FontWeight.Bold, 
-                color = SettingsPalette.PrimaryText
-            ) 
-        },
-        text = {
-            Column(
-                modifier = Modifier.width(280.dp)
-            ) {
-                options.forEach { speed ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { selected = speed }
-                            .background(
-                                if (selected == speed) SettingsPalette.Highlight
-                                else Color.Transparent
-                            )
-                            .padding(vertical = 12.dp, horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selected == speed,
-                            onClick = { selected = speed },
-                            modifier = Modifier.size(24.dp),
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = accentColor,
-                                unselectedColor = SettingsPalette.PrimaryText.copy(alpha = 0.4f)
-                            )
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            String.format("%.1fx", speed),
-                            fontSize = 15.sp,
-                            color = if (selected == speed) accentColor else SettingsPalette.PrimaryText,
-                            fontWeight = if (selected == speed) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(selected) }) {
-                Text("确定", color = SettingsPalette.AccentText, fontSize = 14.sp)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消", color = SettingsPalette.SecondaryText, fontSize = 14.sp)
-            }
-        },
-        shape = RoundedCornerShape(12.dp),
-        containerColor = SettingsPalette.DialogSurface,
-        modifier = Modifier.width(320.dp)
-    )
-}
-
-

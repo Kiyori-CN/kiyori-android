@@ -14,6 +14,7 @@ object AppConstants {
         const val VOLUME_BOOST_ENABLED = "volume_boost_enabled"
         const val SEEK_TIME = "seek_time"
         const val LONG_PRESS_SPEED = "long_press_speed"
+        const val LONG_PRESS_SPEED_OPTION = "long_press_speed_option"
         const val ANIME4K_MEMORY_ENABLED = "anime4k_memory_enabled"
         const val ANIME4K_LAST_MODE = "anime4k_last_mode"
 

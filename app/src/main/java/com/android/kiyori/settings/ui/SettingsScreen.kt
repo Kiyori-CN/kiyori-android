@@ -1,7 +1,5 @@
 package com.android.kiyori.settings.ui
 
-import android.app.Activity
-import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -16,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -26,11 +25,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Language
@@ -44,13 +45,17 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,14 +70,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.kiyori.R
 import com.android.kiyori.browser.data.BrowserPreferencesRepository
 import com.android.kiyori.browser.security.BrowserSecurityPolicy
-import com.android.kiyori.settings.PlaybackSettingsComposeActivity
-import com.android.kiyori.utils.applyOpenActivityTransitionCompat
+import com.android.kiyori.manager.LongPressSpeedOption
+import com.android.kiyori.manager.PreferencesManager
 import com.android.kiyori.ui.compose.SettingsColors as SettingsPalette
 
 private val SettingsCardBorderColor = Color(0xFFE8E8E2)
@@ -86,7 +92,6 @@ fun SettingsScreen(
     onRootPageStateChanged: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
     val browserPreferencesRepository = remember { BrowserPreferencesRepository(context) }
     var browserHomeUrl by remember { mutableStateOf(browserPreferencesRepository.getHomeUrl()) }
     var currentPage by remember(initialPage) {
@@ -97,14 +102,6 @@ fun SettingsScreen(
     LaunchedEffect(initialPage, navigationRequestId) {
         currentPage = settingsPageFromKey(initialPage) ?: SettingsPage.Root
         browserSubPage = null
-    }
-
-    fun launchActivity(intent: Intent) {
-        context.startActivity(intent)
-        activity?.applyOpenActivityTransitionCompat(
-            R.anim.slide_in_right,
-            R.anim.slide_out_left
-        )
     }
 
     fun handleBack() {
@@ -132,7 +129,7 @@ fun SettingsScreen(
             if (showPinnedHeaderBar) {
             SettingsHeaderBar(
                 title = browserSubPage?.title ?: when (currentPage) {
-                    SettingsPage.Browser -> "浏览器功能设置"
+                    SettingsPage.Browser -> "网页浏览器"
                     SettingsPage.Player -> ""
                     SettingsPage.Download -> ""
                     SettingsPage.AdBlock -> ""
@@ -232,13 +229,7 @@ fun SettingsScreen(
                     }
 
                     SettingsPage.Player -> {
-                        PlayerSettingsPage(
-                            onOpenPlaybackSettings = {
-                                launchActivity(
-                                    Intent(context, PlaybackSettingsComposeActivity::class.java)
-                                )
-                            }
-                        )
+                        PlayerSettingsPage()
                     }
 
                     SettingsPage.Download -> {
@@ -249,6 +240,9 @@ fun SettingsScreen(
                         AdBlockSettingsPage()
                     }
 
+                    SettingsPage.MusicPlayer,
+                    SettingsPage.NovelReader,
+                    SettingsPage.FileManager,
                     SettingsPage.ClipboardCode,
                     SettingsPage.MiniProgramManager,
                     SettingsPage.MiniProgramSubscription,
@@ -268,8 +262,16 @@ fun SettingsScreen(
 private fun BrowserSettingsDetailPage(
     onOpenNavigation: (BrowserSettingsDestination) -> Unit
 ) {
-    val groups = remember {
-        listOf(
+    val context = LocalContext.current
+    val browserPreferencesRepository = remember { BrowserPreferencesRepository(context) }
+    var allowWebPageOpenApp by remember {
+        mutableStateOf(browserPreferencesRepository.isWebPageOpenAppEnabled())
+    }
+    var allowWebPageGeolocation by remember {
+        mutableStateOf(browserPreferencesRepository.isWebPageGeolocationEnabled())
+    }
+
+    val groups = listOf(
             listOf(
                 BrowserSettingsEntry.Navigation(
                     title = "网页插件管理",
@@ -309,8 +311,22 @@ private fun BrowserSettingsDetailPage(
                 )
             ),
             listOf(
-                BrowserSettingsEntry.Toggle(title = "允许网页打开应用", enabled = true),
-                BrowserSettingsEntry.Toggle(title = "允许网页获取位置", enabled = true),
+                BrowserSettingsEntry.Toggle(
+                    title = "允许网页打开应用",
+                    enabled = allowWebPageOpenApp,
+                    onToggle = { enabled ->
+                        allowWebPageOpenApp = enabled
+                        browserPreferencesRepository.setWebPageOpenAppEnabled(enabled)
+                    }
+                ),
+                BrowserSettingsEntry.Toggle(
+                    title = "允许网页获取位置",
+                    enabled = allowWebPageGeolocation,
+                    onToggle = { enabled ->
+                        allowWebPageGeolocation = enabled
+                        browserPreferencesRepository.setWebPageGeolocationEnabled(enabled)
+                    }
+                ),
                 BrowserSettingsEntry.Navigation(
                     title = "网页翻译接口",
                     value = "百度翻译",
@@ -346,7 +362,6 @@ private fun BrowserSettingsDetailPage(
                 BrowserSettingsEntry.Toggle(title = "强制新窗口打开", enabled = false)
             )
         )
-    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -401,7 +416,9 @@ private fun BrowserSettingsRow(
             onOpenNavigation(entry.destination)
         }
 
-        is BrowserSettingsEntry.Toggle -> Modifier
+        is BrowserSettingsEntry.Toggle -> entry.onToggle?.let { onToggle ->
+            Modifier.clickable { onToggle(!entry.enabled) }
+        } ?: Modifier
     }
 
     Row(
@@ -562,31 +579,57 @@ private fun SettingsRootPage(
             ),
             listOf(
                 SettingsRootEntry(
-                    title = "浏览器",
+                    title = "网页浏览器",
                     icon = Icons.Default.Language,
                     iconTint = Color(0xFF6A96F2),
                     destination = SettingsPage.Browser
                 ),
                 SettingsRootEntry(
-                    title = "播放器",
+                    title = "视频播放器",
                     icon = Icons.Default.PlayCircle,
                     iconTint = Color(0xFFF06E71),
                     destination = SettingsPage.Player
                 ),
                 SettingsRootEntry(
-                    title = "下载",
+                    title = "音乐播放器",
+                    icon = Icons.Default.Audiotrack,
+                    iconTint = Color(0xFF8A6FF2),
+                    destination = SettingsPage.MusicPlayer
+                ),
+                SettingsRootEntry(
+                    title = "小说阅读器",
+                    icon = Icons.Default.MenuBook,
+                    iconTint = Color(0xFFCC935C),
+                    destination = SettingsPage.NovelReader
+                )
+            ),
+            listOf(
+                SettingsRootEntry(
+                    title = "文件下载器",
                     icon = Icons.Default.Download,
                     iconTint = Color(0xFFF27D84),
                     destination = SettingsPage.Download
                 ),
                 SettingsRootEntry(
-                    title = "广告拦截",
+                    title = "文件管理器",
+                    icon = Icons.Default.Folder,
+                    iconTint = Color(0xFF56B38A),
+                    destination = SettingsPage.FileManager
+                ),
+                SettingsRootEntry(
+                    title = "广告拦截器",
                     icon = Icons.Default.Block,
                     iconTint = Color(0xFF58C68E),
                     destination = SettingsPage.AdBlock
                 )
             ),
             listOf(
+                SettingsRootEntry(
+                    title = "界面定制",
+                    icon = Icons.Default.Palette,
+                    iconTint = Color(0xFFE575A5),
+                    destination = SettingsPage.Interface
+                ),
                 SettingsRootEntry(
                     title = "数据备份与同步",
                     icon = Icons.Default.Backup,
@@ -598,14 +641,6 @@ private fun SettingsRootPage(
                     icon = Icons.Default.MenuBook,
                     iconTint = Color(0xFF5DBDCC),
                     destination = SettingsPage.Developer
-                )
-            ),
-            listOf(
-                SettingsRootEntry(
-                    title = "界面定制",
-                    icon = Icons.Default.Palette,
-                    iconTint = Color(0xFFE575A5),
-                    destination = SettingsPage.Interface
                 ),
                 SettingsRootEntry(
                     title = "更多功能",
@@ -1170,13 +1205,20 @@ private fun DownloadSettingsRow(
 }
 
 @Composable
-private fun PlayerSettingsPage(
-    onOpenPlaybackSettings: () -> Unit
-) {
-    val groups = remember {
-        listOf(
+private fun PlayerSettingsPage() {
+    val context = LocalContext.current
+    val preferencesManager = remember { PreferencesManager.getInstance(context) }
+    var anime4KMemoryEnabled by remember { mutableStateOf(preferencesManager.isAnime4KMemoryEnabled()) }
+    var preciseSeekingEnabled by remember { mutableStateOf(preferencesManager.isPreciseSeekingEnabled()) }
+    var volumeBoostEnabled by remember { mutableStateOf(preferencesManager.isVolumeBoostEnabled()) }
+    var seekTimeSeconds by remember { mutableStateOf(preferencesManager.getSeekTime()) }
+    var doubleTapMode by remember { mutableStateOf(preferencesManager.getDoubleTapMode()) }
+    var doubleTapSeekSeconds by remember { mutableStateOf(preferencesManager.getDoubleTapSeekSeconds()) }
+    var longPressSpeedOption by remember { mutableStateOf(preferencesManager.getLongPressSpeedOption()) }
+    var showLongPressSpeedSheet by remember { mutableStateOf(false) }
+    var showDoubleTapSeekSheet by remember { mutableStateOf(false) }
+    val groups = listOf(
             listOf(
-                PlayerSettingsEntry.Navigation(title = "播放设置", onClick = onOpenPlaybackSettings),
                 PlayerSettingsEntry.Navigation(title = "极速播放模式2.0"),
                 PlayerSettingsEntry.Navigation(title = "自定义播放器"),
                 PlayerSettingsEntry.Navigation(title = "备用播放器"),
@@ -1184,6 +1226,14 @@ private fun PlayerSettingsPage(
             ),
             listOf(
                 PlayerSettingsEntry.Navigation(title = "小窗模式"),
+                PlayerSettingsEntry.Toggle(
+                    title = "记忆超分模式",
+                    enabled = anime4KMemoryEnabled,
+                    onToggle = { enabled ->
+                        anime4KMemoryEnabled = enabled
+                        preferencesManager.setAnime4KMemoryEnabled(enabled)
+                    }
+                ),
                 PlayerSettingsEntry.Toggle(title = "AI全屏显示", enabled = true),
                 PlayerSettingsEntry.Navigation(title = "直接全屏播放/返回"),
                 PlayerSettingsEntry.Toggle(title = "重力感应自动横屏", enabled = true),
@@ -1194,6 +1244,14 @@ private fun PlayerSettingsPage(
                 PlayerSettingsEntry.Toggle(title = "流量网络下自动播放", enabled = false),
                 PlayerSettingsEntry.Navigation(title = "蓝牙断开自动暂停", value = "仅音乐"),
                 PlayerSettingsEntry.Toggle(title = "非Wifi网络提示", enabled = true),
+                PlayerSettingsEntry.Toggle(
+                    title = "音量增强",
+                    enabled = volumeBoostEnabled,
+                    onToggle = { enabled ->
+                        volumeBoostEnabled = enabled
+                        preferencesManager.setVolumeBoostEnabled(enabled)
+                    }
+                ),
                 PlayerSettingsEntry.Toggle(title = "音乐失败自动下一曲", enabled = false),
                 PlayerSettingsEntry.Navigation(title = "视频播放跳转"),
                 PlayerSettingsEntry.Toggle(title = "视频播放完自动返回", enabled = true),
@@ -1201,12 +1259,27 @@ private fun PlayerSettingsPage(
             ),
             listOf(
                 PlayerSettingsEntry.Navigation(title = "倍速记忆设置"),
-                PlayerSettingsEntry.Navigation(title = "长按倍速设置"),
-                PlayerSettingsEntry.Navigation(title = "双击快进快退", value = "10s"),
+                PlayerSettingsEntry.Navigation(
+                    title = "长按倍速设置",
+                    onClick = { showLongPressSpeedSheet = true }
+                ),
+                PlayerSettingsEntry.Navigation(
+                    title = "双击快进快退",
+                    value = if (doubleTapMode == 1) "${doubleTapSeekSeconds}秒" else "禁用",
+                    onClick = { showDoubleTapSeekSheet = true }
+                ),
                 PlayerSettingsEntry.Toggle(title = "全局底部进度条", enabled = false)
             ),
             listOf(
                 PlayerSettingsEntry.Toggle(title = "隧道播放模式", enabled = true),
+                PlayerSettingsEntry.Toggle(
+                    title = "精准进度定位",
+                    enabled = preciseSeekingEnabled,
+                    onToggle = { enabled ->
+                        preciseSeekingEnabled = enabled
+                        preferencesManager.setPreciseSeekingEnabled(enabled)
+                    }
+                ),
                 PlayerSettingsEntry.Navigation(title = "清除播放进度"),
                 PlayerSettingsEntry.Navigation(title = "自定义投屏")
             ),
@@ -1214,7 +1287,6 @@ private fun PlayerSettingsPage(
                 PlayerSettingsEntry.Navigation(title = "M3U8广告清除")
             )
         )
-    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1264,6 +1336,225 @@ private fun PlayerSettingsPage(
             Spacer(modifier = Modifier.height(28.dp))
         }
     }
+
+    if (showLongPressSpeedSheet) {
+        LongPressSpeedSelectionSheet(
+            selectedOption = longPressSpeedOption,
+            onOptionSelected = { option ->
+                longPressSpeedOption = option
+                preferencesManager.setLongPressSpeedOption(option)
+                showLongPressSpeedSheet = false
+            },
+            onDismiss = { showLongPressSpeedSheet = false }
+        )
+    }
+
+    if (showDoubleTapSeekSheet) {
+        DoubleTapSeekSelectionSheet(
+            selectedMode = doubleTapMode,
+            selectedSeconds = doubleTapSeekSeconds,
+            onSelectDisabled = {
+                doubleTapMode = 0
+                preferencesManager.setDoubleTapMode(0)
+                showDoubleTapSeekSheet = false
+            },
+            onSelectSeconds = { seconds ->
+                seekTimeSeconds = seconds
+                doubleTapMode = 1
+                doubleTapSeekSeconds = seconds
+                preferencesManager.setSeekTime(seconds)
+                preferencesManager.setDoubleTapMode(1)
+                preferencesManager.setDoubleTapSeekSeconds(seconds)
+                showDoubleTapSeekSheet = false
+            },
+            onDismiss = { showDoubleTapSeekSheet = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LongPressSpeedSelectionSheet(
+    selectedOption: LongPressSpeedOption,
+    onOptionSelected: (LongPressSpeedOption) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val options = listOf(
+        LongPressSpeedOption.Relative2x,
+        LongPressSpeedOption.Relative3x,
+        LongPressSpeedOption.Relative4x,
+        LongPressSpeedOption.Fixed2x,
+        LongPressSpeedOption.Fixed3x,
+        LongPressSpeedOption.Fixed4x
+    )
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = null,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = Color.White,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        ) {
+            Text(
+                text = "长按临时倍速设置",
+                color = Color(0xFF202020),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+            Divider(color = Color(0xFFF0F0EC))
+
+            options.forEach { option ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onOptionSelected(option) }
+                        .padding(horizontal = 22.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = option.label,
+                        color = Color(0xFF2B2B2B),
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (selectedOption == option) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = Color(0xFF111111),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Divider(color = Color(0xFFF0F0EC))
+            }
+
+            Text(
+                text = "取消",
+                color = Color(0xFF2B2B2B),
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onDismiss)
+                    .padding(vertical = 16.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DoubleTapSeekSelectionSheet(
+    selectedMode: Int,
+    selectedSeconds: Int,
+    onSelectDisabled: () -> Unit,
+    onSelectSeconds: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val options = listOf(5, 10, 15, 20, 30, 45, 60)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = null,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        containerColor = Color.White,
+        scrimColor = Color.Black.copy(alpha = 0.32f),
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+        ) {
+            Text(
+                text = "双击快进快退",
+                color = Color(0xFF202020),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+            Divider(color = Color(0xFFF0F0EC))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onSelectDisabled)
+                    .padding(horizontal = 22.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "禁用",
+                    color = Color(0xFF2B2B2B),
+                    fontSize = 14.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                if (selectedMode != 1) {
+                    Icon(
+                        imageVector = Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint = Color(0xFF111111),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            Divider(color = Color(0xFFF0F0EC))
+
+            options.forEach { seconds ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSelectSeconds(seconds) }
+                        .padding(horizontal = 22.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${seconds}秒",
+                        color = Color(0xFF2B2B2B),
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (selectedMode == 1 && selectedSeconds == seconds) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = Color(0xFF111111),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Divider(color = Color(0xFFF0F0EC))
+            }
+
+            Text(
+                text = "取消",
+                color = Color(0xFF2B2B2B),
+                fontSize = 15.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onDismiss)
+                    .padding(vertical = 16.dp)
+            )
+        }
+    }
 }
 
 @Composable
@@ -1272,7 +1563,9 @@ private fun PlayerSettingsRow(
 ) {
     val clickableModifier = when (entry) {
         is PlayerSettingsEntry.Navigation -> Modifier.clickable(onClick = entry.onClick)
-        is PlayerSettingsEntry.Toggle -> Modifier
+        is PlayerSettingsEntry.Toggle -> entry.onToggle?.let { onToggle ->
+            Modifier.clickable { onToggle(!entry.enabled) }
+        } ?: Modifier
     }
 
     Row(
@@ -1434,10 +1727,13 @@ private enum class SettingsPage(val title: String) {
     ClipboardCode("剪贴板口令"),
     MiniProgramManager("小程序管理"),
     MiniProgramSubscription("小程序订阅"),
-    Browser("浏览器"),
-    Player("播放器"),
-    Download("下载"),
-    AdBlock("广告拦截"),
+    Browser("网页浏览器"),
+    Player("视频播放器"),
+    MusicPlayer("音乐播放器"),
+    NovelReader("小说阅读器"),
+    FileManager("文件管理器"),
+    Download("文件下载器"),
+    AdBlock("广告拦截器"),
     BackupSync("数据备份与同步"),
     Developer("开发手册与模式"),
     Interface("界面定制"),
@@ -1447,6 +1743,9 @@ private enum class SettingsPage(val title: String) {
 private fun settingsPageFromKey(key: String?): SettingsPage? = when (key) {
     "browser" -> SettingsPage.Browser
     "player" -> SettingsPage.Player
+    "music_player" -> SettingsPage.MusicPlayer
+    "novel_reader" -> SettingsPage.NovelReader
+    "file_manager" -> SettingsPage.FileManager
     "download" -> SettingsPage.Download
     "ad_block" -> SettingsPage.AdBlock
     else -> null
@@ -1476,7 +1775,8 @@ private sealed interface BrowserSettingsEntry {
 
     data class Toggle(
         override val title: String,
-        val enabled: Boolean
+        val enabled: Boolean,
+        val onToggle: ((Boolean) -> Unit)? = null
     ) : BrowserSettingsEntry
 }
 
@@ -1505,7 +1805,8 @@ private sealed interface PlayerSettingsEntry {
 
     data class Toggle(
         override val title: String,
-        val enabled: Boolean
+        val enabled: Boolean,
+        val onToggle: ((Boolean) -> Unit)? = null
     ) : PlayerSettingsEntry
 }
 

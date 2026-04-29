@@ -5,10 +5,12 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,9 +61,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -70,7 +72,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.android.kiyori.browser.domain.BrowserPageState
 import com.android.kiyori.browser.domain.BrowserSearchEngine
 import com.android.kiyori.browser.domain.BrowserSearchRecord
@@ -90,9 +91,11 @@ fun BrowserTopBar(
     onBackPressed: () -> Unit,
     onToggleUrlBar: () -> Unit,
     onReload: () -> Unit,
-    onShowDetectedVideos: () -> Unit
+    onShowDetectedVideos: () -> Unit,
+    onSelectQuickSearchEngine: (BrowserSearchEngine) -> Unit,
+    onDismissQuickSearchEngineBar: () -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
@@ -122,6 +125,17 @@ fun BrowserTopBar(
                 contentDescription = "刷新",
                 onClick = onReload,
                 iconSize = BrowserTopBarSideIconSize
+            )
+        }
+
+        if (
+            state.showSearchEngineQuickSwitchBar &&
+            state.lastSearchQuery.isNotBlank()
+        ) {
+            BrowserSearchEngineQuickSwitchBar(
+                currentEngine = state.searchEngine,
+                onSelectEngine = onSelectQuickSearchEngine,
+                onClose = onDismissQuickSearchEngineBar
             )
         }
     }
@@ -599,13 +613,12 @@ private fun SearchEngineToggle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-        AsyncImage(
-            model = engine.iconUrl,
+        Image(
+            painter = painterResource(id = engine.iconResId),
             contentDescription = engine.displayName,
             modifier = Modifier
                 .size(16.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            contentScale = ContentScale.Fit
+                .clip(RoundedCornerShape(4.dp))
         )
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
@@ -625,15 +638,15 @@ private fun BrowserSearchEnginePanel(
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFFF8FAFC),
+        shape = RoundedCornerShape(18.dp),
+        color = Color(0xFFEFF3F7),
         tonalElevation = 2.dp,
         shadowElevation = 4.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(horizontal = 10.dp, vertical = 9.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
@@ -840,40 +853,122 @@ private fun SearchEngineCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shape = RoundedCornerShape(14.dp)
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color(0xFFD1D5DB)
+    val shape = RoundedCornerShape(16.dp)
+    val borderColor = if (selected) Color(0xFFB8C5F3) else Color(0xFFE6ECF2)
     val backgroundColor = if (selected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        Color(0xFFE6EBFA)
     } else {
         Color.White
     }
 
-    Column(
+    Row(
         modifier = modifier
-            .height(78.dp)
+            .height(50.dp)
             .clip(shape)
             .background(backgroundColor)
             .border(1.dp, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        AsyncImage(
-            model = engine.iconUrl,
+        Image(
+            painter = painterResource(id = engine.iconResId),
             contentDescription = engine.displayName,
             modifier = Modifier
-                .size(24.dp)
-                .clip(RoundedCornerShape(6.dp)),
-            contentScale = ContentScale.Fit
+                .size(20.dp)
+                .clip(RoundedCornerShape(5.dp))
         )
         Text(
             text = engine.displayName,
             color = Color(0xFF111827),
-            fontSize = 12.sp,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun BrowserSearchEngineQuickSwitchBar(
+    currentEngine: BrowserSearchEngine,
+    onSelectEngine: (BrowserSearchEngine) -> Unit,
+    onClose: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp, end = 6.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            BrowserSearchEngine.entries.forEach { engine ->
+                QuickSearchEngineChip(
+                    engine = engine,
+                    selected = engine == currentEngine,
+                    onClick = {
+                        if (engine != currentEngine) {
+                            onSelectEngine(engine)
+                        }
+                    }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .size(22.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onClose),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "关闭搜索引擎切换条",
+                tint = Color(0xFF6B7280),
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickSearchEngineChip(
+    engine: BrowserSearchEngine,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .height(28.dp)
+            .clip(shape)
+            .background(if (selected) Color(0xFFE8F0FF) else Color(0xFFF5F5F5))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Image(
+            painter = painterResource(id = engine.iconResId),
+            contentDescription = engine.displayName,
+            modifier = Modifier
+                .size(12.dp)
+                .clip(RoundedCornerShape(4.dp))
+        )
+        Text(
+            text = engine.displayName,
+            color = if (selected) Color(0xFF2B4E9C) else Color(0xFF202124),
+            fontSize = 9.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1
         )
     }
 }

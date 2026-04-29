@@ -14,7 +14,10 @@ object BrowserWebViewFactory {
 
     @SuppressLint("SetJavaScriptEnabled")
     @Suppress("DEPRECATION")
-    fun configure(webView: WebView) {
+    fun configure(
+        webView: WebView,
+        geolocationEnabled: Boolean = true
+    ) {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         webView.isFocusable = true
         webView.isFocusableInTouchMode = true
@@ -31,7 +34,7 @@ object BrowserWebViewFactory {
             setJavaScriptCanOpenWindowsAutomatically(true)
             setDomStorageEnabled(true)
             setDatabaseEnabled(true)
-            setGeolocationEnabled(true)
+            setGeolocationEnabled(geolocationEnabled)
             setUseWideViewPort(true)
             setLoadWithOverviewMode(true)
             setSupportZoom(true)

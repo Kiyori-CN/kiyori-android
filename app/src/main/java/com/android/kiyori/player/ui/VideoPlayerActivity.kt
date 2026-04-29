@@ -642,11 +642,11 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onLongPress() {
-                    val longPressSpeed = preferencesManager.getLongPressSpeed()
-                    
                     // 记录当前速度，用于松开后恢复
                     speedBeforeLongPress = currentSpeed
-                    
+
+                    val longPressSpeed = preferencesManager.resolveLongPressSpeed(currentSpeed.toFloat())
+
                     // 设置为长按速度
                     currentSpeed = longPressSpeed.toDouble()
                     playbackEngine.setSpeed(longPressSpeed.toDouble())

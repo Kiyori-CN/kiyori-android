@@ -1,13 +1,16 @@
 package com.android.kiyori.browser.ui
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.URLUtil
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.getValue
@@ -25,6 +28,7 @@ import com.android.kiyori.browser.domain.BrowserBookmarkFolderOption
 import com.android.kiyori.browser.domain.BrowserPageState
 import com.android.kiyori.browser.playback.BrowserPlaybackInteractor
 import com.android.kiyori.browser.playback.BrowserPlaybackInteractor.BrowserVideoCandidate
+import com.android.kiyori.browser.security.BrowserSecurityPolicy
 import com.android.kiyori.browser.web.BrowserWebViewCallbacks
 import com.android.kiyori.browser.web.BrowserWebViewController
 import com.android.kiyori.download.InternalDownloadRequest
@@ -33,6 +37,7 @@ import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.sniffer.DetectedVideo
 import com.android.kiyori.sniffer.UrlDetector
+import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback
 import com.tencent.smtt.sdk.ValueCallback
 import com.tencent.smtt.sdk.WebChromeClient
 import com.android.kiyori.ui.theme.getThemeColors
@@ -67,6 +72,8 @@ class BrowserActivity : BaseActivity() {
     private var shouldOpenSearch = false
     private var initialNavigationDispatched = false
     private var pendingFileChooserCallback: ValueCallback<Array<Uri>>? = null
+    private var pendingGeolocationOrigin: String? = null
+    private var pendingGeolocationCallback: GeolocationPermissionsCallback? = null
     private val fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val callback = pendingFileChooserCallback
@@ -74,6 +81,10 @@ class BrowserActivity : BaseActivity() {
             callback?.onReceiveValue(
                 WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
             )
+        }
+    private val geolocationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            completePendingGeolocationRequest(granted = hasLocationPermission())
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +106,7 @@ class BrowserActivity : BaseActivity() {
             callbacks = BrowserWebViewCallbacks(
                 onStateChanged = { state -> pageState = state },
                 onExternalUrlBlocked = ::handleExternalUrl,
+                onGeolocationPermissionRequest = ::handleGeolocationPermissionRequest,
                 onDownloadRequested = { url, userAgent, contentDisposition, mimeType, contentLength, sourcePageUrl ->
                     handleDownloadRequest(
                         url = url,
@@ -172,6 +184,8 @@ class BrowserActivity : BaseActivity() {
                     onGoForward = browserWebViewController::goForward,
                     onGoHome = browserWebViewController::loadHome,
                     onSelectSearchEngine = browserWebViewController::selectSearchEngine,
+                    onSearchAgainWithEngine = browserWebViewController::searchAgainWithEngine,
+                    onDismissSearchEngineQuickSwitchBar = browserWebViewController::dismissSearchEngineQuickSwitchBar,
                     onOpenCurrentUrl = { browserWebViewController.loadUrl(pageState.currentUrl) },
                     onEditCurrentUrl = { browserWebViewController.updateInputUrl(pageState.currentUrl) },
                     onOpenSearchRecord = browserWebViewController::loadUrl,
@@ -243,6 +257,7 @@ class BrowserActivity : BaseActivity() {
     override fun onDestroy() {
         pendingFileChooserCallback?.onReceiveValue(null)
         pendingFileChooserCallback = null
+        completePendingGeolocationRequest(granted = false)
         if (::browserWebViewController.isInitialized) {
             browserWebViewController.destroy()
         }
@@ -422,22 +437,106 @@ class BrowserActivity : BaseActivity() {
             }
         }.getOrNull() ?: return false
 
+        val fallbackUrl = resolveExternalFallbackUrl(url, parsedIntent).orEmpty()
+        if (!preferencesRepository.isWebPageOpenAppEnabled()) {
+            return if (fallbackUrl.isNotBlank()) {
+                browserWebViewController.loadUrl(fallbackUrl)
+                true
+            } else {
+                false
+            }
+        }
+        val canResolve = parsedIntent.resolveActivity(packageManager) != null
+
+        if (!canResolve) {
+            return if (fallbackUrl.isNotBlank()) {
+                browserWebViewController.loadUrl(fallbackUrl)
+                true
+            } else if (!BrowserSecurityPolicy.shouldShowExternalNavigationError(url)) {
+                true
+            } else {
+                Toast.makeText(this, "未找到可处理该链接的应用", Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
+
         return runCatching {
             startActivity(parsedIntent)
             true
         }.recoverCatching {
-            val fallbackUrl = parsedIntent.getStringExtra("browser_fallback_url").orEmpty()
-            when {
-                fallbackUrl.isNotBlank() -> {
-                    browserWebViewController.loadUrl(fallbackUrl)
-                    true
-                }
-                else -> {
-                    Toast.makeText(this, "未找到可处理该链接的应用", Toast.LENGTH_SHORT).show()
-                    false
-                }
+            if (fallbackUrl.isNotBlank()) {
+                browserWebViewController.loadUrl(fallbackUrl)
+                true
+            } else if (!BrowserSecurityPolicy.shouldShowExternalNavigationError(url)) {
+                true
+            } else {
+                Toast.makeText(this, "未找到可处理该链接的应用", Toast.LENGTH_SHORT).show()
+                true
             }
         }.getOrDefault(false)
+    }
+
+    private fun handleGeolocationPermissionRequest(
+        origin: String?,
+        callback: GeolocationPermissionsCallback?
+    ) {
+        callback ?: return
+        if (!preferencesRepository.isWebPageGeolocationEnabled()) {
+            callback.invoke(origin, false, false)
+            return
+        }
+        if (hasLocationPermission()) {
+            callback.invoke(origin, true, false)
+            return
+        }
+
+        completePendingGeolocationRequest(granted = false)
+        pendingGeolocationOrigin = origin
+        pendingGeolocationCallback = callback
+        geolocationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+    private fun completePendingGeolocationRequest(granted: Boolean) {
+        val callback = pendingGeolocationCallback ?: run {
+            pendingGeolocationOrigin = null
+            return
+        }
+        callback.invoke(pendingGeolocationOrigin, granted, false)
+        pendingGeolocationOrigin = null
+        pendingGeolocationCallback = null
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun resolveExternalFallbackUrl(
+        rawUrl: String,
+        parsedIntent: Intent
+    ): String? {
+        parsedIntent.getStringExtra("browser_fallback_url")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        if (rawUrl.startsWith("intent:", ignoreCase = true)) {
+            parsedIntent.dataString
+                ?.takeIf { BrowserSecurityPolicy.shouldLoadInsideWebView(it) }
+                ?.let { return it }
+        }
+
+        return null
     }
 }
 

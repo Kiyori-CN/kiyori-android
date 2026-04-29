@@ -4,6 +4,24 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.android.kiyori.app.AppConstants
 
+enum class LongPressSpeedOption(
+    val storageValue: String,
+    val label: String
+) {
+    Relative2x("relative_2x", "2倍(原速度上加倍)"),
+    Relative3x("relative_3x", "3倍(原速度上加倍)"),
+    Relative4x("relative_4x", "4倍(原速度上加倍)"),
+    Fixed2x("fixed_2x", "固定2倍"),
+    Fixed3x("fixed_3x", "固定3倍"),
+    Fixed4x("fixed_4x", "固定4倍");
+
+    companion object {
+        fun fromStorageValue(value: String?): LongPressSpeedOption? {
+            return entries.firstOrNull { it.storageValue == value }
+        }
+    }
+}
+
 /**
  * 统一的设置管理器（单例模式）
  * 集中所有 SharedPreferences 操作，避免重复创建和散落在各处
@@ -62,6 +80,46 @@ class PreferencesManager private constructor(context: Context) {
      */
     fun setLongPressSpeed(speed: Float) {
         sharedPreferences.edit().putFloat(AppConstants.Preferences.LONG_PRESS_SPEED, speed).apply()
+    }
+
+    fun getLongPressSpeedOption(): LongPressSpeedOption {
+        val storedValue = sharedPreferences.getString(
+            AppConstants.Preferences.LONG_PRESS_SPEED_OPTION,
+            null
+        )
+        LongPressSpeedOption.fromStorageValue(storedValue)?.let { return it }
+
+        val legacySpeed = getLongPressSpeed()
+        return when {
+            legacySpeed < 2.5f -> LongPressSpeedOption.Fixed2x
+            legacySpeed < 3.5f -> LongPressSpeedOption.Fixed3x
+            else -> LongPressSpeedOption.Fixed4x
+        }
+    }
+
+    fun setLongPressSpeedOption(option: LongPressSpeedOption) {
+        sharedPreferences.edit()
+            .putString(AppConstants.Preferences.LONG_PRESS_SPEED_OPTION, option.storageValue)
+            .putFloat(
+                AppConstants.Preferences.LONG_PRESS_SPEED,
+                when (option) {
+                    LongPressSpeedOption.Relative2x, LongPressSpeedOption.Fixed2x -> 2.0f
+                    LongPressSpeedOption.Relative3x, LongPressSpeedOption.Fixed3x -> 3.0f
+                    LongPressSpeedOption.Relative4x, LongPressSpeedOption.Fixed4x -> 4.0f
+                }
+            )
+            .apply()
+    }
+
+    fun resolveLongPressSpeed(baseSpeed: Float): Float {
+        return when (getLongPressSpeedOption()) {
+            LongPressSpeedOption.Relative2x -> baseSpeed * 2.0f
+            LongPressSpeedOption.Relative3x -> baseSpeed * 3.0f
+            LongPressSpeedOption.Relative4x -> baseSpeed * 4.0f
+            LongPressSpeedOption.Fixed2x -> 2.0f
+            LongPressSpeedOption.Fixed3x -> 3.0f
+            LongPressSpeedOption.Fixed4x -> 4.0f
+        }
     }
     
     // ==================== 精确进度定位 ====================
@@ -879,6 +937,22 @@ class PreferencesManager private constructor(context: Context) {
 
     fun setBrowserIncognitoModeEnabled(enabled: Boolean) {
         sharedPreferences.edit().putBoolean("browser_incognito_mode", enabled).apply()
+    }
+
+    fun isBrowserAllowOpenAppEnabled(): Boolean {
+        return sharedPreferences.getBoolean("browser_allow_open_app", true)
+    }
+
+    fun setBrowserAllowOpenAppEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("browser_allow_open_app", enabled).apply()
+    }
+
+    fun isBrowserAllowGeolocationEnabled(): Boolean {
+        return sharedPreferences.getBoolean("browser_allow_geolocation", true)
+    }
+
+    fun setBrowserAllowGeolocationEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("browser_allow_geolocation", enabled).apply()
     }
 
     fun isBrowserX5Enabled(): Boolean {

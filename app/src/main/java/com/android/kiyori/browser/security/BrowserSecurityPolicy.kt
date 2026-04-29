@@ -16,6 +16,7 @@ object BrowserSecurityPolicy {
         "Mozilla/5.0 (SymbianOS/9.4; Series60/5.0 Nokia5800 XpressMusic/52.0.007; Profile/MIDP-2.1 Configuration/CLDC-1.1) AppleWebKit/413 (KHTML, like Gecko) Safari/413"
 
     private val allowedWebSchemes = setOf("http", "https", "about", "javascript", "blob", "data")
+    private val userVisibleExternalSchemes = setOf("tel", "sms", "smsto", "mailto", "geo", "market")
     private val domainLikePattern =
         Regex("""^(localhost|(\d{1,3}\.){3}\d{1,3}|([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})(:\d+)?([/?#].*)?$""")
 
@@ -65,6 +66,45 @@ object BrowserSecurityPolicy {
         val scheme = runCatching { Uri.parse(url).scheme.orEmpty().lowercase() }
             .getOrDefault("")
         return scheme in allowedWebSchemes
+    }
+
+    fun shouldAttemptExternalNavigation(url: String): Boolean {
+        if (url.startsWith("intent:", ignoreCase = true)) {
+            return true
+        }
+        val scheme = runCatching { Uri.parse(url).scheme.orEmpty().lowercase() }
+            .getOrDefault("")
+        return scheme.isNotBlank() && scheme !in allowedWebSchemes
+    }
+
+    fun shouldShowExternalNavigationError(url: String): Boolean {
+        val scheme = runCatching { Uri.parse(url).scheme.orEmpty().lowercase() }
+            .getOrDefault("")
+        return scheme in userVisibleExternalSchemes
+    }
+
+    fun resolveSearchQuery(
+        input: String,
+        searchEngine: BrowserSearchEngine = BrowserSearchEngine.DEFAULT
+    ): String? {
+        val trimmed = input.trim()
+        if (trimmed.isBlank() || trimmed.equals(BLANK_HOME_URL, ignoreCase = true)) {
+            return null
+        }
+
+        val parsed = runCatching { Uri.parse(trimmed) }.getOrNull()
+        val scheme = parsed?.scheme?.lowercase().orEmpty()
+        if (scheme.isNotBlank()) {
+            return null
+        }
+
+        return if (looksLikeUrl(trimmed)) {
+            null
+        } else {
+            buildSearchUrl(trimmed, searchEngine)
+                .takeIf { normalizeUserInput(trimmed, searchEngine) == it }
+                ?.let { trimmed }
+        }
     }
 
     fun resolveUserAgent(

@@ -30,6 +30,8 @@ data class BrowserPageState(
     val canGoForward: Boolean = false,
     val isDesktopMode: Boolean = false,
     val showUrlBar: Boolean = true,
+    val lastSearchQuery: String = "",
+    val showSearchEngineQuickSwitchBar: Boolean = false,
     val blockedExternalUrl: String? = null,
     val historyEntries: List<BrowserHistoryEntry> = emptyList(),
     val searchRecords: List<BrowserSearchRecord> = emptyList()

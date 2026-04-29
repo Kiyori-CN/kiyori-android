@@ -33,3 +33,6 @@
 ## 规划
 
 - [浏览器重构计划](planning/browser-refactor-plan.md)
+- [正一屏完全复刻 Operit 方案](planning/operit-primary-screen-replication-plan.md)
+- [正一屏 Operit 组件映射](planning/operit-primary-screen-component-mapping.md)
+- [正一屏 Operit 架构蓝图](planning/operit-primary-screen-architecture-blueprint.md)

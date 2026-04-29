@@ -105,6 +105,22 @@ class BrowserPreferencesRepository(context: Context) {
         preferencesManager.setBrowserIncognitoModeEnabled(enabled)
     }
 
+    fun isWebPageOpenAppEnabled(): Boolean {
+        return preferencesManager.isBrowserAllowOpenAppEnabled()
+    }
+
+    fun setWebPageOpenAppEnabled(enabled: Boolean) {
+        preferencesManager.setBrowserAllowOpenAppEnabled(enabled)
+    }
+
+    fun isWebPageGeolocationEnabled(): Boolean {
+        return preferencesManager.isBrowserAllowGeolocationEnabled()
+    }
+
+    fun setWebPageGeolocationEnabled(enabled: Boolean) {
+        preferencesManager.setBrowserAllowGeolocationEnabled(enabled)
+    }
+
     fun isX5Enabled(): Boolean {
         return preferencesManager.isBrowserX5Enabled()
     }

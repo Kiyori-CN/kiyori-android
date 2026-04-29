@@ -1,6 +1,7 @@
 package com.android.kiyori.browser.web
 
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -50,6 +51,12 @@ import java.io.ByteArrayInputStream
 data class BrowserWebViewCallbacks(
     val onStateChanged: (BrowserPageState) -> Unit,
     val onExternalUrlBlocked: (String) -> Boolean = { false },
+    val onGeolocationPermissionRequest: (
+        origin: String?,
+        callback: GeolocationPermissionsCallback?
+    ) -> Unit = { origin, callback ->
+        callback?.invoke(origin, true, false)
+    },
     val onDownloadRequested: (
         url: String,
         userAgent: String,
@@ -142,7 +149,10 @@ class BrowserWebViewController(
         }
 
         this.webView = webView
-        BrowserWebViewFactory.configure(webView)
+        BrowserWebViewFactory.configure(
+            webView = webView,
+            geolocationEnabled = preferencesRepository.isWebPageGeolocationEnabled()
+        )
         webView.onResume()
         webView.resumeTimers()
         defaultUserAgent = webView.settings.userAgentString.orEmpty()
@@ -209,7 +219,11 @@ class BrowserWebViewController(
                 origin: String?,
                 callback: GeolocationPermissionsCallback?
             ) {
-                callback?.invoke(origin, true, false)
+                if (!preferencesRepository.isWebPageGeolocationEnabled()) {
+                    callback?.invoke(origin, false, false)
+                    return
+                }
+                callbacks.onGeolocationPermissionRequest(origin, callback)
             }
 
             override fun onCreateWindow(
@@ -221,7 +235,10 @@ class BrowserWebViewController(
                 val sourceView = view ?: return false
                 val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
                 val popupWebView = WebView(sourceView.context)
-                BrowserWebViewFactory.configure(popupWebView)
+                BrowserWebViewFactory.configure(
+                    webView = popupWebView,
+                    geolocationEnabled = preferencesRepository.isWebPageGeolocationEnabled()
+                )
                 popupWebView.webViewClient = object : WebViewClient() {
                     override fun shouldOverrideUrlLoading(
                         view: WebView?,
@@ -338,6 +355,23 @@ class BrowserWebViewController(
                     applyUserAgent(url)
                     return false
                 }
+                if (!BrowserSecurityPolicy.shouldAttemptExternalNavigation(url)) {
+                    return true
+                }
+                val isMainFrameNavigation = request?.isForMainFrame != false
+                if (!isMainFrameNavigation) {
+                    return true
+                }
+                val fallbackUrl = resolveBrowserFallbackUrl(url)
+                val hasUserGesture = request?.hasGesture() == true
+                if (!hasUserGesture) {
+                    if (!fallbackUrl.isNullOrBlank()) {
+                        loadUrl(fallbackUrl)
+                    } else {
+                        Log.d(LOG_TAG, "Silently blocked external navigation without user gesture: $url")
+                    }
+                    return true
+                }
                 BrowserNetworkLogManager.addBlocked(
                     url = url,
                     pageUrl = pageState.currentUrl,
@@ -361,6 +395,7 @@ class BrowserWebViewController(
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (view != null) {
+                    enforceUniversalPinchZoom(view)
                     completePageLoad(view = view, url = url, captureHistory = true)
                     return
                 }
@@ -584,21 +619,10 @@ class BrowserWebViewController(
     }
 
     fun submitInputUrl() {
-        val rawInput = pageState.inputUrl.trim()
-        val normalizedUrl = BrowserSecurityPolicy.normalizeUserInput(
-            input = rawInput,
-            searchEngine = pageState.searchEngine
-        ) ?: return
-        if (!pageState.isIncognitoMode && normalizedUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
-            searchHistoryRepository.addSearchHistory(
-                query = rawInput,
-                targetUrl = normalizedUrl
-            )
-            syncSearchRecords()
-        }
-        preferencesRepository.setLastInputUrl("")
-        updateState { copy(inputUrl = "") }
-        loadUrl(normalizedUrl)
+        submitBrowserInput(
+            rawInput = pageState.inputUrl.trim(),
+            targetEngine = pageState.searchEngine
+        )
     }
 
     fun loadUrl(url: String) {
@@ -655,6 +679,24 @@ class BrowserWebViewController(
     fun selectSearchEngine(engine: BrowserSearchEngine) {
         preferencesRepository.setSearchEngine(engine)
         updateState { copy(searchEngine = engine) }
+    }
+
+    fun searchAgainWithEngine(engine: BrowserSearchEngine) {
+        val query = pageState.lastSearchQuery.trim()
+        if (query.isBlank()) {
+            selectSearchEngine(engine)
+            return
+        }
+        submitBrowserInput(
+            rawInput = query,
+            targetEngine = engine
+        )
+    }
+
+    fun dismissSearchEngineQuickSwitchBar() {
+        updateState {
+            copy(showSearchEngineQuickSwitchBar = false)
+        }
     }
 
     fun toggleIncognitoMode() {
@@ -808,6 +850,43 @@ class BrowserWebViewController(
             webView = targetWebView,
             profile = resolveActiveUserAgentProfile(targetUrl)
         )
+    }
+
+    private fun submitBrowserInput(
+        rawInput: String,
+        targetEngine: BrowserSearchEngine
+    ) {
+        if (rawInput.isBlank()) {
+            return
+        }
+
+        val normalizedUrl = BrowserSecurityPolicy.normalizeUserInput(
+            input = rawInput,
+            searchEngine = targetEngine
+        ) ?: return
+        val searchQuery = BrowserSecurityPolicy.resolveSearchQuery(
+            input = rawInput,
+            searchEngine = targetEngine
+        ).orEmpty()
+
+        preferencesRepository.setSearchEngine(targetEngine)
+        if (!pageState.isIncognitoMode && normalizedUrl != BrowserSecurityPolicy.BLANK_HOME_URL) {
+            searchHistoryRepository.addSearchHistory(
+                query = rawInput,
+                targetUrl = normalizedUrl
+            )
+            syncSearchRecords()
+        }
+        preferencesRepository.setLastInputUrl("")
+        updateState {
+            copy(
+                inputUrl = "",
+                searchEngine = targetEngine,
+                lastSearchQuery = searchQuery,
+                showSearchEngineQuickSwitchBar = searchQuery.isNotBlank()
+            )
+        }
+        loadUrl(normalizedUrl)
     }
 
     private fun refreshCurrentPageForUserAgent(targetUrl: String = pageState.currentUrl) {
@@ -1467,6 +1546,29 @@ class BrowserWebViewController(
         }.getOrDefault(rawResult)
     }
 
+    private fun enforceUniversalPinchZoom(targetWebView: WebView) {
+        val currentUrl = targetWebView.url.orEmpty()
+        if (currentUrl.isBlank() || !BrowserSecurityPolicy.shouldLoadInsideWebView(currentUrl)) {
+            return
+        }
+        runCatching {
+            targetWebView.evaluateJavascript(FORCE_UNIVERSAL_PINCH_ZOOM_SCRIPT, null)
+        }.onFailure {
+            Log.d(LOG_TAG, "Failed to inject universal pinch-zoom script for $currentUrl", it)
+        }
+    }
+
+    private fun resolveBrowserFallbackUrl(url: String): String? {
+        if (!url.startsWith("intent:", ignoreCase = true)) {
+            return null
+        }
+        return runCatching {
+            Intent.parseUri(url, Intent.URI_INTENT_SCHEME)
+                .getStringExtra("browser_fallback_url")
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
     companion object {
         private const val LOG_TAG = "KiyoriBrowser"
         private const val PREVIEW_WIDTH = 432
@@ -1480,5 +1582,62 @@ class BrowserWebViewController(
         private const val VISUAL_READY_PROGRESS_THRESHOLD = 85
         private const val DOCUMENT_READY_STATE_SCRIPT =
             "(function(){return document && document.readyState ? document.readyState : '';})();"
+        private const val FORCE_UNIVERSAL_PINCH_ZOOM_SCRIPT = """
+            (function() {
+              try {
+                var viewportContent = 'width=device-width, initial-scale=1, minimum-scale=0.25, maximum-scale=10, user-scalable=yes, viewport-fit=cover';
+                var styleId = 'kiyori-force-pinch-zoom-style';
+                var observerKey = '__kiyoriForcePinchZoomObserverInstalled';
+                var styleText = 'html,body{touch-action:auto !important;}';
+                function ensureViewport() {
+                  if (!document) return;
+                  var head = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+                  if (!head) return;
+                  var viewport = document.querySelector('meta[name="viewport"]');
+                  if (!viewport) {
+                    viewport = document.createElement('meta');
+                    viewport.setAttribute('name', 'viewport');
+                    head.appendChild(viewport);
+                  }
+                  if (viewport.getAttribute('content') !== viewportContent) {
+                    viewport.setAttribute('content', viewportContent);
+                  }
+                }
+                function ensureStyle() {
+                  if (!document) return;
+                  var head = document.head || document.getElementsByTagName('head')[0] || document.documentElement;
+                  if (!head) return;
+                  var style = document.getElementById(styleId);
+                  if (!style) {
+                    style = document.createElement('style');
+                    style.id = styleId;
+                    style.type = 'text/css';
+                    head.appendChild(style);
+                  }
+                  if (style.textContent !== styleText) {
+                    style.textContent = styleText;
+                  }
+                }
+                function apply() {
+                  ensureViewport();
+                  ensureStyle();
+                }
+                apply();
+                if (!window[observerKey]) {
+                  var observerTarget = document.head || document.documentElement || document;
+                  var observer = new MutationObserver(function() {
+                    apply();
+                  });
+                  observer.observe(observerTarget, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['content', 'name']
+                  });
+                  window[observerKey] = true;
+                }
+              } catch (e) {}
+            })();
+        """
     }
 }
