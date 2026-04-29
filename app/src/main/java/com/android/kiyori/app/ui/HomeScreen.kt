@@ -21,13 +21,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -49,11 +52,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +83,7 @@ import com.android.kiyori.danmaku.ui.BiliBiliDanmakuComposeActivity
 import com.android.kiyori.player.ui.VideoPlayerActivity
 import com.android.kiyori.download.ui.BilibiliDownloadActivity
 import com.android.kiyori.download.ui.DownloadCenterScreen
+import com.android.kiyori.operitreplica.ui.KiyoriOperitReplicaScreen
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackLauncher
 import com.android.kiyori.remote.RemotePlaybackRequest
@@ -88,7 +94,9 @@ import com.android.kiyori.subtitle.ui.SubtitleSearchActivity
 import com.android.kiyori.ui.compose.KiyoriBottomDrawer
 import com.android.kiyori.utils.applyOpenActivityTransitionCompat
 import com.android.kiyori.webdav.WebDavComposeActivity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * Compose 版本的主页
@@ -122,6 +130,8 @@ fun HomeScreen(
         initialPage = HomeTab.homePagerPage(initialTab),
         pageCount = { 3 }
     )
+    var pendingAiCommitProgress by remember { mutableFloatStateOf(0f) }
+    var draggedTowardAiPage by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val bookmarkRepository = remember(context) { BrowserBookmarkRepository(context) }
     val browserHistoryRepository = remember(context) { BrowserHistoryRepository(context) }
@@ -136,6 +146,45 @@ fun HomeScreen(
 
     fun refreshHistoryCount() {
         historyCount = browserHistoryRepository.getHistory().size + historyManager.getHistory().size
+    }
+
+    fun handleBottomTabSelected(tab: HomeTab) {
+        when (tab) {
+            HomeTab.Browser -> {
+                appsSubPage = AppsSubPage.Home
+                filePlaceholderTitle = null
+                BrowserActivity.start(context)
+                activity?.applyOpenActivityTransitionCompat(
+                    R.anim.no_anim,
+                    R.anim.no_anim
+                )
+            }
+            HomeTab.Home -> {
+                selectedTab = HomeTab.Home
+                homePlaceholderTitle = null
+                appsSubPage = AppsSubPage.Home
+                filePlaceholderTitle = null
+                coroutineScope.launch {
+                    homePagerState.animateScrollToPage(1)
+                }
+            }
+            HomeTab.Apps -> {
+                homePlaceholderTitle = null
+                appsSubPage = AppsSubPage.Home
+                filePlaceholderTitle = null
+                selectedTab = HomeTab.Apps
+            }
+            else -> {
+                appsSubPage = AppsSubPage.Home
+                filePlaceholderTitle = null
+                if (tab == HomeTab.Settings) {
+                    activeSettingsPage = null
+                    activeSettingsRequestId = System.currentTimeMillis()
+                    isSettingsRootPage = true
+                }
+                selectedTab = tab
+            }
+        }
     }
 
     fun withBiliLogin(action: () -> Unit) {
@@ -159,6 +208,53 @@ fun HomeScreen(
             lastExitAttemptAt = 0L
             if (tab == HomeTab.Home) {
                 homePagerState.scrollToPage(HomeTab.homePagerPage(initialTab))
+            }
+        }
+    }
+
+    LaunchedEffect(homePagerState, selectedTab, homePlaceholderTitle) {
+        snapshotFlow {
+            Triple(
+                homePagerState.isScrollInProgress,
+                homePagerState.targetPage,
+                abs(calculatePagerPageOffset(homePagerState, 1)).coerceIn(0f, 1f)
+            )
+        }.collect { (isScrolling, targetPage, progress) ->
+            if (selectedTab != HomeTab.Home || homePlaceholderTitle != null) {
+                pendingAiCommitProgress = 0f
+                draggedTowardAiPage = false
+                return@collect
+            }
+
+            if (isScrolling) {
+                pendingAiCommitProgress = progress
+                if (targetPage == 2) {
+                    draggedTowardAiPage = true
+                }
+                return@collect
+            }
+
+            val shouldCommitToAi =
+                draggedTowardAiPage &&
+                    homePagerState.currentPage == 1 &&
+                    pendingAiCommitProgress >= 0.12f
+
+            val shouldReturnHome =
+                !draggedTowardAiPage &&
+                    homePagerState.currentPage == 2 &&
+                    pendingAiCommitProgress >= 0.12f
+
+            pendingAiCommitProgress = 0f
+            draggedTowardAiPage = false
+
+            if (shouldCommitToAi) {
+                coroutineScope.launch {
+                    homePagerState.animateScrollToPage(2)
+                }
+            } else if (shouldReturnHome) {
+                coroutineScope.launch {
+                    homePagerState.animateScrollToPage(1)
+                }
             }
         }
     }
@@ -208,48 +304,11 @@ fun HomeScreen(
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (
-                !(selectedTab == HomeTab.Home && homePlaceholderTitle != null) &&
+                selectedTab != HomeTab.Home &&
                 !(selectedTab == HomeTab.Settings && !isSettingsRootPage)
             ) {
                 HomeBottomBar(
-                    onTabSelected = {
-                        when (it) {
-                            HomeTab.Browser -> {
-                                appsSubPage = AppsSubPage.Home
-                                filePlaceholderTitle = null
-                                BrowserActivity.start(context)
-                                activity?.applyOpenActivityTransitionCompat(
-                                    R.anim.no_anim,
-                                    R.anim.no_anim
-                                )
-                            }
-                            HomeTab.Home -> {
-                                selectedTab = HomeTab.Home
-                                homePlaceholderTitle = null
-                                appsSubPage = AppsSubPage.Home
-                                filePlaceholderTitle = null
-                                coroutineScope.launch {
-                                    homePagerState.animateScrollToPage(1)
-                                }
-                            }
-                            HomeTab.Apps -> {
-                                homePlaceholderTitle = null
-                                appsSubPage = AppsSubPage.Home
-                                filePlaceholderTitle = null
-                                selectedTab = HomeTab.Apps
-                            }
-                            else -> {
-                                appsSubPage = AppsSubPage.Home
-                                filePlaceholderTitle = null
-                                if (it == HomeTab.Settings) {
-                                    activeSettingsPage = null
-                                    activeSettingsRequestId = System.currentTimeMillis()
-                                    isSettingsRootPage = true
-                                }
-                                selectedTab = it
-                            }
-                        }
-                    }
+                    onTabSelected = ::handleBottomTabSelected
                 )
             }
         }
@@ -268,42 +327,70 @@ fun HomeScreen(
                             onBackClick = { homePlaceholderTitle = null }
                         )
                     } else {
-                        HomeMainPager(
-                            pagerState = homePagerState,
-                            bookmarkCount = bookmarkCount,
-                            historyCount = historyCount,
-                            onSearchClick = {
-                                BrowserActivity.start(context, openSearch = true)
-                                activity?.applyOpenActivityTransitionCompat(
-                                    R.anim.no_anim,
-                                    R.anim.no_anim
-                                )
-                            },
-                            onAiClick = {
-                                coroutineScope.launch {
-                                    homePagerState.animateScrollToPage(2)
+                        val aiTransitionProgress by remember(homePagerState) {
+                            derivedStateOf {
+                                abs(calculatePagerPageOffset(homePagerState, 1)).coerceIn(0f, 1f)
+                            }
+                        }
+                        val homeBottomBarAlpha =
+                            1f - (aiTransitionProgress / 0.28f).coerceIn(0f, 1f)
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.White)
+                        ) {
+                            HomeMainPager(
+                                pagerState = homePagerState,
+                                bookmarkCount = bookmarkCount,
+                                historyCount = historyCount,
+                                onSearchClick = {
+                                    BrowserActivity.start(context, openSearch = true)
+                                    activity?.applyOpenActivityTransitionCompat(
+                                        R.anim.no_anim,
+                                        R.anim.no_anim
+                                    )
+                                },
+                                onAiClick = {
+                                    coroutineScope.launch {
+                                        homePagerState.animateScrollToPage(2)
+                                    }
+                                },
+                                onCloseMinusOne = {
+                                    coroutineScope.launch {
+                                        homePagerState.animateScrollToPage(1)
+                                    }
+                                },
+                                onOpenHistoryPage = {
+                                    refreshHistoryCount()
+                                    showHistorySheet = true
+                                },
+                                onOpenMinusOnePage = { title ->
+                                    if (title == "书签") {
+                                        refreshBookmarkCount()
+                                        showBookmarksSheet = true
+                                    } else if (title == "下载") {
+                                        showDownloadCenter = true
+                                    } else {
+                                        homePlaceholderTitle = title
+                                    }
                                 }
-                            },
-                            onCloseMinusOne = {
-                                coroutineScope.launch {
-                                    homePagerState.animateScrollToPage(1)
-                                }
-                            },
-                            onOpenHistoryPage = {
-                                refreshHistoryCount()
-                                showHistorySheet = true
-                            },
-                            onOpenMinusOnePage = { title ->
-                                if (title == "\u4e66\u7b7e") {
-                                    refreshBookmarkCount()
-                                    showBookmarksSheet = true
-                                } else if (title == "下载") {
-                                    showDownloadCenter = true
-                                } else {
-                                    homePlaceholderTitle = title
+                            )
+
+                            if (homeBottomBarAlpha > 0.02f && aiTransitionProgress < 0.3f) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.BottomCenter)
+                                        .graphicsLayer {
+                                            alpha = homeBottomBarAlpha
+                                        }
+                                ) {
+                                    HomeBottomBar(
+                                        onTabSelected = ::handleBottomTabSelected
+                                    )
                                 }
                             }
-                        )
+                        }
                     }
                 }
 
@@ -577,21 +664,61 @@ private fun HomeMainPager(
         state = pagerState,
         modifier = Modifier.fillMaxSize()
     ) { page ->
-        when (page) {
-            0 -> MinusOneScreen(
-                bookmarkCount = bookmarkCount,
-                historyCount = historyCount,
-                onCloseClick = onCloseMinusOne,
-                onHistoryClick = onOpenHistoryPage,
-                onItemClick = onOpenMinusOnePage
-            )
-            1 -> HomeLandingPage(
-                onSearchClick = onSearchClick,
-                onAiClick = onAiClick
-            )
-            else -> AiConversationPage()
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val pageWidthPx = with(LocalDensity.current) { maxWidth.toPx() }
+            val pageOffset = calculatePagerPageOffset(pagerState, page)
+            val clampedOffset = abs(pageOffset).coerceIn(0f, 1f)
+
+            val pageModifier = when (page) {
+                1 -> Modifier.graphicsLayer {
+                    translationX = pageOffset * pageWidthPx * 0.05f
+                    alpha = 1f - (clampedOffset / 0.3f).coerceIn(0f, 1f)
+                }
+                2 -> {
+                    val revealProgress = (1f - clampedOffset).coerceIn(0f, 1f)
+                    val popupProgress = ((revealProgress - 0.26f) / 0.46f).coerceIn(0f, 1f)
+                    Modifier.graphicsLayer {
+                        translationX = pageOffset * pageWidthPx * 0.68f
+                        alpha = popupProgress
+                        val scale = 0.94f + (0.06f * popupProgress)
+                        scaleX = scale
+                        scaleY = scale
+                    }
+                }
+                else -> Modifier
+            }
+
+            Box(
+                modifier = pageModifier.fillMaxSize()
+            ) {
+                when (page) {
+                    0 -> MinusOneScreen(
+                        bookmarkCount = bookmarkCount,
+                        historyCount = historyCount,
+                        onCloseClick = onCloseMinusOne,
+                        onHistoryClick = onOpenHistoryPage,
+                        onItemClick = onOpenMinusOnePage
+                    )
+                    1 -> HomeLandingPage(
+                        onSearchClick = onSearchClick,
+                        onAiClick = onAiClick
+                    )
+                    else -> AiConversationPage()
+                }
+            }
         }
     }
+
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun calculatePagerPageOffset(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    page: Int
+): Float {
+    return (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
 }
 
 private enum class HomeTab(val title: String, val iconRes: Int) {
@@ -1133,22 +1260,73 @@ private fun FileManagementPage(
             )
         )
     }
+    val quickAccessItems = remember {
+        listOf(
+            FileEntryItem(
+                title = "应用集",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFF86B8FF), Color(0xFF5D93E8)),
+                icon = Icons.Default.Apps
+            ),
+            FileEntryItem(
+                title = "WPS Office",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFFFFA2AA), Color(0xFFFF6C7A)),
+                icon = Icons.Default.Description
+            ),
+            FileEntryItem(
+                title = "QQ",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFF5E6676), Color(0xFF373C47)),
+                icon = Icons.Default.Chat
+            ),
+            FileEntryItem(
+                title = "微信",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFF73E98F), Color(0xFF37C95B)),
+                icon = Icons.Default.Forum
+            ),
+            FileEntryItem(
+                title = "截屏",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFF8EC0FF), Color(0xFF5E97EC)),
+                icon = Icons.Default.Crop
+            ),
+            FileEntryItem(
+                title = "录音机",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFF7284A5), Color(0xFF51627F)),
+                icon = Icons.Default.GraphicEq
+            ),
+            FileEntryItem(
+                title = "蓝牙",
+                count = "0项",
+                backgroundColors = listOf(Color(0xFF8EC0FF), Color(0xFF5E97EC)),
+                icon = Icons.Default.Bluetooth
+            )
+        )
+    }
     val storageItems = remember {
         listOf(
             FileStorageItem(
                 title = "手机存储",
-                value = "可用244.0 GB/512 GB",
-                icon = Icons.Default.History
+                value = "可用64.45 GB/512 GB",
+                iconRes = R.drawable.ic_kiyori_file_storage_phone
             ),
             FileStorageItem(
-                title = "WebDAV",
+                title = "云盘",
                 value = null,
-                icon = Icons.Default.Cloud
+                iconRes = R.drawable.ic_kiyori_file_storage_cloud_drive
+            ),
+            FileStorageItem(
+                title = "iCloud",
+                value = null,
+                iconRes = R.drawable.ic_kiyori_file_storage_icloud
             ),
             FileStorageItem(
                 title = "最近删除",
                 value = "0项",
-                icon = Icons.Default.Delete
+                iconRes = R.drawable.ic_kiyori_file_storage_recent_deleted
             )
         )
     }
@@ -1234,6 +1412,21 @@ private fun FileManagementPage(
         Spacer(modifier = Modifier.height(36.dp))
 
         FileSectionHeader(
+            title = "快捷访问",
+            actionText = "全部",
+            onClick = { onOpenPlaceholder("快捷访问全部") }
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        FileEntryGrid(
+            items = quickAccessItems,
+            onItemClick = { item -> onOpenPlaceholder(item.title) }
+        )
+
+        Spacer(modifier = Modifier.height(36.dp))
+
+        FileSectionHeader(
             title = "存储位置",
             actionText = "全部",
             onClick = { onOpenPlaceholder("存储位置全部") }
@@ -1245,7 +1438,7 @@ private fun FileManagementPage(
             FileStorageRow(
                 item = item,
                 onClick = {
-                    if (item.title == "WebDAV") {
+                    if (item.title == "云盘") {
                         onWebDavClick()
                     } else {
                         onOpenPlaceholder(item.title)
@@ -1254,7 +1447,7 @@ private fun FileManagementPage(
             )
 
             if (index != storageItems.lastIndex) {
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
@@ -1373,7 +1566,8 @@ private data class FileEntryItem(
 private data class FileStorageItem(
     val title: String,
     val value: String?,
-    val icon: ImageVector
+    val icon: ImageVector? = null,
+    val iconRes: Int? = null
 )
 
 @Composable
@@ -1453,7 +1647,7 @@ private fun FileEntryTile(
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(38.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(brush = Brush.linearGradient(item.backgroundColors)),
             contentAlignment = Alignment.Center
@@ -1464,7 +1658,7 @@ private fun FileEntryTile(
                         imageVector = item.icon,
                         contentDescription = item.title,
                         tint = item.iconTint,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
 
@@ -1473,7 +1667,7 @@ private fun FileEntryTile(
                         painter = painterResource(id = item.iconRes),
                         contentDescription = item.title,
                         tint = item.iconTint,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -1483,7 +1677,7 @@ private fun FileEntryTile(
 
         Text(
             text = item.title,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = Color(0xFF111111)
         )
@@ -1492,7 +1686,7 @@ private fun FileEntryTile(
 
         Text(
             text = item.count,
-            fontSize = 8.sp,
+            fontSize = 9.sp,
             color = Color(0xFFC1C1C1)
         )
     }
@@ -1511,12 +1705,25 @@ private fun FileStorageRow(
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = null,
-            tint = Color(0xFF111111),
-            modifier = Modifier.size(22.dp)
-        )
+        when {
+            item.iconRes != null -> {
+                Icon(
+                    painter = painterResource(id = item.iconRes),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            item.icon != null -> {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = null,
+                    tint = Color(0xFF111111),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.width(12.dp))
 
@@ -1600,82 +1807,12 @@ private fun MiniProgramPage(
 
 @Composable
 private fun AiConversationPage() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "AI对话",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF111111)
-            )
-            Text(
-                text = "主页搜索框右侧的 AI 入口会直接到这里。",
-                fontSize = 13.sp,
-                color = Color(0xFF8B8B8B)
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFFEAF1FF)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "AI 对话",
-                            tint = Color(0xFF2A66F5),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "AI 正一屏",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF111111)
-                        )
-                        Text(
-                            text = "从主页向左滑即可进入。",
-                            fontSize = 12.sp,
-                            color = Color(0xFF8B8B8B)
-                        )
-                    }
-                }
-
-                Text(
-                    text = "这里先作为独立 AI 入口保留，方便后续接入真实对话和智能工具能力。",
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp,
-                    color = Color(0xFF3B3B3B)
-                )
-            }
-        }
-    }
+    KiyoriOperitReplicaScreen(
+        bottomDockPadding = 0.dp,
+        onExpandChatClick = null,
+        onAuxiliaryActionClick = null,
+        immersiveMode = true
+    )
 }
 
 private val HomeBottomBarIconRegularSize = 26.dp
