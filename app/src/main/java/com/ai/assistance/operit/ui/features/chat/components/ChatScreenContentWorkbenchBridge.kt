@@ -25,11 +25,13 @@ fun ChatScreenContentWorkbenchBridge(
     bottomInset: Dp = 0.dp,
     backgroundColor: Color,
     chatHeaderOverlayMode: Boolean = true,
+    chatHeaderTransparent: Boolean = false,
     headerContent: @Composable () -> Unit,
     content: @Composable (topPadding: Dp, bottomPadding: Dp) -> Unit,
 ) {
     val density = LocalDensity.current
     var headerHeight by remember { mutableStateOf(0.dp) }
+    val shouldOverlayHeader = chatHeaderOverlayMode && chatHeaderTransparent
 
     Box(
         modifier =
@@ -38,7 +40,7 @@ fun ChatScreenContentWorkbenchBridge(
                 .background(backgroundColor)
                 .padding(paddingValues),
     ) {
-        if (chatHeaderOverlayMode) {
+        if (shouldOverlayHeader) {
             Box(modifier = Modifier.fillMaxSize()) {
                 content(
                     headerHeight,

@@ -1,7 +1,13 @@
 package com.ai.assistance.operit.ui.features.chat.components.part
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,91 +20,122 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ai.assistance.operit.ui.features.chat.components.ToolCollapseModeBridge
 import com.android.kiyori.R
-
-private val pairedMarkupRegex =
-    Regex(
-        pattern = "<(think|thinking|search|tool|tool_result|status|workspace|attachment)(\\b[^>]*)>([\\s\\S]*?)</\\1>",
-        options = setOf(RegexOption.IGNORE_CASE),
-    )
-
-private val selfClosingMarkupRegex =
-    Regex(
-        pattern = "<(think|thinking|search|tool|tool_result|status|workspace|attachment)(\\b[^>]*)/>",
-        options = setOf(RegexOption.IGNORE_CASE),
-    )
-
-private val attributeRegex =
-    Regex("""([a-zA-Z0-9_-]+)\s*=\s*["']([^"']*)["']""")
-
-private sealed interface ChatMarkupBlock {
-    data class TextBlock(val text: String) : ChatMarkupBlock
-
-    data class XmlBlock(
-        val tagName: String,
-        val attributes: Map<String, String>,
-        val content: String,
-        val raw: String,
-    ) : ChatMarkupBlock
-}
 
 @Composable
 fun ChatMarkupRendererBridge(
     content: String,
     textColor: Color,
+    backgroundColor: Color = Color.Transparent,
+    showThinkingProcess: Boolean = true,
+    showStatusTags: Boolean = true,
+    toolCollapseMode: ToolCollapseModeBridge = ToolCollapseModeBridge.ALL,
+    forceExpandGroups: Boolean = false,
     modifier: Modifier = Modifier,
     renderInlineTextOnly: Boolean = false,
 ) {
-    val blocks = remember(content) { parseChatMarkupBlocks(content) }
+    val blocks = remember(content) { parseChatMarkupBlocksBridge(content) }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        blocks.forEach { block ->
-            when (block) {
-                is ChatMarkupBlock.TextBlock -> {
-                    if (block.text.isNotBlank()) {
-                        SelectionContainer {
-                            Text(
-                                text = block.text.trim(),
-                                color = textColor,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
+        if (renderInlineTextOnly) {
+            blocks.forEach { block ->
+                RenderChatMarkupBlockBridge(
+                    block = block,
+                    textColor = textColor,
+                    renderInlineTextOnly = true,
+                    showThinkingProcess = showThinkingProcess,
+                    showStatusTags = showStatusTags,
+                )
+            }
+        } else {
+            val groupedBlocks =
+                remember(blocks, showThinkingProcess, toolCollapseMode) {
+                    groupThinkToolsXmlBlocksBridge(
+                        blocks = blocks,
+                        showThinkingProcess = showThinkingProcess,
+                        toolCollapseMode = toolCollapseMode,
+                    )
                 }
+            groupedBlocks.forEach { item ->
+                when (item) {
+                    is ChatMarkupGroupedItemBridge.Single ->
+                        RenderChatMarkupBlockBridge(
+                            block = item.block,
+                            textColor = textColor,
+                            renderInlineTextOnly = false,
+                            showThinkingProcess = showThinkingProcess,
+                            showStatusTags = showStatusTags,
+                        )
 
-                is ChatMarkupBlock.XmlBlock -> {
-                    if (renderInlineTextOnly) {
-                        InlineAttachmentOrTextBlock(block = block, textColor = textColor)
-                    } else {
-                        OperitXmlBlockBridge(block = block, textColor = textColor)
-                    }
+                    is ChatMarkupGroupedItemBridge.Group ->
+                        ThinkToolsGroupBridge(
+                            blocks = item.blocks,
+                            isToolsOnly = item.isToolsOnly,
+                            toolCount = item.toolCount,
+                            textColor = textColor,
+                            showThinkingProcess = showThinkingProcess,
+                            showStatusTags = showStatusTags,
+                            forceExpand = forceExpandGroups,
+                        )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RenderChatMarkupBlockBridge(
+    block: ChatMarkupBlock,
+    textColor: Color,
+    renderInlineTextOnly: Boolean,
+    showThinkingProcess: Boolean,
+    showStatusTags: Boolean,
+) {
+    when (block) {
+        is ChatMarkupBlock.TextBlock -> {
+            if (block.text.isNotBlank()) {
+                SelectionContainer {
+                    Text(
+                        text = block.text.trim(),
+                        color = textColor,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+
+        is ChatMarkupBlock.XmlBlock -> {
+            if (renderInlineTextOnly) {
+                InlineAttachmentOrTextBlock(block = block, textColor = textColor)
+            } else {
+                OperitXmlBlockBridge(
+                    block = block,
+                    textColor = textColor,
+                    showThinkingProcess = showThinkingProcess,
+                    showStatusTags = showStatusTags,
+                )
             }
         }
     }
@@ -129,54 +166,63 @@ private fun InlineAttachmentOrTextBlock(
 private fun OperitXmlBlockBridge(
     block: ChatMarkupBlock.XmlBlock,
     textColor: Color,
+    showThinkingProcess: Boolean,
+    showStatusTags: Boolean,
 ) {
+    if (block.tagName == "mood" || shouldHideOperitMetaBridge(block.raw, block.tagName)) {
+        return
+    }
+    if ((block.tagName == "think" || block.tagName == "thinking") && !showThinkingProcess) {
+        return
+    }
+
     when (block.tagName) {
         "attachment", "workspace" -> AttachmentChipBlock(block = block, textColor = textColor)
         "think", "thinking" ->
-            ToolLikeBlock(
-                title = stringResource(R.string.thinking_process_block),
-                icon = Icons.Default.Psychology,
+            OperitThinkingProcessBridge(
                 content = block.content,
                 textColor = textColor,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.42f),
             )
 
         "search" ->
-            ToolLikeBlock(
-                title = stringResource(R.string.search_content_block),
-                icon = Icons.Default.Search,
+            OperitSearchSourcesBridge(
                 content = block.content,
                 textColor = textColor,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
             )
 
         "tool" ->
-            ToolLikeBlock(
-                title = resolveToolTitle(block, stringResource(R.string.tool_call_block)),
-                icon = Icons.Default.Terminal,
-                content = block.content.ifBlank { block.raw },
+            OperitToolCallDisplayBridge(
+                toolName = block.resolveToolNameBridge(),
+                params = block.content.ifBlank { block.raw },
                 textColor = textColor,
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.30f),
-                monospace = true,
             )
 
         "tool_result" ->
-            ToolLikeBlock(
-                title = resolveToolTitle(block, stringResource(R.string.tool_result_block)),
-                icon = Icons.Default.Code,
-                content = block.content.ifBlank { block.raw },
-                textColor = textColor,
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.30f),
-                monospace = true,
+            OperitToolResultDisplayBridge(
+                toolName = block.resolveToolNameBridge().ifBlank { stringResource(R.string.unknown_tool) },
+                result = resolveToolResultContent(block),
+                isSuccess = resolveToolResultSuccess(block),
             )
 
         "status" ->
-            ToolLikeBlock(
-                title = resolveStatusTitle(block),
-                icon = Icons.Default.Settings,
-                content = block.content.ifBlank { block.attributes["message"].orEmpty() },
+            if (shouldShowStatusBlockBridge(block = block, showStatusTags = showStatusTags)) {
+                OperitStatusBridge(
+                    statusType = block.attributes["type"].orEmpty().ifBlank { "info" },
+                    content = block.content.ifBlank { block.attributes["message"].orEmpty() },
+                    textColor = textColor,
+                )
+            }
+
+        "font" ->
+            OperitFontTagBridge(
+                xmlContent = block.raw,
                 textColor = textColor,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
+            )
+
+        "details", "detail" ->
+            OperitDetailsTagBridge(
+                xmlContent = block.raw,
+                textColor = textColor,
             )
 
         else ->
@@ -189,56 +235,64 @@ private fun OperitXmlBlockBridge(
 }
 
 @Composable
-private fun ToolLikeBlock(
-    title: String,
-    icon: ImageVector,
-    content: String,
+private fun ThinkToolsGroupBridge(
+    blocks: List<ChatMarkupBlock.XmlBlock>,
+    isToolsOnly: Boolean,
+    toolCount: Int,
     textColor: Color,
-    containerColor: Color,
-    monospace: Boolean = false,
+    showThinkingProcess: Boolean,
+    showStatusTags: Boolean,
+    forceExpand: Boolean,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = containerColor,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)),
+    var expanded by remember(blocks, forceExpand) { mutableStateOf(forceExpand) }
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 90f else 0f,
+        animationSpec = tween(durationMillis = if (forceExpand) 0 else 300),
+        label = "thinkToolsGroupArrowRotation",
+    )
+    val title =
+        stringResource(
+            if (isToolsOnly) {
+                R.string.tools_group_title_with_count
+            } else {
+                R.string.thinking_tools_group_title_with_count
+            },
+            toolCount,
+        )
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        SourceStyleExpandableHeader(
+            title = title,
+            expanded = expanded,
+            rotationDegrees = rotation,
+            titleColor = textColor.copy(alpha = 0.70f),
+            onClick = { expanded = !expanded },
+        )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(animationSpec = tween(durationMillis = if (forceExpand) 0 else 200)),
+            exit = fadeOut(animationSpec = tween(durationMillis = if (forceExpand) 0 else 200)),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp, bottom = 8.dp, start = 24.dp),
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            val cleanContent = content.trim()
-            if (cleanContent.isNotBlank()) {
-                SelectionContainer {
-                    Text(
-                        text = cleanContent,
-                        color = textColor.copy(alpha = 0.86f),
-                        style =
-                            MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
-                            ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    blocks.forEach { block ->
+                        OperitXmlBlockBridge(
+                            block = block,
+                            textColor = textColor,
+                            showThinkingProcess = showThinkingProcess,
+                            showStatusTags = showStatusTags,
+                        )
+                    }
                 }
             }
         }
@@ -295,78 +349,30 @@ private fun AttachmentChipBlock(
     }
 }
 
-private fun parseChatMarkupBlocks(content: String): List<ChatMarkupBlock> {
-    if (content.isBlank()) {
-        return emptyList()
-    }
-
-    val matches =
-        (pairedMarkupRegex.findAll(content).map { it to false } +
-            selfClosingMarkupRegex.findAll(content).map { it to true })
-            .sortedBy { it.first.range.first }
-            .toList()
-
-    if (matches.isEmpty()) {
-        return listOf(ChatMarkupBlock.TextBlock(content))
-    }
-
-    val blocks = mutableListOf<ChatMarkupBlock>()
-    var cursor = 0
-    matches.forEach { (match, isSelfClosing) ->
-        if (match.range.first < cursor) {
-            return@forEach
-        }
-        if (match.range.first > cursor) {
-            blocks += ChatMarkupBlock.TextBlock(content.substring(cursor, match.range.first))
-        }
-
-        val tagName = match.groupValues[1].lowercase()
-        val attrs = parseAttributes(match.groupValues[2])
-        val innerContent =
-            if (isSelfClosing) {
-                attrs["content"].orEmpty()
-            } else {
-                match.groupValues[3]
-            }
-        blocks +=
-            ChatMarkupBlock.XmlBlock(
-                tagName = tagName,
-                attributes = attrs,
-                content = innerContent,
-                raw = match.value,
-            )
-        cursor = match.range.last + 1
-    }
-
-    if (cursor < content.length) {
-        blocks += ChatMarkupBlock.TextBlock(content.substring(cursor))
-    }
-
-    return blocks.filterNot { block ->
-        block is ChatMarkupBlock.TextBlock && block.text.isBlank()
-    }
+private fun resolveToolResultContent(block: ChatMarkupBlock.XmlBlock): String {
+    val rawContent = block.content.ifBlank { block.attributes["content"].orEmpty() }
+    val contentMatch =
+        Regex("<content\\b[^>]*>([\\s\\S]*?)</content>", RegexOption.IGNORE_CASE)
+            .find(rawContent)
+    return (contentMatch?.groupValues?.getOrNull(1) ?: rawContent).trim()
 }
 
-private fun parseAttributes(rawAttributes: String): Map<String, String> =
-    attributeRegex
-        .findAll(rawAttributes)
-        .associate { match -> match.groupValues[1] to match.groupValues[2] }
+private fun resolveToolResultSuccess(block: ChatMarkupBlock.XmlBlock): Boolean {
+    val status =
+        block.attributes["status"]
+            ?: block.attributes["success"]
+            ?: block.attributes["state"]
+            ?: "success"
+    return status.lowercase() !in setOf("false", "failed", "fail", "error")
+}
 
-private fun resolveToolTitle(
+private fun shouldShowStatusBlockBridge(
     block: ChatMarkupBlock.XmlBlock,
-    fallback: String,
-): String {
-    val toolName =
-        block.attributes["name"]
-            ?: block.attributes["tool"]
-            ?: block.attributes["type"]
-    return toolName?.takeIf { it.isNotBlank() }?.let { "$fallback: $it" } ?: fallback
-}
-
-@Composable
-private fun resolveStatusTitle(block: ChatMarkupBlock.XmlBlock): String {
-    val type = block.attributes["type"]
-    return type?.takeIf { it.isNotBlank() }?.let {
-        "${stringResource(R.string.status_info_block)}: $it"
-    } ?: stringResource(R.string.status_info_block)
+    showStatusTags: Boolean,
+): Boolean {
+    if (showStatusTags) {
+        return true
+    }
+    val statusType = block.attributes["type"].orEmpty().lowercase()
+    return statusType !in setOf("completion", "complete", "wait_for_user_need")
 }

@@ -597,7 +597,12 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                     state.conversationMessages +
                         (conversationId to messages.mapIndexed { messageIndex, message ->
                             if (messageIndex == index) {
-                                message.copy(text = content, meta = formatCurrentTimeText())
+                                val timestamp = currentMessageTimestamp()
+                                message.copy(
+                                    text = content,
+                                    meta = formatTimeText(timestamp),
+                                    timestamp = timestamp,
+                                )
                             } else {
                                 message
                             }
@@ -708,9 +713,21 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                                     conversationId to
                                         latestMessages.mapIndexed { messageIndex, message ->
                                             if (messageIndex == index) {
+                                                val regeneratedText = "${message.text}\n\n已重新生成。"
+                                                val nextVariants = message.normalizedVariantTexts() + regeneratedText
+                                                val timestamp = currentMessageTimestamp()
+                                                val modelDescriptor =
+                                                    parseReplicaModelDescriptor(currentState.currentModelLabel)
                                                 message.copy(
-                                                    text = "${message.text}\n\n已重新生成。",
-                                                    meta = formatCurrentTimeText(),
+                                                    text = regeneratedText,
+                                                    meta = formatTimeText(timestamp),
+                                                    timestamp = timestamp,
+                                                    roleName = currentState.currentCharacterLabel,
+                                                    provider = modelDescriptor.provider,
+                                                    modelName = modelDescriptor.modelName,
+                                                    selectedVariantIndex = nextVariants.lastIndex,
+                                                    variantCount = nextVariants.size,
+                                                    variantTexts = nextVariants,
                                                 )
                                             } else {
                                                 message
@@ -723,6 +740,77 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             }
     }
 
+    fun switchMessageVariant(index: Int, targetVariantIndex: Int) {
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            val message = messages.getOrNull(index) ?: return@mutateState state
+            if (message.role != OperitReplicaMessageRole.Assistant) {
+                return@mutateState state
+            }
+            val variants = message.normalizedVariantTexts()
+            if (targetVariantIndex !in variants.indices) {
+                return@mutateState state
+            }
+            state.copy(
+                conversationMessages =
+                    state.conversationMessages +
+                        (
+                            conversationId to
+                                messages.mapIndexed { messageIndex, currentMessage ->
+                                    if (messageIndex == index) {
+                                        currentMessage.copy(
+                                            text = variants[targetVariantIndex],
+                                            selectedVariantIndex = targetVariantIndex,
+                                            variantCount = variants.size,
+                                            variantTexts = variants,
+                                        )
+                                    } else {
+                                        currentMessage
+                                    }
+                                }
+                            ),
+            )
+        }
+    }
+
+    fun deleteCurrentMessageVariant(index: Int) {
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            val message = messages.getOrNull(index) ?: return@mutateState state
+            if (message.role != OperitReplicaMessageRole.Assistant) {
+                return@mutateState state
+            }
+            val variants = message.normalizedVariantTexts()
+            if (variants.size <= 1) {
+                return@mutateState state
+            }
+            val selectedIndex = message.selectedVariantIndex.coerceIn(variants.indices)
+            val nextVariants = variants.filterIndexed { variantIndex, _ -> variantIndex != selectedIndex }
+            val nextSelectedIndex = selectedIndex.coerceAtMost(nextVariants.lastIndex)
+            state.copy(
+                conversationMessages =
+                    state.conversationMessages +
+                        (
+                            conversationId to
+                                messages.mapIndexed { messageIndex, currentMessage ->
+                                    if (messageIndex == index) {
+                                        currentMessage.copy(
+                                            text = nextVariants[nextSelectedIndex],
+                                            selectedVariantIndex = nextSelectedIndex,
+                                            variantCount = nextVariants.size,
+                                            variantTexts = nextVariants,
+                                        )
+                                    } else {
+                                        currentMessage
+                                    }
+                                }
+                            ),
+            )
+        }
+    }
+
     fun insertSummaryAfter(index: Int) {
         mutateState { state ->
             val conversationId = state.activeConversationId
@@ -731,10 +819,8 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                 return@mutateState state
             }
             val summary =
-                OperitReplicaMessage(
-                    role = OperitReplicaMessageRole.System,
+                createSystemReplicaMessage(
                     text = "Summary inserted at message ${index + 1}",
-                    meta = formatCurrentTimeText(),
                 )
             state.copy(
                 conversationMessages =
@@ -783,11 +869,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             val existingMessages = state.conversationMessages[activeConversationId] ?: emptyList()
             val updatedMessages =
                 existingMessages +
-                    OperitReplicaMessage(
-                        role = OperitReplicaMessageRole.User,
-                        text = prompt,
-                        meta = formatCurrentTimeText(),
-                    )
+                    createUserReplicaMessage(prompt)
 
             state.copy(
                 inputText = "",
@@ -827,6 +909,11 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                     val existingMessages = state.conversationMessages[conversationId] ?: emptyList()
                     val nextQueuedItem = state.pendingQueueMessages.firstOrNull()
                     nextQueuedPrompt = nextQueuedItem?.text
+                    val assistantMessage =
+                        createAssistantReplicaMessage(
+                            state = state,
+                            text = buildAssistantReplicaReply(prompt),
+                        )
                     state.copy(
                         isInputProcessing = false,
                         inputProcessingLabel = "",
@@ -843,11 +930,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                                     conversationId to
                                         (
                                             existingMessages +
-                                                OperitReplicaMessage(
-                                                    role = OperitReplicaMessageRole.Assistant,
-                                                    text = buildAssistantReplicaReply(prompt),
-                                                    meta = formatCurrentTimeText(),
-                                                )
+                                                assistantMessage
                                         )
                                     ),
                     )
@@ -1373,8 +1456,68 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
         )
     }
 
-    private fun formatCurrentTimeText(): String =
-        android.text.format.DateFormat.format("HH:mm:ss", System.currentTimeMillis()).toString()
+    private fun currentMessageTimestamp(): Long = System.currentTimeMillis()
+
+    private fun formatTimeText(timestamp: Long): String =
+        android.text.format.DateFormat.format("HH:mm:ss", timestamp).toString()
+
+    private fun createUserReplicaMessage(
+        text: String,
+        timestamp: Long = currentMessageTimestamp(),
+    ): OperitReplicaMessage =
+        OperitReplicaMessage(
+            role = OperitReplicaMessageRole.User,
+            text = text,
+            meta = formatTimeText(timestamp),
+            timestamp = timestamp,
+        )
+
+    private fun createSystemReplicaMessage(
+        text: String,
+        timestamp: Long = currentMessageTimestamp(),
+    ): OperitReplicaMessage =
+        OperitReplicaMessage(
+            role = OperitReplicaMessageRole.System,
+            text = text,
+            meta = formatTimeText(timestamp),
+            timestamp = timestamp,
+        )
+
+    private fun createAssistantReplicaMessage(
+        state: KiyoriOperitReplicaUiState,
+        text: String,
+        timestamp: Long = currentMessageTimestamp(),
+    ): OperitReplicaMessage {
+        val modelDescriptor = parseReplicaModelDescriptor(state.currentModelLabel)
+        return OperitReplicaMessage(
+            role = OperitReplicaMessageRole.Assistant,
+            text = text,
+            meta = formatTimeText(timestamp),
+            timestamp = timestamp,
+            roleName = state.currentCharacterLabel,
+            provider = modelDescriptor.provider,
+            modelName = modelDescriptor.modelName,
+        )
+    }
+
+    private data class ReplicaModelDescriptor(
+        val provider: String,
+        val modelName: String,
+    )
+
+    private fun parseReplicaModelDescriptor(modelLabel: String): ReplicaModelDescriptor {
+        val parts = modelLabel.split("/").map { it.trim() }.filter { it.isNotEmpty() }
+        return when (parts.size) {
+            0 -> ReplicaModelDescriptor(provider = "", modelName = "")
+            1 -> ReplicaModelDescriptor(provider = "", modelName = parts.first())
+            else -> ReplicaModelDescriptor(provider = parts.first(), modelName = parts.drop(1).joinToString(" / "))
+        }
+    }
+
+    private fun OperitReplicaMessage.normalizedVariantTexts(): List<String> {
+        val baseVariants = variantTexts.ifEmpty { listOf(text) }
+        return baseVariants.ifEmpty { listOf(text) }
+    }
 
     private fun buildAssistantReplicaReply(prompt: String): String {
         return when {

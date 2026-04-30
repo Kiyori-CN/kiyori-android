@@ -69,7 +69,25 @@ internal data class OperitReplicaMessage(
     val role: OperitReplicaMessageRole,
     val text: String,
     val meta: String? = null,
+    val timestamp: Long = 0L,
+    val roleName: String = "",
+    val provider: String = "",
+    val modelName: String = "",
+    val displayMode: OperitReplicaMessageDisplayMode = OperitReplicaMessageDisplayMode.NORMAL,
+    val selectedVariantIndex: Int = 0,
+    val variantCount: Int = 1,
+    val variantTexts: List<String> = emptyList(),
+    val inputTokens: Int = 0,
+    val outputTokens: Int = 0,
+    val cachedInputTokens: Int = 0,
+    val waitDurationMs: Long = 0L,
+    val outputDurationMs: Long = 0L,
 )
+
+internal enum class OperitReplicaMessageDisplayMode {
+    NORMAL,
+    HIDDEN_PLACEHOLDER,
+}
 
 internal enum class OperitReplicaMessageRole {
     Assistant,

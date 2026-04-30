@@ -1,8 +1,6 @@
 package com.android.kiyori.operitreplica.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,7 +67,10 @@ fun KiyoriOperitReplicaScreen(
     val inputTokenCount = replicaUiState.inputTokenCount
     val outputTokenCount = replicaUiState.outputTokenCount
     val currentWindowSize = replicaUiState.currentWindowSize
-    val contextUsagePercentage = replicaUiState.contextUsagePercentage
+    val chatHeaderTransparent = replicaUiState.chatHeaderTransparent
+    val chatHeaderOverlayMode = replicaUiState.chatHeaderOverlayMode
+    val chatHeaderHistoryIconColor = replicaUiState.chatHeaderHistoryIconColor
+    val chatHeaderPipIconColor = replicaUiState.chatHeaderPipIconColor
     val enableThinking = replicaUiState.enableThinking
     val enableTools = replicaUiState.enableTools
     val enableMemory = replicaUiState.enableMemory
@@ -84,6 +85,11 @@ fun KiyoriOperitReplicaScreen(
     val enableMemoryAutoUpdate = replicaUiState.enableMemoryAutoUpdate
     val isAutoReadEnabled = replicaUiState.isAutoReadEnabled
     val isAutoApproveEnabled = replicaUiState.isAutoApproveEnabled
+    val showModelProvider = replicaUiState.showModelProvider
+    val showModelName = replicaUiState.showModelName
+    val showRoleName = replicaUiState.showRoleName
+    val showMessageTokenStats = replicaUiState.showMessageTokenStats
+    val showMessageTimingStats = replicaUiState.showMessageTimingStats
     val disableStreamOutput = replicaUiState.disableStreamOutput
     val disableUserPreferenceDescription = replicaUiState.disableUserPreferenceDescription
     val disableStatusTags = replicaUiState.disableStatusTags
@@ -95,11 +101,6 @@ fun KiyoriOperitReplicaScreen(
     val activeMessages = replicaUiState.activeMessages
     val groupedConversations = replicaUiState.groupedConversations
 
-    val usageProgress by animateFloatAsState(
-        targetValue = (contextUsagePercentage / 100f).coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 280),
-        label = "operit_context_usage",
-    )
     val placeholderClick = remember(context) {
         {
             android.widget.Toast.makeText(
@@ -156,13 +157,23 @@ fun KiyoriOperitReplicaScreen(
                 bottomDockPadding = bottomDockPadding,
                 immersiveMode = immersiveMode,
                 showHistoryPanel = showHistoryPanel,
+                chatHeaderTransparent = chatHeaderTransparent,
+                chatHeaderOverlayMode = chatHeaderOverlayMode,
+                chatHeaderHistoryIconColor = chatHeaderHistoryIconColor,
+                chatHeaderPipIconColor = chatHeaderPipIconColor,
                 currentCharacterLabel = currentCharacterLabel,
-                usageProgress = usageProgress,
-                contextUsagePercentage = contextUsagePercentage,
                 currentWindowSize = currentWindowSize,
+                maxContextLengthInK = maxContextLengthInK,
                 inputTokenCount = inputTokenCount,
                 outputTokenCount = outputTokenCount,
                 showStatsMenu = showStatsMenu,
+                showModelProvider = showModelProvider,
+                showModelName = showModelName,
+                showRoleName = showRoleName,
+                showMessageTokenStats = showMessageTokenStats,
+                showMessageTimingStats = showMessageTimingStats,
+                showThinkingProcess = true,
+                showStatusTags = !disableStatusTags,
                 isInputProcessing = isInputProcessing,
                 activeMessages = activeMessages,
                 onHistoryClick = { replicaViewModel.setHistoryPanelVisible(true) },
@@ -176,6 +187,8 @@ fun KiyoriOperitReplicaScreen(
                 onDeleteMessages = replicaViewModel::deleteMessages,
                 onRollbackToMessage = replicaViewModel::rollbackToMessage,
                 onRegenerateMessage = replicaViewModel::regenerateMessage,
+                onSwitchMessageVariant = replicaViewModel::switchMessageVariant,
+                onDeleteCurrentMessageVariant = replicaViewModel::deleteCurrentMessageVariant,
                 onInsertSummary = replicaViewModel::insertSummaryAfter,
                 onCreateBranch = replicaViewModel::createBranchFromMessage,
             )
