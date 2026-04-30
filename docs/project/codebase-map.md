@@ -23,6 +23,8 @@
 - `settings/`：设置页 Activity 与设置相关 Compose 页面。
 - `ui/`：真正跨功能复用的 Compose UI 基础组件与主题色。
 
+`MainActivity` 负责首启协议门禁、主题初始化、权限协调和挂载 `HomeScreen`。主页路由中需要特别注意 `TAB_AI = "ai"`：它不是底部独立 tab，而是映射到 `HomeTab.Home` 的 pager 第 2 页，也就是正一屏 AI 对话页。
+
 ### 3.2 浏览器主线
 
 - `browser/`：内置浏览器主体，内部已拆出 `data`、`domain`、`playback`、`security`、`ui`、`web`、`x5`。
@@ -48,7 +50,13 @@
 - `bilibili/`：Bilibili 登录、模型与播放入口。
 - `download/`：内置下载器、下载设置、下载状态与 Bilibili 下载能力。
 
-### 3.5 数据与基础设施
+### 3.5 Operit 正一屏复刻
+
+- `operitreplica/`：Kiyori 自有的 AI 对话复刻状态、模型、页面装配和组件适配。
+- `com/ai/assistance/operit/**Bridge`：从 Operit 参考项目迁入或重写的 UI 桥接组件，当前服务 `operitreplica`，不是完整 Operit 运行时。
+- 正一屏入口链路：`MainActivity.TAB_AI` -> `HomeTab.homePagerPage("ai")` -> `HomeScreen` pager page `2` -> `AiConversationPage()` -> `KiyoriOperitReplicaScreen()`。
+
+### 3.6 数据与基础设施
 
 - `database/`：Room 数据库入口。
 - `worker/`：后台任务。

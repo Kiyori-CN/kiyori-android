@@ -38,6 +38,7 @@ import com.android.kiyori.remote.RemotePlaybackRequest
 import com.android.kiyori.sniffer.DetectedVideo
 import com.android.kiyori.sniffer.UrlDetector
 import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback
+import com.tencent.smtt.export.external.interfaces.PermissionRequest
 import com.tencent.smtt.sdk.ValueCallback
 import com.tencent.smtt.sdk.WebChromeClient
 import com.android.kiyori.ui.theme.getThemeColors
@@ -74,6 +75,8 @@ class BrowserActivity : BaseActivity() {
     private var pendingFileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var pendingGeolocationOrigin: String? = null
     private var pendingGeolocationCallback: GeolocationPermissionsCallback? = null
+    private var pendingWebPermissionRequest: PermissionRequest? = null
+    private var pendingWebPermissionResources: Array<String> = emptyArray()
     private val fileChooserLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val callback = pendingFileChooserCallback
@@ -85,6 +88,10 @@ class BrowserActivity : BaseActivity() {
     private val geolocationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             completePendingGeolocationRequest(granted = hasLocationPermission())
+        }
+    private val webPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            completePendingWebPermissionRequest(grantAvailableResources = true)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,6 +114,7 @@ class BrowserActivity : BaseActivity() {
                 onStateChanged = { state -> pageState = state },
                 onExternalUrlBlocked = ::handleExternalUrl,
                 onGeolocationPermissionRequest = ::handleGeolocationPermissionRequest,
+                onWebPermissionRequest = ::handleWebPermissionRequest,
                 onDownloadRequested = { url, userAgent, contentDisposition, mimeType, contentLength, sourcePageUrl ->
                     handleDownloadRequest(
                         url = url,
@@ -258,6 +266,7 @@ class BrowserActivity : BaseActivity() {
         pendingFileChooserCallback?.onReceiveValue(null)
         pendingFileChooserCallback = null
         completePendingGeolocationRequest(granted = false)
+        completePendingWebPermissionRequest(grantAvailableResources = false)
         if (::browserWebViewController.isInitialized) {
             browserWebViewController.destroy()
         }
@@ -520,6 +529,91 @@ class BrowserActivity : BaseActivity() {
                 this,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun handleWebPermissionRequest(
+        request: PermissionRequest,
+        resources: Array<String>
+    ) {
+        val grantableResources = collectGrantedWebPermissionResources(resources)
+        if (grantableResources.size == countSupportedWebPermissionResources(resources)) {
+            grantOrDenyWebPermissionRequest(request, grantableResources)
+            return
+        }
+
+        val missingPermissions = collectMissingAndroidPermissionsForWebResources(resources)
+        if (missingPermissions.isEmpty()) {
+            grantOrDenyWebPermissionRequest(request, grantableResources)
+            return
+        }
+
+        completePendingWebPermissionRequest(grantAvailableResources = false)
+        pendingWebPermissionRequest = request
+        pendingWebPermissionResources = resources
+        webPermissionLauncher.launch(missingPermissions.toTypedArray())
+    }
+
+    private fun completePendingWebPermissionRequest(grantAvailableResources: Boolean) {
+        val request = pendingWebPermissionRequest ?: run {
+            pendingWebPermissionResources = emptyArray()
+            return
+        }
+        val grantedResources = if (grantAvailableResources) {
+            collectGrantedWebPermissionResources(pendingWebPermissionResources)
+        } else {
+            emptyList()
+        }
+        grantOrDenyWebPermissionRequest(request, grantedResources)
+        pendingWebPermissionRequest = null
+        pendingWebPermissionResources = emptyArray()
+    }
+
+    private fun grantOrDenyWebPermissionRequest(
+        request: PermissionRequest,
+        grantedResources: List<String>
+    ) {
+        if (grantedResources.isEmpty()) {
+            request.deny()
+        } else {
+            request.grant(grantedResources.toTypedArray())
+        }
+    }
+
+    private fun collectGrantedWebPermissionResources(resources: Array<String>): List<String> {
+        return resources.mapNotNull { resource ->
+            when (resource) {
+                PermissionRequest.RESOURCE_VIDEO_CAPTURE -> resource.takeIf {
+                    hasRuntimePermission(Manifest.permission.CAMERA)
+                }
+
+                PermissionRequest.RESOURCE_AUDIO_CAPTURE -> resource.takeIf {
+                    hasRuntimePermission(Manifest.permission.RECORD_AUDIO)
+                }
+
+                else -> null
+            }
+        }
+    }
+
+    private fun collectMissingAndroidPermissionsForWebResources(resources: Array<String>): List<String> {
+        return resources.mapNotNull { resource ->
+            when (resource) {
+                PermissionRequest.RESOURCE_VIDEO_CAPTURE -> Manifest.permission.CAMERA
+                PermissionRequest.RESOURCE_AUDIO_CAPTURE -> Manifest.permission.RECORD_AUDIO
+                else -> null
+            }
+        }.distinct().filterNot(::hasRuntimePermission)
+    }
+
+    private fun countSupportedWebPermissionResources(resources: Array<String>): Int {
+        return resources.count { resource ->
+            resource == PermissionRequest.RESOURCE_VIDEO_CAPTURE ||
+                resource == PermissionRequest.RESOURCE_AUDIO_CAPTURE
+        }
+    }
+
+    private fun hasRuntimePermission(permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun resolveExternalFallbackUrl(

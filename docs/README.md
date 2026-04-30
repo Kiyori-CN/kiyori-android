@@ -8,6 +8,10 @@
 - [内置浏览器详细设计](architecture/browser.md)
 - [远程 URL 播放设计](architecture/remote-playback.md)
 
+## 审计
+
+- [2026-04-30 项目审计报告](audit/project-audit-2026-04-30.md)
+
 ## 项目
 
 - [仓库目录规范](project/repository_layout.md)
@@ -29,6 +33,7 @@
 - [Bilibili 弹幕下载原理](integrations/bilibili/danmaku-download.md)
 - [Bilibili 安全分析](integrations/bilibili/security-analysis.md)
 - [数据安全文档](security/data-security.md)
+- [Android 权限矩阵](security/permissions.md)
 
 ## 规划
 

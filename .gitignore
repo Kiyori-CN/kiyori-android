@@ -77,6 +77,7 @@ AT/
 *~
 tmp/
 temp/
+.tmp_*/
 coverage/
 
 # Archives

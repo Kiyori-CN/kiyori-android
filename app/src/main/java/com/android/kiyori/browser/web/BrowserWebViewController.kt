@@ -57,6 +57,12 @@ data class BrowserWebViewCallbacks(
     ) -> Unit = { origin, callback ->
         callback?.invoke(origin, true, false)
     },
+    val onWebPermissionRequest: (
+        request: PermissionRequest,
+        resources: Array<String>
+    ) -> Unit = { request, _ ->
+        request.deny()
+    },
     val onDownloadRequested: (
         url: String,
         userAgent: String,
@@ -212,7 +218,8 @@ class BrowserWebViewController(
             }
 
             override fun onPermissionRequest(request: PermissionRequest?) {
-                request?.grant(request.resources)
+                request ?: return
+                callbacks.onWebPermissionRequest(request, request.resources ?: emptyArray())
             }
 
             override fun onGeolocationPermissionsShowPrompt(
