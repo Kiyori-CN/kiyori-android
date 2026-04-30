@@ -1,4 +1,4 @@
-package com.android.kiyori.operitreplica.state
+﻿package com.android.kiyori.operitreplica.state
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
@@ -13,6 +13,7 @@ import com.android.kiyori.operitreplica.model.OperitReplicaConversationSectionTy
 import com.android.kiyori.operitreplica.model.OperitReplicaHistoryDisplayMode
 import com.android.kiyori.operitreplica.model.OperitReplicaMessage
 import com.android.kiyori.operitreplica.model.OperitReplicaMessageRole
+import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingQueueMessageItem
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,8 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
     val uiState: StateFlow<KiyoriOperitReplicaUiState> = _uiState.asStateFlow()
 
     private var workspaceOpenJob: Job? = null
+    private var inputProcessingJob: Job? = null
+    private var nextPendingQueueId: Long = 1L
 
     fun updateInputText(inputText: String) {
         mutateState { it.copy(inputText = inputText) }
@@ -43,12 +46,42 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
         mutateState { it.copy(showStatsMenu = visible) }
     }
 
+    fun toggleModelSelectorPopup() {
+        mutateState { state ->
+            state.copy(
+                showModelSelectorPopup = !state.showModelSelectorPopup,
+                showFeaturePanel = false,
+                showAttachmentPanel = false,
+            )
+        }
+    }
+
+    fun setModelSelectorPopupVisible(visible: Boolean) {
+        mutateState { it.copy(showModelSelectorPopup = visible) }
+    }
+
+    fun selectModelLabel(modelLabel: String) {
+        mutateState { state ->
+            if (modelLabel !in state.availableModelLabels) {
+                state
+            } else {
+                state.copy(currentModelLabel = modelLabel, showModelSelectorPopup = false)
+            }
+        }
+    }
+
     fun toggleStatsMenu() {
         mutateState { it.copy(showStatsMenu = !it.showStatsMenu) }
     }
 
     fun toggleFeaturePanel() {
-        mutateState { it.copy(showFeaturePanel = !it.showFeaturePanel) }
+        mutateState { state ->
+            state.copy(
+                showFeaturePanel = !state.showFeaturePanel,
+                showAttachmentPanel = false,
+                showModelSelectorPopup = false,
+            )
+        }
     }
 
     fun setFeaturePanelVisible(visible: Boolean) {
@@ -56,7 +89,13 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
     }
 
     fun toggleAttachmentPanel() {
-        mutateState { it.copy(showAttachmentPanel = !it.showAttachmentPanel) }
+        mutateState { state ->
+            state.copy(
+                showAttachmentPanel = !state.showAttachmentPanel,
+                showFeaturePanel = false,
+                showModelSelectorPopup = false,
+            )
+        }
     }
 
     fun setAttachmentPanelVisible(visible: Boolean) {
@@ -65,6 +104,57 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
 
     fun setFullscreenEditorVisible(visible: Boolean) {
         mutateState { it.copy(showFullscreenEditor = visible) }
+    }
+
+    fun setPendingQueueExpanded(expanded: Boolean) {
+        mutateState { it.copy(isPendingQueueExpanded = expanded) }
+    }
+
+    fun enqueuePendingPrompt(): Boolean {
+        var enqueued = false
+        mutateState { state ->
+            val normalizedPrompt = state.inputText.trim()
+            if (normalizedPrompt.isBlank()) {
+                return@mutateState state
+            }
+            enqueued = true
+            val item = PendingQueueMessageItem(id = nextPendingQueueId++, text = normalizedPrompt)
+            state.copy(
+                inputText = "",
+                showAttachmentPanel = false,
+                showModelSelectorPopup = false,
+                pendingQueueMessages = state.pendingQueueMessages + item,
+                isPendingQueueExpanded = true,
+            )
+        }
+        return enqueued
+    }
+
+    fun deletePendingQueueMessage(id: Long) {
+        mutateState { state ->
+            state.copy(pendingQueueMessages = state.pendingQueueMessages.filterNot { it.id == id })
+        }
+    }
+
+    fun editPendingQueueMessage(id: Long) {
+        mutateState { state ->
+            val item = state.pendingQueueMessages.firstOrNull { it.id == id } ?: return@mutateState state
+            state.copy(
+                inputText = item.text,
+                pendingQueueMessages = state.pendingQueueMessages.filterNot { it.id == id },
+            )
+        }
+    }
+
+    fun sendPendingQueueMessage(id: Long) {
+        val item = _uiState.value.pendingQueueMessages.firstOrNull { it.id == id } ?: return
+        mutateState { state ->
+            state.copy(pendingQueueMessages = state.pendingQueueMessages.filterNot { it.id == id })
+        }
+        if (_uiState.value.isInputProcessing) {
+            cancelInputProcessing()
+        }
+        beginPromptSubmission(item.text)
     }
 
     fun setCharacterSelectorVisible(visible: Boolean) {
@@ -106,10 +196,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
         mutateState { it.copy(showSwipeHint = false) }
     }
 
-    fun setReplyPreviewVisible(visible: Boolean) {
-        mutateState { it.copy(showReplyPreview = visible) }
-    }
-
     fun setHistoryDisplayMode(mode: OperitReplicaHistoryDisplayMode) {
         mutateState { it.copy(historyDisplayMode = mode) }
     }
@@ -148,6 +234,38 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
 
     fun setNotificationEnabled(enabled: Boolean) {
         mutateState { it.copy(enableNotification = enabled) }
+    }
+
+    fun setThinkingQualityLevel(level: Int) {
+        mutateState { it.copy(thinkingQualityLevel = level.coerceIn(1, 4)) }
+    }
+
+    fun setMaxContextModeEnabled(enabled: Boolean) {
+        mutateState { it.copy(enableMaxContextMode = enabled) }
+    }
+
+    fun setMemoryAutoUpdateEnabled(enabled: Boolean) {
+        mutateState { it.copy(enableMemoryAutoUpdate = enabled) }
+    }
+
+    fun setAutoReadEnabled(enabled: Boolean) {
+        mutateState { it.copy(isAutoReadEnabled = enabled) }
+    }
+
+    fun setAutoApproveEnabled(enabled: Boolean) {
+        mutateState { it.copy(isAutoApproveEnabled = enabled) }
+    }
+
+    fun setDisableStreamOutput(enabled: Boolean) {
+        mutateState { it.copy(disableStreamOutput = enabled) }
+    }
+
+    fun setDisableUserPreferenceDescription(enabled: Boolean) {
+        mutateState { it.copy(disableUserPreferenceDescription = enabled) }
+    }
+
+    fun setDisableStatusTags(enabled: Boolean) {
+        mutateState { it.copy(disableStatusTags = enabled) }
     }
 
     fun setCharacterSortOption(sortOption: OperitReplicaCharacterSortOption) {
@@ -246,7 +364,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                             state.selectedCharacterId
                         },
                     showHistoryPanel = false,
-                    showReplyPreview = true,
                 )
             }
         }
@@ -437,7 +554,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             }
         }
     }
-
     fun createNewConversation(prefillText: String? = null) {
         val now = System.currentTimeMillis()
         val newId = "chat-$now"
@@ -445,7 +561,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             OperitReplicaConversation(
                 id = newId,
                 title = "新对话",
-                preview = "等待新的消息输入…",
+                preview = "等待新的消息输入...",
                 sortKey = now,
                 groupName = null,
                 characterId = _uiState.value.selectedCharacterId,
@@ -457,84 +573,303 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                 historySearchQuery = "",
                 inputText = prefillText.orEmpty(),
                 showHistoryPanel = false,
-                showReplyPreview = true,
                 conversations = listOf(newConversation) + state.conversations,
+                conversationMessages = state.conversationMessages + (newId to emptyList()),
+            )
+        }
+    }
+    fun submitPrompt(): Boolean {
+        return beginPromptSubmission(_uiState.value.inputText.trim())
+    }
+
+    fun updateMessage(
+        index: Int,
+        content: String,
+    ) {
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            if (index !in messages.indices) {
+                return@mutateState state
+            }
+            state.copy(
                 conversationMessages =
                     state.conversationMessages +
-                        (
-                            newId to
-                                buildOperitReplicaSeedMessages(
-                                    assistantText = "新的会话已经创建。现在可以继续输入任务。",
-                                    systemText = "这个会话由右侧正一屏本地生成，结构对齐 Operit 聊天页。",
-                                )
-                            ),
+                        (conversationId to messages.mapIndexed { messageIndex, message ->
+                            if (messageIndex == index) {
+                                message.copy(text = content, meta = formatCurrentTimeText())
+                            } else {
+                                message
+                            }
+                        }),
             )
         }
     }
 
-    fun submitPrompt(): Boolean {
-        var submitted = false
+    fun rewindAndResendMessage(
+        index: Int,
+        content: String,
+    ): Boolean {
+        var promptToSend: String? = null
         mutateState { state ->
-            val normalizedPrompt = state.inputText.trim()
-            if (normalizedPrompt.isBlank()) {
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            if (index !in messages.indices || messages[index].role != OperitReplicaMessageRole.User) {
                 return@mutateState state
             }
-            submitted = true
+            promptToSend = content.trim()
+            if (promptToSend.isNullOrBlank()) {
+                return@mutateState state
+            }
+            state.copy(
+                conversationMessages = state.conversationMessages + (conversationId to messages.take(index)),
+            )
+        }
+        return promptToSend?.let(::beginPromptSubmission) ?: false
+    }
 
-            val activeConversationId = state.activeConversationId
-            val existingMessages =
-                state.conversationMessages[activeConversationId]
-                    ?: buildOperitReplicaSeedMessages(
-                        assistantText = "新的会话已经创建，可以继续输入任务。",
-                        systemText = "这是当前正一屏里的独立会话容器。",
+    fun deleteMessage(index: Int) {
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            if (index !in messages.indices) {
+                return@mutateState state
+            }
+            state.copy(
+                conversationMessages =
+                    state.conversationMessages +
+                        (conversationId to messages.filterIndexed { messageIndex, _ -> messageIndex != index }),
+            )
+        }
+    }
+
+    fun deleteMessages(indices: Set<Int>) {
+        if (indices.isEmpty()) {
+            return
+        }
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            state.copy(
+                conversationMessages =
+                    state.conversationMessages +
+                        (conversationId to messages.filterIndexed { index, _ -> index !in indices }),
+            )
+        }
+    }
+
+    fun rollbackToMessage(index: Int) {
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            if (index !in messages.indices) {
+                return@mutateState state
+            }
+            state.copy(
+                conversationMessages = state.conversationMessages + (conversationId to messages.take(index + 1)),
+            )
+        }
+    }
+
+    fun regenerateMessage(index: Int) {
+        inputProcessingJob?.cancel()
+        val state = _uiState.value
+        val conversationId = state.activeConversationId
+        val messages = state.conversationMessages[conversationId].orEmpty()
+        if (index !in messages.indices || messages[index].role != OperitReplicaMessageRole.Assistant) {
+            return
+        }
+        mutateState {
+            it.copy(
+                isInputProcessing = true,
+                inputProcessingLabel = "Regenerating...",
+                inputProcessingProgress = 0.56f,
+            )
+        }
+        inputProcessingJob =
+            viewModelScope.launch {
+                delay(520)
+                mutateState { currentState ->
+                    val latestMessages = currentState.conversationMessages[conversationId] ?: return@mutateState currentState
+                    if (index !in latestMessages.indices) {
+                        return@mutateState currentState.copy(
+                            isInputProcessing = false,
+                            inputProcessingLabel = "",
+                            inputProcessingProgress = 0f,
+                        )
+                    }
+                    currentState.copy(
+                        isInputProcessing = false,
+                        inputProcessingLabel = "",
+                        inputProcessingProgress = 0f,
+                        conversationMessages =
+                            currentState.conversationMessages +
+                                (
+                                    conversationId to
+                                        latestMessages.mapIndexed { messageIndex, message ->
+                                            if (messageIndex == index) {
+                                                message.copy(
+                                                    text = "${message.text}\n\n已重新生成。",
+                                                    meta = formatCurrentTimeText(),
+                                                )
+                                            } else {
+                                                message
+                                            }
+                                        }
+                                    ),
                     )
+                }
+                inputProcessingJob = null
+            }
+    }
+
+    fun insertSummaryAfter(index: Int) {
+        mutateState { state ->
+            val conversationId = state.activeConversationId
+            val messages = state.conversationMessages[conversationId] ?: return@mutateState state
+            if (index !in messages.indices) {
+                return@mutateState state
+            }
+            val summary =
+                OperitReplicaMessage(
+                    role = OperitReplicaMessageRole.System,
+                    text = "Summary inserted at message ${index + 1}",
+                    meta = formatCurrentTimeText(),
+                )
+            state.copy(
+                conversationMessages =
+                    state.conversationMessages +
+                        (conversationId to messages.take(index + 1) + summary + messages.drop(index + 1)),
+            )
+        }
+    }
+
+    fun createBranchFromMessage(index: Int) {
+        val state = _uiState.value
+        val sourceMessages = state.conversationMessages[state.activeConversationId] ?: return
+        if (index !in sourceMessages.indices) {
+            return
+        }
+        val now = System.currentTimeMillis()
+        val newId = "chat-branch-$now"
+        val branchConversation =
+            OperitReplicaConversation(
+                id = newId,
+                title = "分支 ${index + 1}",
+                preview = sourceMessages[index].text.take(24),
+                sortKey = now,
+                groupName = state.activeConversation?.groupName,
+                characterId = state.selectedCharacterId,
+                accent = Color(0xFF6177B2),
+            )
+        mutateState {
+            it.copy(
+                activeConversationId = newId,
+                conversations = listOf(branchConversation) + it.conversations,
+                conversationMessages = it.conversationMessages + (newId to sourceMessages.take(index + 1)),
+            )
+        }
+    }
+
+    private fun beginPromptSubmission(prompt: String): Boolean {
+        if (prompt.isBlank()) {
+            return false
+        }
+
+        var scheduledConversationId: String? = null
+        mutateState { state ->
+            val activeConversationId = state.activeConversationId
+            scheduledConversationId = activeConversationId
+            val existingMessages = state.conversationMessages[activeConversationId] ?: emptyList()
             val updatedMessages =
                 existingMessages +
                     OperitReplicaMessage(
                         role = OperitReplicaMessageRole.User,
-                        text = normalizedPrompt,
-                        meta = formatCurrentTimeText(),
-                    ) +
-                    OperitReplicaMessage(
-                        role = OperitReplicaMessageRole.Assistant,
-                        text =
-                            buildString {
-                                append("已收到：")
-                                append(normalizedPrompt)
-                                append("\n\n")
-                                append("当前模型：")
-                                append(state.currentModelLabel)
-                                append("。")
-                                append(
-                                    when {
-                                        state.enableThinking && state.enableTools -> "我会按 Operit 的 Agent 工作流组织下一步。"
-                                        state.enableThinking -> "我会先做推理整理，再继续输出。"
-                                        state.enableTools -> "当前允许工具调用，但仍保持在本地演示模式。"
-                                        else -> "当前页面以纯聊天模式运行。"
-                                    },
-                                )
-                                append("\n")
-                                append(
-                                    if (state.enableWorkspace) {
-                                        "工作区入口已保留在输入区附近，可继续向真实实现扩展。"
-                                    } else {
-                                        "工作区已关闭，本页保持轻量聊天视图。"
-                                    },
-                                )
-                            },
+                        text = prompt,
                         meta = formatCurrentTimeText(),
                     )
 
             state.copy(
                 inputText = "",
+                showModelSelectorPopup = false,
                 showAttachmentPanel = false,
-                showReplyPreview = true,
-                conversations = updateConversationPreview(state.conversations, activeConversationId, normalizedPrompt),
+                isInputProcessing = true,
+                inputProcessingLabel = "Connecting...",
+                inputProcessingProgress = 0.34f,
+                conversations = updateConversationPreview(state.conversations, activeConversationId, prompt),
                 conversationMessages = state.conversationMessages + (activeConversationId to updatedMessages),
             )
         }
 
-        return submitted
+        val conversationId = scheduledConversationId ?: return false
+        launchPromptProcessing(conversationId = conversationId, prompt = prompt)
+        return true
+    }
+
+    private fun launchPromptProcessing(
+        conversationId: String,
+        prompt: String,
+    ) {
+        inputProcessingJob?.cancel()
+        inputProcessingJob =
+            viewModelScope.launch {
+                delay(320)
+                mutateState {
+                    it.copy(
+                        isInputProcessing = true,
+                        inputProcessingLabel = "Generating response...",
+                        inputProcessingProgress = 0.72f,
+                    )
+                }
+                delay(520)
+                var nextQueuedPrompt: String? = null
+                mutateState { state ->
+                    val existingMessages = state.conversationMessages[conversationId] ?: emptyList()
+                    val nextQueuedItem = state.pendingQueueMessages.firstOrNull()
+                    nextQueuedPrompt = nextQueuedItem?.text
+                    state.copy(
+                        isInputProcessing = false,
+                        inputProcessingLabel = "",
+                        inputProcessingProgress = 0f,
+                        pendingQueueMessages =
+                            if (nextQueuedItem != null) {
+                                state.pendingQueueMessages.drop(1)
+                            } else {
+                                state.pendingQueueMessages
+                            },
+                        conversationMessages =
+                            state.conversationMessages +
+                                (
+                                    conversationId to
+                                        (
+                                            existingMessages +
+                                                OperitReplicaMessage(
+                                                    role = OperitReplicaMessageRole.Assistant,
+                                                    text = buildAssistantReplicaReply(prompt),
+                                                    meta = formatCurrentTimeText(),
+                                                )
+                                        )
+                                    ),
+                    )
+                }
+                inputProcessingJob = null
+                nextQueuedPrompt?.let { queuedPrompt ->
+                    delay(180)
+                    beginPromptSubmission(queuedPrompt)
+                }
+            }
+    }
+
+    fun cancelInputProcessing() {
+        inputProcessingJob?.cancel()
+        inputProcessingJob = null
+        mutateState {
+            it.copy(
+                isInputProcessing = false,
+                inputProcessingLabel = "",
+                inputProcessingProgress = 0f,
+            )
+        }
     }
 
     fun dismissTopLevelOverlay(): Boolean {
@@ -569,6 +904,10 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                     dismissed = true
                     state.copy(showFullscreenEditor = false)
                 }
+                state.showModelSelectorPopup -> {
+                    dismissed = true
+                    state.copy(showModelSelectorPopup = false)
+                }
                 state.showFeaturePanel -> {
                     dismissed = true
                     state.copy(showFeaturePanel = false)
@@ -586,7 +925,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
     private fun mutateState(transform: (KiyoriOperitReplicaUiState) -> KiyoriOperitReplicaUiState) {
         _uiState.update { state -> transform(state).withDerivedState() }
     }
-
     private fun buildInitialState(): KiyoriOperitReplicaUiState {
         val now = System.currentTimeMillis()
         val characterOptions =
@@ -618,7 +956,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                 OperitReplicaConversation(
                     id = "chat-main",
                     title = "新对话",
-                    preview = "开始新的对话。输入你的任务，我会按 Operit 的聊天工作流来处理。",
+                    preview = "等待新的消息输入...",
                     sortKey = now,
                     groupName = null,
                     characterId = "operit-agent",
@@ -627,7 +965,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                 OperitReplicaConversation(
                     id = "chat-design",
                     title = "界面复刻",
-                    preview = "右侧正一屏已切换为 Operit 风格聊天页。",
+                    preview = "等待新的消息输入...",
                     sortKey = now - 2 * 60 * 60 * 1000L,
                     groupName = "正一屏",
                     characterId = "builder-agent",
@@ -636,7 +974,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                 OperitReplicaConversation(
                     id = "chat-agent",
                     title = "Agent 配置",
-                    preview = "保留历史面板、上下文统计和 Agent 输入区结构。",
+                    preview = "等待新的消息输入...",
                     sortKey = now - 26 * 60 * 60 * 1000L,
                     groupName = "架构",
                     characterId = "research-agent",
@@ -663,26 +1001,20 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             )
 
         return KiyoriOperitReplicaUiState(
+            availableModelLabels =
+                listOf(
+                    "DeepSeek / Agent",
+                    "Claude / Reasoning",
+                    "Gemini / Flash",
+                ),
             characterOptions = characterOptions,
             conversationGroups = conversationGroups,
             conversations = conversations,
             conversationMessages =
                 mapOf(
-                    "chat-main" to
-                        buildOperitReplicaSeedMessages(
-                            assistantText = "开始新的对话。输入你的任务，我会按 Operit 的聊天工作流来处理。",
-                            systemText = "当前页已按 Operit 聊天页做兼容复刻，仅替换软件主页左滑进入的正一屏 UI。",
-                        ),
-                    "chat-design" to
-                        buildOperitReplicaSeedMessages(
-                            assistantText = "右侧正一屏现在承载独立聊天体验，和首页主内容分离。",
-                            systemText = "这里可以继续叠加聊天历史、工具状态、附件面板和工作区入口。",
-                        ),
-                    "chat-agent" to
-                        buildOperitReplicaSeedMessages(
-                            assistantText = "Agent 输入区已切到更接近 Operit 的组织方式。",
-                            systemText = "保留本地状态驱动，不把整个 Operit 依赖链搬进 Kiyori。",
-                        ),
+                    "chat-main" to emptyList(),
+                    "chat-design" to emptyList(),
+                    "chat-agent" to emptyList(),
                 ),
         )
     }
@@ -693,12 +1025,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             sortedCharacterOptions.firstOrNull { it.id == selectedCharacterId }?.title ?: "Operit"
         val activeConversation =
             conversations.firstOrNull { it.id == activeConversationId } ?: conversations.firstOrNull()
-        val activeMessages =
-            conversationMessages[activeConversation?.id ?: activeConversationId]
-                ?: buildOperitReplicaSeedMessages(
-                    assistantText = "新的会话已经创建，可以继续输入任务。",
-                    systemText = "这是当前正一屏里的独立会话容器。",
-                )
+        val activeMessages = conversationMessages[activeConversation?.id ?: activeConversationId] ?: emptyList()
         val groupedConversations =
             buildConversationSections(
                 conversationGroups = conversationGroups,
@@ -708,7 +1035,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                 characterOptions = sortedCharacterOptions,
                 selectedCharacterId = selectedCharacterId,
             )
-        val latestUserMessageText = activeMessages.lastOrNull { it.role == OperitReplicaMessageRole.User }?.text
         val inputTokenCount =
             (
                 (
@@ -730,29 +1056,12 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
         val maxWindowSize = 8192
         val contextUsagePercentage =
             ((currentWindowSize.toFloat() / maxWindowSize.toFloat()) * 100f).coerceIn(0f, 99f)
-        val statusStripText =
-            buildString {
-                append(currentModelLabel)
-                append(" | ")
-                append(if (enableThinking) "推理已开启" else "推理已关闭")
-                append(" | ")
-                append(if (enableTools) "工具可用" else "纯聊天")
-                append(" | ")
-                append(if (enableWorkspace) "工作区已接入" else "未接入工作区")
-                append(" | ")
-                append("${attachments.size} 个附件")
-                append(" | ")
-                append("上下文 ${contextUsagePercentage.toInt()}%")
-            }
-
         return copy(
             currentCharacterLabel = currentCharacterLabel,
             characterOptions = sortedCharacterOptions,
             activeConversation = activeConversation,
             activeMessages = activeMessages,
             groupedConversations = groupedConversations,
-            latestUserMessageText = latestUserMessageText,
-            statusStripText = statusStripText,
             inputTokenCount = inputTokenCount,
             outputTokenCount = outputTokenCount,
             currentWindowSize = currentWindowSize,
@@ -769,7 +1078,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             .map { conversation ->
                 if (conversation.id == conversationId) {
                     val normalizedTitle =
-                        if (conversation.title.startsWith("新对话")) {
+                        if (conversation.title.startsWith("æ–°å¯¹è¯")) {
                             prompt.take(12)
                         } else {
                             conversation.title
@@ -811,24 +1120,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
         return conversations.mapIndexed { index, conversation ->
             conversation.copy(sortKey = baseSortKey - index)
         }
-    }
-
-    private fun buildOperitReplicaSeedMessages(
-        assistantText: String,
-        systemText: String,
-    ): List<OperitReplicaMessage> {
-        return listOf(
-            OperitReplicaMessage(
-                role = OperitReplicaMessageRole.Assistant,
-                text = assistantText,
-                meta = "Agent",
-            ),
-            OperitReplicaMessage(
-                role = OperitReplicaMessageRole.System,
-                text = systemText,
-                meta = "Init",
-            ),
-        )
     }
 
     private fun buildConversationSections(
@@ -887,7 +1178,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                         },
                     sectionSubtitle =
                         if (historyDisplayMode == OperitReplicaHistoryDisplayMode.CURRENT_CHARACTER_ONLY) {
-                            currentCharacterOption?.title ?: "当前角色卡"
+                            currentCharacterOption?.title ?: "å½“å‰è§’è‰²å¡"
                         } else {
                             null
                         },
@@ -947,12 +1238,12 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             conversationGroups.filter { group ->
                 activeCharacterId == null || group.characterId == activeCharacterId
             }
-        val groupedConversations = conversations.groupBy { it.groupName ?: "未分组" }
+        val groupedConversations = conversations.groupBy { it.groupName ?: "æœªåˆ†ç»„" }
         val groupNames =
             (groupedConversations.keys + scopedGroups.map { it.name })
                 .distinct()
                 .sortedWith(
-                    compareBy<String> { if (it == "未分组") 1 else 0 }.thenBy { name ->
+                    compareBy<String> { if (it == "æœªåˆ†ç»„") 1 else 0 }.thenBy { name ->
                         val groupSortKey = scopedGroups.firstOrNull { it.name == name }?.sortKey
                         if (groupSortKey != null) {
                             -groupSortKey
@@ -981,7 +1272,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
                     bindingKind = OperitReplicaConversationBindingKind.GROUP_ONLY,
                     accent = derivedAccent,
                     characterId = derivedCharacterId,
-                    groupName = if (groupName == "未分组") null else groupName,
+                    groupName = if (groupName == "æœªåˆ†ç»„") null else groupName,
                     conversations = groupedItems.sortedByDescending { it.sortKey },
                 )
         }
@@ -1006,8 +1297,8 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             characterGroupName.isNotBlank() ->
                 CharacterBucketDescriptor(
                     sectionKey = "group-binding::$characterGroupName",
-                    title = "角色组绑定: $characterGroupName",
-                    subtitle = "角色组绑定桶",
+                    title = "è§’è‰²ç»„ç»‘å®š: $characterGroupName",
+                    subtitle = "è§’è‰²ç»„ç»‘å®šæ¡¶",
                     bindingKind = OperitReplicaConversationBindingKind.CHARACTER_GROUP,
                     accent = conversation?.accent ?: character?.accent ?: Color(0xFF98A2B3),
                 )
@@ -1022,8 +1313,8 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             else ->
                 CharacterBucketDescriptor(
                     sectionKey = "unbound::$characterId",
-                    title = "未绑定角色卡",
-                    subtitle = "未分配到角色卡或角色组",
+                    title = "æœªç»‘å®šè§’è‰²å¡",
+                    subtitle = "æœªåˆ†é…åˆ°è§’è‰²å¡æˆ–è§’è‰²ç»„",
                     bindingKind = OperitReplicaConversationBindingKind.UNBOUND,
                     accent = conversation?.accent ?: Color(0xFF98A2B3),
                 )
@@ -1060,7 +1351,6 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
         }
         return characterId == null || this.characterId == characterId
     }
-
     private fun createFallbackConversationState(
         state: KiyoriOperitReplicaUiState,
     ): KiyoriOperitReplicaUiState {
@@ -1070,7 +1360,7 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             OperitReplicaConversation(
                 id = conversationId,
                 title = "新对话",
-                preview = "等待新的消息输入…",
+                preview = "等待新的消息输入...",
                 sortKey = now,
                 groupName = null,
                 characterId = state.selectedCharacterId,
@@ -1078,20 +1368,19 @@ internal class KiyoriOperitReplicaViewModel : ViewModel() {
             )
         return state.copy(
             activeConversationId = conversationId,
-            showReplyPreview = true,
             conversations = listOf(fallbackConversation),
-            conversationMessages =
-                state.conversationMessages +
-                    (
-                        conversationId to
-                            buildOperitReplicaSeedMessages(
-                                assistantText = "新的会话已经创建。现在可以继续输入任务。",
-                                systemText = "这是当前正一屏里的独立会话容器。",
-                            )
-                        ),
+            conversationMessages = state.conversationMessages + (conversationId to emptyList()),
         )
     }
 
     private fun formatCurrentTimeText(): String =
         android.text.format.DateFormat.format("HH:mm:ss", System.currentTimeMillis()).toString()
+
+    private fun buildAssistantReplicaReply(prompt: String): String {
+        return when {
+            prompt.length <= 18 -> "已收到，继续处理：$prompt"
+            else -> "已收到，继续处理：${prompt.take(18)}..."
+        }
+    }
 }
+

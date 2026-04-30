@@ -69,12 +69,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ai.assistance.operit.ui.features.chat.components.FullscreenInputDialog
 import com.android.kiyori.operitreplica.model.OperitReplicaCharacterOption
 import com.android.kiyori.operitreplica.model.OperitReplicaCharacterSortOption
 import com.android.kiyori.operitreplica.model.OperitReplicaConversation
@@ -91,7 +94,6 @@ internal fun BoxScope.KiyoriOperitReplicaOverlayHost(
     activeConversation: OperitReplicaConversation?,
     groupedConversations: List<OperitReplicaConversationSection>,
     showFeaturePanel: Boolean,
-    showAttachmentPanel: Boolean,
     showSwipeHint: Boolean,
     showFullscreenEditor: Boolean,
     showHistorySettingsDialog: Boolean,
@@ -139,8 +141,6 @@ internal fun BoxScope.KiyoriOperitReplicaOverlayHost(
     onWorkspaceChange: (Boolean) -> Unit,
     onNotificationChange: (Boolean) -> Unit,
     onFeaturePanelDismiss: () -> Unit,
-    onAttachmentPanelDismiss: () -> Unit,
-    onAddAttachment: (String) -> Unit,
     onDismissSwipeHint: () -> Unit,
     onFullscreenInputChange: (String) -> Unit,
     onDismissFullscreenEditor: () -> Unit,
@@ -206,43 +206,6 @@ internal fun BoxScope.KiyoriOperitReplicaOverlayHost(
         )
     }
 
-    if (showFeaturePanel) {
-        KiyoriOperitReplicaFeaturePanel(
-            modifier =
-                Modifier
-                    .padding(start = 14.dp, bottom = 132.dp + bottomDockPadding)
-                    .align(Alignment.BottomStart),
-            enableThinking = enableThinking,
-            enableTools = enableTools,
-            enableMemory = enableMemory,
-            enableStream = enableStream,
-            enableVoice = enableVoice,
-            enableWorkspace = enableWorkspace,
-            enableNotification = enableNotification,
-            currentModelLabel = currentModelLabel,
-            onThinkingChange = onThinkingChange,
-            onToolsChange = onToolsChange,
-            onMemoryChange = onMemoryChange,
-            onStreamChange = onStreamChange,
-            onVoiceChange = onVoiceChange,
-            onWorkspaceChange = onWorkspaceChange,
-            onNotificationChange = onNotificationChange,
-            onModelClick = onModelClick,
-            onDismiss = onFeaturePanelDismiss,
-        )
-    }
-
-    if (showAttachmentPanel) {
-        KiyoriOperitReplicaAttachmentPanel(
-            modifier =
-                Modifier
-                    .padding(start = 14.dp, bottom = 132.dp + bottomDockPadding)
-                    .align(Alignment.BottomStart),
-            onDismiss = onAttachmentPanelDismiss,
-            onAddAttachment = onAddAttachment,
-        )
-    }
-
     if (showSwipeHint) {
         KiyoriOperitReplicaSwipeHint(
             modifier = Modifier.align(Alignment.TopCenter),
@@ -251,7 +214,7 @@ internal fun BoxScope.KiyoriOperitReplicaOverlayHost(
     }
 
     if (showFullscreenEditor) {
-        KiyoriOperitReplicaFullscreenEditorDialog(
+        KiyoriOperitReplicaFullscreenEditorDialogBridge(
             inputText = inputText,
             onInputTextChange = onFullscreenInputChange,
             onDismiss = onDismissFullscreenEditor,
@@ -1029,6 +992,21 @@ internal fun KiyoriOperitReplicaFullscreenEditorDialog(
                 textStyle = TextStyle(fontSize = 14.sp, lineHeight = 22.sp),
             )
         },
+    )
+}
+
+@Composable
+internal fun KiyoriOperitReplicaFullscreenEditorDialogBridge(
+    inputText: String,
+    onInputTextChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSubmit: () -> Unit,
+) {
+    FullscreenInputDialog(
+        value = TextFieldValue(text = inputText, selection = TextRange(inputText.length)),
+        onValueChange = { onInputTextChange(it.text) },
+        onDismiss = onDismiss,
+        onConfirm = onSubmit,
     )
 }
 

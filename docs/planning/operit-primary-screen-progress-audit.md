@@ -256,6 +256,102 @@ CharacterBucket
 - build date: `2026-04-29`
 - debug APK path: `D:\10_Project\kiyori-android\app\build\outputs\apk\debug\app-arm64-v8a-debug.apk`
 
+## 2026-04-30 input popup bridge update
+
+- the old local `KiyoriOperitReplicaFeaturePanel` is no longer the visible settings popup path for the first screen
+- a new source-package bridge now hosts the settings popup:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentExtraSettingsPopupBridge.kt`
+- `AgentChatInputWorkbenchBridge.kt` now owns:
+  - queue panel
+  - attachment chips
+  - fullscreen dialog bridge
+  - bottom-end extra settings popup bridge
+- compatibility state was added in `KiyoriOperitReplicaUiState` / `KiyoriOperitReplicaViewModel` for source-popup semantics:
+  - memory profile label
+  - memory auto update
+  - auto read
+  - auto approve
+  - disable stream output
+  - disable user preference description
+  - disable status tags
+- this round fixes a structural mismatch, not the whole first-screen gap:
+  - the settings popup now belongs to the input subtree like `Operit`
+  - the model selector is still simplified and is the next bridge target
+
+## 2026-04-30 model popup bridge update
+
+- the input workbench no longer uses an inline `DropdownMenu` as the visible model selector path
+- a new source-package bridge now hosts the model popup:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentModelSelectorPopupBridge.kt`
+- `AgentChatInputWorkbenchBridge.kt` now owns both source-style popups that sit around the model/settings row:
+  - model selector popup
+  - extra settings popup
+- first-pass compatibility state was added for source popup semantics:
+  - thinking quality level
+  - max-context mode
+  - base/max context length display
+- this round still does not mean `AgentChatInputSection` is fully transplanted:
+  - attachment popup ownership is still not on the same source path
+  - the model popup uses local compatibility data, not the original config-manager stack yet
+
+## 2026-04-30 attachment popup bridge update
+
+- the first-screen attachment popup is no longer rendered from page-level overlay code
+- a new source-package bridge now hosts the visible popup:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AttachmentSelectorPopupPanelBridge.kt`
+- `AgentChatInputWorkbenchBridge.kt` now owns the full visible popup set around the input action row:
+  - model selector popup
+  - extra settings popup
+  - attachment popup
+- this round fixes popup ownership and visible structure first:
+  - the popup now appears from the input subtree instead of the page overlay host
+  - row order and popup dimensions follow the source `AttachmentSelectorPopupPanel`
+- still missing from full source parity:
+  - real file/image/camera intake flows
+  - source-side URI/path handling and permission flow
+
+## 2026-04-30 content shell bridge update
+
+- the first-screen content area is no longer structured as a plain local `Column(header + list)`
+- a new source-package shell bridge now hosts the top-level content stacking:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ChatScreenContentWorkbenchBridge.kt`
+- `KiyoriOperitReplicaChatContent.kt` is now mostly adapter logic:
+  - passes header content into the bridge
+  - passes message content into the bridge
+  - stops owning top-level header overlay logic directly
+- visible consequence:
+  - header now overlays the chat surface like `Operit` `ChatScreenContent`
+  - message area gets measured top padding from actual header height
+  - empty first-screen state keeps source-like header spacing instead of a simple blank column
+- still missing from full parity:
+  - real `ChatArea` behavior and controls
+  - source-like scroll affordances and message interaction systems
+
+## 2026-04-30 chat-area visible behavior update
+
+- the first-screen message area now uses a transplanted source component for one visible behavior slice:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ScrollToBottomButton.kt`
+- `KiyoriOperitReplicaChatContent.kt` now wires:
+  - local `ScrollState`
+  - local auto-scroll state
+  - source-style scroll-to-bottom affordance
+- this is still a shell-level bridge, not a full `ChatArea` transplant:
+  - the message list is still local
+  - hidden-page pagination, context menus, edit/rollback systems are not yet on the source path
+
+## 2026-04-30 pagination window bridge update
+
+- the first-screen message area now also uses a source-package pagination helper slice:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ChatAreaPaginationBridge.kt`
+- `KiyoriOperitReplicaChatContent.kt` now applies a visible message window instead of always flattening the full list
+- visible consequence:
+  - top `load more history` bar now appears when older pages are hidden
+  - bottom `load newer history` bar now appears when the visible window is not the newest page
+  - scroll-to-bottom affordance now knows whether newer pages are hidden
+- this is still not a full `ChatArea` transplant:
+  - page-window behavior is now closer
+  - message-item interaction stack is still local
+
 ## 2026-04-29 Workspace navigation refinement
 
 - left workspace navigation moved closer to a real editor explorer instead of a plain utility list:
@@ -497,3 +593,137 @@ CharacterBucket
 - this is still partial parity:
   - export currently uses the local replica workspace root directly
   - `Rename / Unbind` remain pending in the FAB menu branch
+
+## 2026-04-30 First-screen fidelity correction
+
+- root-cause confirmed:
+  - the current `operitreplica` first screen was still driven by a custom intermediate UI, not by the real `Operit` `ChatScreenHeader + ChatScreenContent + ChatInputBottomBar/AgentChatInputSection` composition
+  - this is why the page drifted into explanatory cards, custom status strips, and the wrong input rhythm
+- concrete visible mismatches corrected in this pass:
+  - removed the extra header arrow and moved the header closer to `Operit` source structure
+  - rebuilt the bottom input area into the source-like order: model pill, settings icon, add icon, send/mic button
+  - removed the custom reply/status-strip driven first-screen appearance
+  - changed first-screen chat rendering so the page stays visually blank until there is a real user message
+- important implementation note:
+  - current state still contains older seed-message paths in `KiyoriOperitReplicaViewModel`
+  - the rendering layer now suppresses those seed messages on first-screen entry so they no longer pollute the default UI
+  - a follow-up state cleanup is still required to remove those seed-message branches completely instead of only hiding them at render time
+- current acceptance target:
+  - treat first-screen fidelity as screenshot parity work, not feature equivalence
+  - for this screen, layout rhythm and control placement are higher priority than adding more local placeholder behavior
+- verified build:
+  - `./gradlew.bat assembleDebug`
+  - output directory: `D:\10_Project\kiyori-android\app\build\outputs\apk\debug`
+
+## 2026-04-30 First-screen state cleanup
+
+- first-screen empty state is now established in the state layer, not only in the rendering layer
+- `KiyoriOperitReplicaViewModel` no longer seeds default conversations with explanatory assistant/system messages
+- new conversations and fallback conversations now start with empty message lists
+- the old seed-message helper has been removed from the active path
+- this reduces the risk of hidden placeholder copy leaking back into the first screen during later refactors
+
+## 2026-04-30 First source-transplant checkpoint
+
+- the first-screen correction is no longer limited to polishing local replica widgets
+- `kiyori` now contains a mirrored `Operit` package component:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ChatHeader.kt`
+- `KiyoriOperitReplicaHeader.kt` now uses the transplanted `ChatHeader` for the left-side top-row structure instead of rendering a handwritten imitation of:
+  - history button
+  - PiP button
+  - avatar + character name switcher
+- `kiyori` currently provides the minimum bridge needed for that original component to run:
+  - local string resources for history/floating-window labels
+  - local avatar resource mapped into an `android.resource://...` uri
+  - local click callbacks and lightweight state
+- this is the first concrete proof that the first screen can move from “looks similar” to “runs original Operit subtree”
+- next transplant priorities remain:
+  - `ChatScreenHeader` contract alignment
+  - `AgentChatInputSection`
+  - `ChatScreenContent` visible shell
+
+## 2026-04-30 Input subcomponent transplant checkpoint
+
+- the input area has now started using original `Operit` subcomponents instead of only local equivalents
+- newly mirrored source components:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/AttachmentChip.kt`
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/FullscreenInputDialog.kt`
+- local bridge added for those source components:
+  - `app/src/main/java/com/ai/assistance/operit/data/model/AttachmentInfo.kt`
+  - string resources for attachment insert/remove and fullscreen input actions
+  - local `String -> TextFieldValue` fullscreen adapter
+- current `KiyoriOperitReplicaInputBar.kt` now renders transplanted `AttachmentChip`
+- current fullscreen editor overlay path now enters transplanted `FullscreenInputDialog`
+- current input-bar visible shell is no longer directly handwritten inside `KiyoriOperitReplicaInputBar.kt`
+- a source-package compatibility shell now hosts the visible workbench structure:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentChatInputWorkbenchBridge.kt`
+- this is still not the full `AgentChatInputSection`, but it confirms the input workbench can be migrated in layers without falling back to handwritten replacements
+- next input-specific target:
+  - move from “local input bar hosting original subcomponents” to “source-faithful `AgentChatInputSection` shell with a kiyori compatibility bridge”
+
+## 2026-04-30 Input shell bridge checkpoint
+
+- `KiyoriOperitReplicaInputBar.kt` is now reduced to a host/adapter role
+- the visible input workbench layout has been lifted into the source package bridge:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentChatInputWorkbenchBridge.kt`
+- this matters because the next migration step is no longer “rewrite the local input bar again”
+- it becomes:
+  - keep extending the bridge toward `AgentChatInputSection`
+  - then replace the bridge with larger source slices as dependencies are adapted
+
+## 2026-04-30 Input behavior bridge checkpoint
+
+- the input bridge now owns a first-pass behavior layer, not only static structure
+- newly aligned visible behaviors:
+  - model pill can open and close a selector popup
+  - model label can switch between local bridge options
+  - sending a prompt now enters a processing state before the assistant reply lands
+  - the action button can switch into a cancel state during processing
+  - the bridge can show a processing label and ring instead of only a static send/mic button
+- this is still lighter than the real `AgentChatInputSection`:
+  - no pending queue branch yet
+  - no real manager-backed model config list yet
+  - no full extra-settings popup system yet
+  - no permission/tool/memory/runtime-config wiring yet
+
+## 2026-04-30 Pending queue bridge checkpoint
+
+- the input bridge now includes a first-pass queue workflow
+- mirrored source component added:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/common/PendingMessageQueuePanel.kt`
+- visible behavior now moves closer to `AgentChatInputSection`:
+  - when processing is active and the user continues typing, the action button can switch into queue-add behavior
+  - queued prompts are rendered in a dedicated queue panel
+  - queued prompts can be edited, deleted, or sent directly
+  - when the current processing run completes, the bridge can automatically continue into the next queued prompt
+- this is an important fidelity step because the first screen now behaves more like an actual agent workbench instead of a single-shot input bar
+
+## Latest build verification
+
+- verified with `.\gradlew.bat assembleDebug`
+- build date: `2026-04-30`
+- debug APK path: `D:\10_Project\kiyori-android\app\build\outputs\apk\debug\app-arm64-v8a-debug.apk`
+
+## 2026-04-30 Chat scroll navigator bridge update
+
+- the chat-area control layer is now closer to `Operit` than before, even though the message widgets themselves are still local
+- newly added source-package bridge:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ChatScrollNavigatorBridge.kt`
+- `KiyoriOperitReplicaChatContent.kt` now uses source-style anchor-based navigation instead of only relying on “append messages then scroll to bottom”
+- current visible improvements:
+  - messages inside older hidden pages can now be reopened and jumped to through the locator path
+  - the scroll-position chip and locator dialog now belong to the source transplant path, not to a new handwritten feature
+  - pagination state and jump logic now follow `Operit` `ChatArea` more closely
+- conclusion for fidelity assessment:
+  - first-screen mismatch is still large, but the cause has shifted further away from “wrong shell/control hierarchy”
+  - the remaining largest chat-area gap is now message item behavior and exact layout rhythm, not missing scroll-navigation architecture
+
+## 2026-04-30 Chat loading indicator update
+
+- the visible “assistant is about to answer” rhythm is now closer to `Operit`
+- newly added source component:
+  - `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/LoadingDotsIndicator.kt`
+- this source animation is now mounted inside the replicated chat stream instead of only being implied by bottom-bar processing state
+- effect on audit status:
+  - chat-area feedback timing is better aligned
+  - the bigger remaining mismatch is still the local message item subtree, especially action surfaces and fine spacing

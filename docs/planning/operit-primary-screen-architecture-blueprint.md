@@ -748,3 +748,115 @@ The current workspace editor branch now has a locked interim action model:
 6. 继续把当前 `OverlayHost` 背后的占位状态升级成真实 workspace / computer / character 数据源
 
 这样后面每一次“照抄 `Operit` 某个组件”才有正确落点，不会再次回到“大文件假复刻”的旧路。
+
+## 2026-04-30 First-screen architecture note
+
+- do not judge the first screen by whether local placeholder features work
+- judge it by whether the visible composition matches the source screen hierarchy:
+  - top row = history, pip, avatar/name, context ring
+  - middle area = blank chat surface when there is no real user message
+  - bottom area = text field, model chip, settings, add, send/mic
+- this means the first-screen replica must prefer source-faithful composition over custom convenience widgets
+- any local state that produces explanatory seed content on entry is architectural noise and should eventually be removed from the state layer, not designed around
+- if there is a conflict between keeping an old local placeholder interaction and preserving screenshot-level first-screen parity, choose screenshot-level parity first
+
+## 2026-04-30 Source-transplant directive
+
+- stop treating `operitreplica` as the final UI implementation
+- the target is now a direct subtree transplant from `Operit` chat first-screen
+- preferred transplant order:
+  - `ChatHeader.kt`
+  - `ChatScreenHeader.kt` visual contract
+  - `AgentChatInputSection.kt`
+  - `ChatScreenContent.kt` visible composition shell
+- `kiyori` should supply compatibility only where the source component needs host-specific state or resources:
+  - strings
+  - avatar/resource mapping
+  - click callbacks
+  - lightweight token/history/floating state
+- if a choice must be made between preserving old local helpers and running original `Operit` components, choose the original component path
+- first acceptance checkpoint:
+  - top row must be rendered by transplanted `Operit` `ChatHeader`, not by a handwritten imitation
+
+## 2026-04-30 Input popup ownership note
+
+- input-owned popup controls must stay inside the source-package input bridge path
+- page-level overlays should not own the first-screen settings popup anymore
+- this rule now has a concrete implementation step:
+  - `AgentExtraSettingsPopupBridge.kt` hosts the visible settings popup from the input workbench path
+- next bridge target under the same rule:
+  - replace the simplified model dropdown with a source-faithful model selector popup bridge
+
+## 2026-04-30 Model popup note
+
+- the model selector has now also moved to a source-package popup bridge path:
+  - `AgentModelSelectorPopupBridge.kt`
+- this establishes a stronger architecture rule for the first screen:
+  - the model/settings/add row belongs to one input workbench subtree
+  - popup ownership for that row should not leak back to page-level overlays or inline material menus
+- next consequence:
+  - attachment popup should follow the same ownership rule before moving on to broader `ChatScreenContent` shell transplant
+
+## 2026-04-30 Attachment popup note
+
+- the attachment popup now also follows the same rule:
+  - `AttachmentSelectorPopupPanelBridge.kt`
+- this means the visible `model / settings / add` row now has all three popup surfaces owned by the input workbench subtree
+- architectural consequence:
+  - future `ChatScreenContent` work should not add page-level popup shortcuts back into this row
+  - remaining attachment work should focus on replacing compatibility actions with source-faithful intake flows, not rebuilding another popup shell
+
+## 2026-04-30 Content shell note
+
+- the first-screen content area now has a dedicated source-package shell bridge:
+  - `ChatScreenContentWorkbenchBridge.kt`
+- this establishes the next architecture rule:
+  - header/content stacking belongs to a content-shell bridge, not a local `Column` in replica UI
+  - later `ChatArea` migration should plug into this shell instead of replacing the whole page structure again
+
+## 2026-04-30 Chat-area behavior note
+
+- visible chat-area behavior can now be transplanted incrementally under the content shell
+- first example already landed:
+  - `ScrollToBottomButton.kt`
+- practical implication:
+  - continue migrating chat-area sub-behaviors as source slices
+  - avoid rewriting a brand-new local message-area framework if an original behavior component can be dropped in first
+
+## 2026-04-30 Pagination-window note
+
+- `ChatArea` page-window behavior is also suitable for bridge-first migration
+- first helper slice now exists:
+  - `ChatAreaPaginationBridge.kt`
+- this establishes another rule for later rounds:
+  - when reducing `ChatArea` mismatch, prefer transplanting source windowing / navigation behavior before rewriting message widgets again
+
+## 2026-04-30 ChatScrollNavigator note
+
+- the next `ChatArea` control slice has now landed in the same source package:
+  - `ChatScrollNavigatorBridge.kt`
+- architecture rule confirmed by this step:
+  - message-area navigation should be transplanted from source behavior first
+  - local `operitreplica` code should only provide compatibility inputs such as:
+    - lightweight message mapping
+    - anchor coordinates
+    - active conversation key
+- `KiyoriOperitReplicaChatContent.kt` now owns less visual policy than before
+- it mainly hosts:
+  - local message row rendering
+  - source-package pagination helpers
+  - source-package scroll-to-bottom behavior
+  - source-package scroll locator/navigation behavior
+- next blueprint implication:
+  - do not spend another round hand-tuning chat bubble cosmetics first
+  - continue collapsing `KiyoriOperitReplicaChatContent.kt` toward a true `ChatArea` host shell
+
+## 2026-04-30 Loading indicator note
+
+- the `ChatArea` loading animation is also now transplanted as a source component:
+  - `LoadingDotsIndicator.kt`
+- blueprint implication confirmed again:
+  - processing feedback inside the message stream belongs to the chat-area subtree
+  - do not let the input bar become the only source of “working” feedback on the first screen
+- next architecture target remains unchanged:
+  - keep moving behavior from local message widgets into source-structured chat-area slices before spending effort on appearance-only tuning
