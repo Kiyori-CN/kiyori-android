@@ -1,5 +1,6 @@
 package com.android.kiyori.webdav
 
+import android.net.Uri
 import com.xyoye.sardine.Sardine
 import com.xyoye.sardine.impl.OkHttpSardine
 import com.xyoye.sardine.DavResource
@@ -128,6 +129,8 @@ class WebDavClient(internal val config: WebDavConfig) {
     fun getFileUrl(filePath: String): String {
         val baseUrl = config.serverUrl.trimEnd('/')
         val path = filePath.trimStart('/')
+            .split("/")
+            .joinToString("/") { segment -> Uri.encode(segment) }
         return "$baseUrl/$path"
     }
 

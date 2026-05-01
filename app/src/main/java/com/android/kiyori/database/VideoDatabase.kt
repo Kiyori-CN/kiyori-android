@@ -8,6 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.android.kiyori.download.InternalDownloadDao
 import com.android.kiyori.download.InternalDownloadEntity
+import com.android.kiyori.download.BilibiliDownloadDao
+import com.android.kiyori.download.BilibiliDownloadEntity
 import com.android.kiyori.history.data.PlaybackHistoryDao
 import com.android.kiyori.history.data.PlaybackHistoryEntity
 import com.android.kiyori.media.data.VideoCacheDao
@@ -22,8 +24,13 @@ import com.android.kiyori.media.data.VideoCacheEntity
  * - 这些文件应该提交到版本控制，方便追踪数据库变更历史
  */
 @Database(
-    entities = [VideoCacheEntity::class, PlaybackHistoryEntity::class, InternalDownloadEntity::class],
-    version = 5,
+    entities = [
+        VideoCacheEntity::class,
+        PlaybackHistoryEntity::class,
+        InternalDownloadEntity::class,
+        BilibiliDownloadEntity::class
+    ],
+    version = 6,
     exportSchema = true
 )
 abstract class VideoDatabase : RoomDatabase() {
@@ -31,6 +38,7 @@ abstract class VideoDatabase : RoomDatabase() {
     abstract fun videoCacheDao(): VideoCacheDao
     abstract fun playbackHistoryDao(): PlaybackHistoryDao
     abstract fun internalDownloadDao(): InternalDownloadDao
+    abstract fun bilibiliDownloadDao(): BilibiliDownloadDao
     
     companion object {
         @Volatile
@@ -142,6 +150,41 @@ abstract class VideoDatabase : RoomDatabase() {
                 )
             }
         }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS bilibili_downloads (
+                        id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        url TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        progress INTEGER NOT NULL,
+                        filePath TEXT,
+                        errorMessage TEXT,
+                        mediaType TEXT NOT NULL,
+                        totalSize INTEGER NOT NULL,
+                        downloadedSize INTEGER NOT NULL,
+                        fragmentsJson TEXT NOT NULL,
+                        aid TEXT NOT NULL,
+                        cid TEXT NOT NULL,
+                        epId TEXT,
+                        seasonId TEXT,
+                        createdAt INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                    """.trimIndent()
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_bilibili_downloads_status ON bilibili_downloads(status)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_bilibili_downloads_createdAt ON bilibili_downloads(createdAt)"
+                )
+            }
+        }
         
         fun getDatabase(context: Context): VideoDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -150,7 +193,13 @@ abstract class VideoDatabase : RoomDatabase() {
                     VideoDatabase::class.java,
                     "video_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6
+                )
                 .build()
                 INSTANCE = instance
                 instance

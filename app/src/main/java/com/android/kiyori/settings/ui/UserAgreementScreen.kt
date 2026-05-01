@@ -5,10 +5,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,10 +25,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,24 +40,23 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -62,392 +64,249 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.abs
-import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
 
 @Composable
 fun UserAgreementScreen(
     onAgree: () -> Unit,
     onDecline: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
     var hasScrolledToBottom by remember { mutableStateOf(false) }
     var isChecked by remember { mutableStateOf(false) }
-    var viewportHeightPx by remember { mutableIntStateOf(0) }
-    var isAutoSnapping by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
-    val outlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-    val buttonAlpha by animateFloatAsState(
-        targetValue = if (isChecked && hasScrolledToBottom) 1f else 0.55f,
-        animationSpec = tween(220),
-        label = "agreement_button_alpha"
+    val primary = MaterialTheme.colorScheme.primary
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)
+    val scrollProgress by remember {
+        derivedStateOf {
+            if (scrollState.maxValue <= 0) 1f else {
+                scrollState.value.toFloat() / scrollState.maxValue.toFloat()
+            }.coerceIn(0f, 1f)
+        }
+    }
+    val canConfirm = hasScrolledToBottom && isChecked
+    val confirmAlpha by animateFloatAsState(
+        targetValue = if (canConfirm) 1f else 0.56f,
+        animationSpec = tween(180),
+        label = "agreement_confirm_alpha"
     )
 
-    LaunchedEffect(scrollState.value, scrollState.maxValue) {
-        if (scrollState.maxValue > 0 && scrollState.value >= scrollState.maxValue - 32) {
+    LaunchedEffect(scrollProgress) {
+        if (scrollProgress >= 0.985f) {
             hasScrolledToBottom = true
         }
     }
 
-    LaunchedEffect(scrollState, viewportHeightPx) {
-        if (viewportHeightPx <= 0) return@LaunchedEffect
-
-        snapshotFlow { scrollState.isScrollInProgress }
-            .map { inProgress -> !inProgress }
-            .distinctUntilChanged()
-            .filter { it }
-            .collectLatest {
-                if (isAutoSnapping || scrollState.maxValue <= 0) return@collectLatest
-
-                val pageHeight = viewportHeightPx.coerceAtLeast(1)
-                val current = scrollState.value
-                val max = scrollState.maxValue
-                val nearBottom = max - current < pageHeight / 2
-                val target = when {
-                    nearBottom -> max
-                    current < pageHeight / 2 -> 0
-                    else -> ((current.toFloat() / pageHeight).roundToInt() * pageHeight)
-                        .coerceIn(0, max)
-                }
-
-                if (abs(target - current) < 24) return@collectLatest
-
-                isAutoSnapping = true
-                try {
-                    scrollState.animateScrollTo(
-                        value = target,
-                        animationSpec = tween(durationMillis = 110)
-                    )
-                } finally {
-                    isAutoSnapping = false
-                }
-            }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.16f),
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFFF7F8FA)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp, vertical = 14.dp)
-        ) {
-            Card(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .onSizeChanged { viewportHeightPx = it.height },
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                border = BorderStroke(1.dp, outlineColor),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 18.dp)
+                    .padding(top = 24.dp, bottom = 176.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    AgreementTitleBlock()
-                    Divider(color = outlineColor)
-                    AgreementContent()
-                }
+                AgreementHeader()
+                AgreementSummaryRow()
+                AgreementContent()
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AnimatedVisibility(
-                visible = !hasScrolledToBottom,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(Color(0xFFF7F8FA))
             ) {
-                Row(
+                LinearProgressIndicator(
+                    progress = scrollProgress,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "请先滑动到最底部，再进行确认",
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = hasScrolledToBottom,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = isChecked,
-                            onCheckedChange = { isChecked = it },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = buildAnnotatedString {
-                                append("我已阅读并")
-                                withStyle(
-                                    SpanStyle(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                ) {
-                                    append("同意")
-                                }
-                                append("以上协议内容")
-                            },
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onDecline,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(42.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.45f)
-                            )
-                        ) {
-                            Text(
-                                text = "退出",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-
-                        Button(
-                            onClick = onAgree,
-                            enabled = isChecked,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(42.dp)
-                                .alpha(buttonAlpha),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(15.dp)
-                            )
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text(
-                                text = "同意并进入",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                }
+                        .height(2.dp),
+                    color = primary,
+                    trackColor = borderColor
+                )
+                AgreementFooter(
+                    hasScrolledToBottom = hasScrolledToBottom,
+                    isChecked = isChecked,
+                    canConfirm = canConfirm,
+                    confirmAlpha = confirmAlpha,
+                    onCheckedChange = { isChecked = it },
+                    onAgree = onAgree,
+                    onDecline = onDecline
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AgreementTitleBlock() {
+private fun AgreementHeader() {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
-            text = "FIRST LAUNCH AGREEMENT",
-            fontSize = 10.sp,
-            lineHeight = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = "Kiyori 使用协议与隐私说明",
-            fontSize = 18.sp,
-            lineHeight = 24.sp,
+            text = "Kiyori",
+            fontSize = 30.sp,
+            lineHeight = 36.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "请在首次进入应用前阅读以下内容，确认应用定位、权限调用方式、数据处理边界以及第三方服务相关风险。",
-            fontSize = 12.sp,
-            lineHeight = 18.sp,
+            text = "使用协议与隐私说明",
+            fontSize = 18.sp,
+            lineHeight = 25.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "首次进入前，请确认应用能力、权限边界、数据处理方式与第三方服务风险。内容保持简洁，但会影响您后续使用 Kiyori 的方式。",
+            fontSize = 13.sp,
+            lineHeight = 21.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "最后更新：2026年4月28日",
-            fontSize = 10.sp,
-            lineHeight = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+            text = "最后更新：2026年5月1日",
+            fontSize = 11.sp,
+            lineHeight = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
         )
+    }
+}
+
+@Composable
+private fun AgreementSummaryRow() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        SummaryPill(
+            modifier = Modifier.weight(1f),
+            title = "本地优先",
+            description = "数据默认保存在设备"
+        )
+        SummaryPill(
+            modifier = Modifier.weight(1f),
+            title = "按需授权",
+            description = "权限由功能触发"
+        )
+        SummaryPill(
+            modifier = Modifier.weight(1f),
+            title = "合规使用",
+            description = "尊重版权与平台规则"
+        )
+    }
+}
+
+@Composable
+private fun SummaryPill(
+    title: String,
+    description: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = description,
+                fontSize = 10.sp,
+                lineHeight = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 @Composable
 private fun AgreementContent() {
     Column(
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         AgreementSection(
-            icon = Icons.Default.Info,
-            title = "一、应用定位",
-            iconTint = MaterialTheme.colorScheme.primary
+            icon = Icons.Default.VerifiedUser,
+            title = "应用定位",
+            body = "Kiyori 是以浏览器为主入口的综合工具，包含网页访问、视频嗅探、远程播放、本地媒体浏览、下载、WebDAV、字幕弹幕和播放历史等能力。",
+            accent = MaterialTheme.colorScheme.primary
         ) {
-            BulletPoint("Kiyori 以内置浏览器为主入口，提供网页访问、视频嗅探、远程播放、本地媒体浏览与播放器能力。")
-            BulletPoint("当前版本同时包含 WebDAV、字幕、弹幕、下载、播放历史、Anime4K 与 Bilibili 相关扩展模块。")
-            BulletPoint("本应用免费开源，遵守 GPL-3.0-or-later 协议。")
-            BulletPoint("部分功能依赖第三方网站、账号状态、网络环境和远程服务可用性，实际效果可能随外部环境变化。")
+            BulletPoint("应用免费开源，遵守 GPL-3.0-or-later 协议。")
+            BulletPoint("部分能力依赖第三方网站、网络环境、账号状态或远程服务，实际可用性可能变化。")
+        }
+
+        AgreementSection(
+            icon = Icons.Default.PrivacyTip,
+            title = "数据与隐私",
+            body = "Kiyori 不提供自建账号体系，也不会把常规使用数据上传到 Kiyori 自有服务器。书签、历史、播放进度、下载配置和扩展数据默认存储在本机。",
+            accent = Color(0xFF0E7C66)
+        ) {
+            CheckPoint("网页登录、WebDAV、远程链接输入等凭证只用于对应功能。")
+            CheckPoint("敏感凭证优先保存在本地，并尽量使用系统安全能力保护。")
+            CheckPoint("卸载应用后，应用私有目录中的本地数据通常会被系统清理。")
         }
 
         AgreementSection(
             icon = Icons.Default.Security,
-            title = "二、数据与隐私",
-            iconTint = MaterialTheme.colorScheme.primary
+            title = "权限调用",
+            body = "应用会根据功能按需使用网络、媒体读取、文件访问、通知、摄像头、麦克风、定位等系统能力。拒绝授权不会影响所有功能，但对应能力可能不可用。",
+            accent = Color(0xFF3367D6)
         ) {
-            SubTitle("【本地存储】")
-            CheckPoint("应用不提供自建账号体系，也不会将常规使用数据上传到 Kiyori 自有服务器。")
-            CheckPoint("书签、历史记录、播放进度、下载配置、字幕或弹幕关联等数据默认保存在本机。")
-            CheckPoint("如您使用 WebDAV、远程链接输入或网页登录，相关地址、凭证或会话仅用于对应功能。")
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            SubTitle("【敏感信息保护】")
-            BulletPoint("Bilibili 登录凭证等敏感信息会优先加密保存在本地设备。")
-            BulletPoint("相关密钥由 Android KeyStore 保护，应用不会主动导出这些数据。")
-            BulletPoint("卸载应用后，应用私有目录中的本地数据通常会被系统一并清理。")
+            PermissionLine("媒体与文件", "用于本地视频、字幕弹幕、下载保存和文件选择。")
+            PermissionLine("网络与通知", "用于网页访问、嗅探、远程播放、WebDAV 和任务状态。")
+            PermissionLine("设备能力", "用于网页或扩展功能在用户触发时调用相机、麦克风或定位。")
         }
 
         AgreementSection(
-            icon = Icons.Default.Warning,
-            title = "三、权限与设备能力",
-            iconTint = MaterialTheme.colorScheme.secondary
+            icon = Icons.Default.Gavel,
+            title = "使用边界",
+            body = "您需要自行确保使用行为合法合规。请勿将本应用用于侵权、盗版、绕过付费限制、批量采集、黑产或其它违法用途。",
+            accent = Color(0xFF7D5A00)
         ) {
-            SubTitle("【首次启动可能申请】")
-            Text(
-                text = "当前版本会在进入主界面后按系统流程申请媒体、文件、通知及部分设备能力权限，以兼容浏览器与媒体模块。",
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            PermissionItem("媒体与文件访问", "用于扫描本地视频、读取媒体文件、导入或保存字幕弹幕、管理下载内容。")
-            PermissionItem("网络与通知", "用于网页访问、视频嗅探、远程播放、WebDAV、下载任务和状态提醒。")
-            PermissionItem("摄像头、麦克风、定位等设备能力", "用于兼容网页或扩展功能在需要时调用相应系统能力。")
-            PermissionItem("电话、短信、附近设备等兼容权限", "用于兼容浏览器或网页场景可能触发的系统能力，不需要时可拒绝。")
-            PermissionItem("安装未知应用、修改系统设置等特殊权限", "用于安装下载的 APK 或完成播放器相关系统设置。")
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "您可以按需授权；拒绝后，对应功能可能不可用，但授权状态可在系统设置中随时修改。",
-                fontSize = 11.sp,
-                lineHeight = 17.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
-            )
+            BulletPoint("通过本应用访问、播放、下载或解析的内容，其版权和使用规则归原网站与权利人所有。")
+            BulletPoint("第三方站点、账号、接口或远程服务的风控、封禁、失效和内容变化风险由用户自行判断。")
         }
 
         AgreementSection(
-            icon = Icons.Default.Warning,
-            title = "四、使用边界与免责声明",
-            iconTint = Color(0xFFFF6B6B)
+            icon = Icons.Default.WarningAmber,
+            title = "免责声明",
+            body = "Kiyori 是独立第三方工具，与 Bilibili、WebDAV 服务提供方及其它站点均无隶属关系。使用相关服务时，请同时遵守对应平台协议和当地法律法规。",
+            accent = Color(0xFFD93025)
         ) {
-            WarningCard {
-                SubTitle("【请勿滥用】")
-                Spacer(modifier = Modifier.height(2.dp))
-                BulletPoint("请勿将本应用用于侵权、盗版、绕过付费限制、批量采集、黑产或其他违法用途。")
-                BulletPoint("通过本应用访问、播放、下载或解析的内容，其版权与使用规则归原网站和原权利人所有。")
-                BulletPoint("第三方站点、账号、接口或远程服务的封禁、失效、风控或内容变化风险需由用户自行判断。")
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            SubTitle("【第三方关系说明】")
-            BulletPoint("本应用是独立的第三方工具，与 Bilibili、WebDAV 服务提供方及其他站点均无隶属关系。")
-            BulletPoint("如您使用相关服务，请同时遵守对应平台的用户协议、版权要求和当地法律法规。")
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            SubTitle("【责任边界】")
-            BulletPoint("因您自行授权、访问第三方内容、下载文件或进行分享而产生的风险和后果，由您本人承担。")
-            BulletPoint("开发者不对第三方内容的合法性、稳定性、可用性或由滥用功能造成的损失负责。")
+            WarningNote("因自行授权、访问第三方内容、下载文件、分享内容或滥用功能产生的风险和后果，由您本人承担。")
         }
 
         AgreementSection(
             icon = Icons.Default.CheckCircle,
-            title = "五、用户确认",
-            iconTint = MaterialTheme.colorScheme.tertiary
+            title = "确认事项",
+            body = "点击“同意并进入”即表示您已理解本页面对应用定位、权限、隐私、第三方服务与使用边界的说明。",
+            accent = MaterialTheme.colorScheme.primary
         ) {
-            Text(
-                text = "点击“同意并进入”即表示您：",
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            CheckPoint("已阅读并理解本页面对应用定位、权限、隐私和使用边界的说明。")
             CheckPoint("同意在合法、合规、非滥用的前提下使用 Kiyori。")
-            CheckPoint("理解部分功能依赖第三方服务与系统授权，相关风险需自行判断和承担。")
-            CheckPoint("知悉拒绝本协议将无法继续进入应用。")
-
-            Spacer(modifier = Modifier.height(4.dp))
-
+            CheckPoint("理解拒绝本协议将无法继续进入应用。")
             Text(
                 text = "如果您暂时不接受以上内容，请点击“退出”。",
-                fontSize = 11.sp,
-                lineHeight = 16.sp,
+                fontSize = 12.sp,
+                lineHeight = 18.sp,
                 color = MaterialTheme.colorScheme.error,
                 fontStyle = FontStyle.Italic
             )
         }
+
+        Spacer(modifier = Modifier.height(6.dp))
     }
 }
 
@@ -455,69 +314,218 @@ private fun AgreementContent() {
 private fun AgreementSection(
     icon: ImageVector,
     title: String,
-    iconTint: Color,
+    body: String,
+    accent: Color,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            content()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = accent.copy(alpha = 0.10f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .size(17.dp)
+                    )
+                }
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    lineHeight = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = body,
+                fontSize = 12.sp,
+                lineHeight = 19.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.10f))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                content()
+            }
         }
     }
 }
 
 @Composable
-private fun SubTitle(text: String) {
-    Text(
-        text = text,
-        fontSize = 12.sp,
-        lineHeight = 17.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurface
-    )
+private fun AgreementFooter(
+    hasScrolledToBottom: Boolean,
+    isChecked: Boolean,
+    canConfirm: Boolean,
+    confirmAlpha: Float,
+    onCheckedChange: (Boolean) -> Unit,
+    onAgree: () -> Unit,
+    onDecline: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AnimatedVisibility(
+            visible = !hasScrolledToBottom,
+            enter = fadeIn(tween(160)),
+            exit = fadeOut(tween(160))
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowDownward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "请向下滑动阅读完整内容",
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = hasScrolledToBottom) {
+                    onCheckedChange(!isChecked)
+                }
+                .alpha(if (hasScrolledToBottom) 1f else 0.48f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = isChecked,
+                enabled = hasScrolledToBottom,
+                onCheckedChange = onCheckedChange,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = MaterialTheme.colorScheme.primary
+                )
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = buildAnnotatedString {
+                    append("我已阅读并")
+                    withStyle(
+                        SpanStyle(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    ) {
+                        append("同意")
+                    }
+                    append("以上内容")
+                },
+                fontSize = 13.sp,
+                lineHeight = 19.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            OutlinedButton(
+                onClick = onDecline,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(46.dp),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.42f)
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text(
+                    text = "退出",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Button(
+                onClick = onAgree,
+                enabled = canConfirm,
+                modifier = Modifier
+                    .weight(1.35f)
+                    .height(46.dp)
+                    .alpha(confirmAlpha),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = Color(0xFFE2E6EA),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(17.dp)
+                )
+                Spacer(modifier = Modifier.width(7.dp))
+                Text(
+                    text = "同意并进入",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
 }
 
 @Composable
 private fun BulletPoint(text: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(7.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
             text = "•",
-            fontSize = 12.sp,
-            lineHeight = 18.sp,
-            color = MaterialTheme.colorScheme.primary
+            fontSize = 13.sp,
+            lineHeight = 19.sp,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
         )
         Text(
             text = text,
+            modifier = Modifier.weight(1f),
             fontSize = 12.sp,
-            lineHeight = 18.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
+            lineHeight = 19.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -526,77 +534,62 @@ private fun BulletPoint(text: String) {
 private fun CheckPoint(text: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.Top
     ) {
         Text(
             text = "✓",
-            fontSize = 12.sp,
-            lineHeight = 18.sp,
+            fontSize = 13.sp,
+            lineHeight = 19.sp,
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = text,
+            modifier = Modifier.weight(1f),
             fontSize = 12.sp,
-            lineHeight = 18.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
+            lineHeight = 19.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
 @Composable
-private fun PermissionItem(permission: String, description: String) {
-    Row(
+private fun PermissionLine(title: String, description: String) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(7.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
-            text = "•",
+            text = title,
             fontSize = 12.sp,
-            lineHeight = 18.sp,
-            color = MaterialTheme.colorScheme.secondary
+            lineHeight = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            Text(
-                text = permission,
-                fontSize = 12.sp,
-                lineHeight = 17.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = description,
-                fontSize = 11.sp,
-                lineHeight = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.82f)
-            )
-        }
+        Text(
+            text = description,
+            fontSize = 11.sp,
+            lineHeight = 17.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 @Composable
-private fun WarningCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
+private fun WarningNote(text: String) {
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFF6B6B).copy(alpha = 0.08f)
-        ),
-        border = BorderStroke(
-            1.dp,
-            Color(0xFFFF6B6B).copy(alpha = 0.24f)
-        )
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFFFFF4F2),
+        border = BorderStroke(1.dp, Color(0xFFFFD8D2))
     ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            content()
-        }
+        Text(
+            text = text,
+            modifier = Modifier.padding(11.dp),
+            fontSize = 12.sp,
+            lineHeight = 19.sp,
+            color = Color(0xFF8C1D18)
+        )
     }
 }

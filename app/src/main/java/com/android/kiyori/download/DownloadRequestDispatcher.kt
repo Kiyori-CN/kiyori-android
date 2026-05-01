@@ -9,6 +9,8 @@ import android.text.format.Formatter
 import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import com.android.kiyori.remote.RemotePlaybackHeaders
+import com.tencent.smtt.sdk.CookieManager
 
 fun requestDownloadWithPreferences(
     context: Context,
@@ -80,12 +82,15 @@ private fun enqueueSystemDownload(context: Context, request: InternalDownloadReq
     val safeUrl = request.url.trim()
     require(safeUrl.isNotBlank()) { "下载地址不能为空" }
 
+    val preparedHeaders = prepareDownloadHeadersForSystemRequest(request.copy(url = safeUrl))
     val guessedFileName = URLUtil.guessFileName(
         safeUrl,
-        request.headers["Content-Disposition"],
+        RemotePlaybackHeaders.get(preparedHeaders, "Content-Disposition"),
         request.mimeType.ifBlank { null }
     )
-    val fileName = request.fileName.trim().ifBlank { guessedFileName }
+    val fileName = sanitizeSystemDownloadFileName(
+        request.fileName.trim().ifBlank { guessedFileName }
+    )
     val downloadRequest = DownloadManager.Request(Uri.parse(safeUrl)).apply {
         if (request.mimeType.isNotBlank()) {
             setMimeType(request.mimeType)
@@ -95,7 +100,7 @@ private fun enqueueSystemDownload(context: Context, request: InternalDownloadReq
         setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
         setTitle(request.title.ifBlank { fileName })
         setDescription(request.description.ifBlank { "准备下载" })
-        request.headers.forEach { (key, value) ->
+        preparedHeaders.forEach { (key, value) ->
             if (key.isNotBlank() && value.isNotBlank()) {
                 addRequestHeader(key, value)
             }
@@ -105,6 +110,53 @@ private fun enqueueSystemDownload(context: Context, request: InternalDownloadReq
 
     val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
     return downloadManager.enqueue(downloadRequest)
+}
+
+private fun prepareDownloadHeadersForSystemRequest(
+    request: InternalDownloadRequest
+): Map<String, String> {
+    val headers = LinkedHashMap<String, String>()
+    request.headers.forEach { (key, value) ->
+        if (key.isNotBlank() && value.isNotBlank()) {
+            headers[key] = value
+        }
+    }
+
+    val referer = RemotePlaybackHeaders.get(headers, "Referer").orEmpty()
+        .ifBlank { request.sourcePageUrl.trim() }
+    if (referer.isNotBlank()) {
+        headers.putIfAbsent("Referer", referer)
+    }
+
+    RemotePlaybackHeaders.deriveOrigin(referer)?.let {
+        headers.putIfAbsent("Origin", it)
+    }
+
+    headers.putIfAbsent("User-Agent", RemotePlaybackHeaders.DEFAULT_USER_AGENT)
+    headers.putIfAbsent("Accept", "*/*")
+    headers.putIfAbsent("Accept-Encoding", "identity")
+
+    if (RemotePlaybackHeaders.get(headers, "Cookie").isNullOrBlank()) {
+        val cookie = runCatching {
+            CookieManager.getInstance().getCookie(request.url).orEmpty()
+                .ifBlank { CookieManager.getInstance().getCookie(referer).orEmpty() }
+        }.getOrDefault("")
+        if (cookie.isNotBlank()) {
+            headers["Cookie"] = cookie
+        }
+    }
+
+    return headers
+}
+
+private fun sanitizeSystemDownloadFileName(value: String): String {
+    val safeName = value
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .replace(Regex("[\\\\/:*?\"<>|\\r\\n\\t]"), "_")
+        .trim()
+        .trim('.')
+    return safeName.ifBlank { "download_${System.currentTimeMillis()}" }
 }
 
 private fun openWithExternalApp(context: Context, url: String) {

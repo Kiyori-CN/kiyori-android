@@ -6,6 +6,7 @@ import android.os.Looper
 import android.util.Log
 import com.android.kiyori.remote.RemotePlaybackHeaders
 import com.android.kiyori.remote.RemotePlaybackRequest
+import com.android.kiyori.utils.UriUtils
 import com.android.kiyori.utils.UriUtils.resolveUri
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
@@ -120,7 +121,9 @@ class PlaybackEngine(
             
             // 保存文件路径
             currentFilePath = filePath
+            UriUtils.closeDetachedContentFdsExcept(UriUtils.retainedFdFromResolvedPath(filePath))
             
+            resetLocalPlaybackOptions()
             com.android.kiyori.utils.Logger.d(TAG, "MPV loading file path: $filePath")
             MPVLib.command("loadfile", filePath)
             
@@ -150,30 +153,7 @@ class PlaybackEngine(
                 }, 200)  // 减少延迟到200ms
             }
             
-            // 异步记录视频信息(不阻塞播放)
-            handler.postDelayed({
-                try {
-                    val videoCodec = MPVLib.getPropertyString("video-codec")
-                    val audioCodec = MPVLib.getPropertyString("audio-codec")
-                    val videoFormat = MPVLib.getPropertyString("video-format")
-                    val hwdec = MPVLib.getPropertyString("hwdec-current")
-                    
-                    com.android.kiyori.utils.Logger.d(TAG, "Video codec: $videoCodec")
-                    com.android.kiyori.utils.Logger.d(TAG, "Audio codec: $audioCodec")
-                    com.android.kiyori.utils.Logger.d(TAG, "Video format: $videoFormat")
-                    com.android.kiyori.utils.Logger.d(TAG, "Hardware decoding: $hwdec")
-                    
-                    // 检查视频流是否存在
-                    if (videoCodec == null || videoCodec == "null") {
-                        Log.w(TAG, "⚠️ Video codec is null - this file may be audio-only or corrupted")
-                        handler.post {
-                            eventCallback.onError("视频流无效或文件损坏")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to get video info: ${e.message}")
-                }
-            }, 800)
+            scheduleMediaInfoLog()
 
             // 开始进度更新 - 本地视频可以立即开始
             handler.post(updateProgressRunnable)
@@ -284,6 +264,7 @@ class PlaybackEngine(
         startPosition: Double
     ) {
         currentFilePath = actualUrl
+        UriUtils.closeDetachedContentFds()
 
         resetRemotePlaybackOptions()
         applyRemoteHeaders(headers)
@@ -294,7 +275,7 @@ class PlaybackEngine(
 
         scheduleAutoPlay()
         scheduleSeekRestore(startPosition)
-        scheduleRemoteMediaInfoLog()
+        scheduleMediaInfoLog()
 
         // 延迟开始进度更新,避免在视频未就绪时查询属性
         handler.postDelayed({
@@ -306,6 +287,17 @@ class PlaybackEngine(
         MPVLib.setOptionString("user-agent", RemotePlaybackHeaders.DEFAULT_USER_AGENT)
         MPVLib.setOptionString("referrer", "")
         MPVLib.setOptionString("http-header-fields", "Accept: */*")
+    }
+
+    private fun resetLocalPlaybackOptions() {
+        runCatching { MPVLib.setOptionString("referrer", "") }
+            .onFailure { Log.w(TAG, "Failed to reset referrer: ${it.message}") }
+        runCatching { MPVLib.setOptionString("http-header-fields", "") }
+            .onFailure { Log.w(TAG, "Failed to reset HTTP headers: ${it.message}") }
+        runCatching { MPVLib.setOptionString("cache", "auto") }
+            .onFailure { Log.w(TAG, "Failed to reset cache option: ${it.message}") }
+        runCatching { MPVLib.setOptionString("demuxer-seekable-cache", "auto") }
+            .onFailure { Log.w(TAG, "Failed to reset seekable cache option: ${it.message}") }
     }
 
     private fun applyRemoteHeaders(headers: Map<String, String>) {
@@ -363,7 +355,7 @@ class PlaybackEngine(
         }, 200)
     }
 
-    private fun scheduleRemoteMediaInfoLog() {
+    private fun scheduleMediaInfoLog() {
         handler.postDelayed({
             try {
                 val videoCodec = MPVLib.getPropertyString("video-codec")
@@ -375,6 +367,9 @@ class PlaybackEngine(
                 Log.d(TAG, "Audio codec: $audioCodec")
                 Log.d(TAG, "Video format: $videoFormat")
                 Log.d(TAG, "Hardware decoding: $hwdec")
+                if (videoCodec.isNullOrBlank() || videoCodec == "null") {
+                    Log.d(TAG, "Video codec is not available yet; waiting for MPV events")
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to get video info: ${e.message}")
             }
@@ -696,6 +691,7 @@ class PlaybackEngine(
 
         // 清理引用
         currentFilePath = null
+        UriUtils.closeDetachedContentFds()
         
         Log.d(TAG, "✓ PlaybackEngine已完全销毁")
         Log.d(TAG, "========================================")

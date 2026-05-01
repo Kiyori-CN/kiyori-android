@@ -82,7 +82,7 @@ class CustomMPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context
         MPVLib.setOptionString("http-header-fields", "Accept: */*")
         
         // 流媒体配置 - 改进在线视频处理，支持HLS(m3u8)
-        MPVLib.setOptionString("stream-lavf-o", "protocol_whitelist=file,http,https,tcp,tls,crypto,hls,applehttp")
+        MPVLib.setOptionString("stream-lavf-o", "protocol_whitelist=fd,file,http,https,tcp,tls,crypto,hls,applehttp")
         MPVLib.setOptionString("hls-bitrate", "max")  // HLS使用最高码率
         MPVLib.setOptionString("http-allow-redirect", "yes")  // 允许HTTP重定向
         

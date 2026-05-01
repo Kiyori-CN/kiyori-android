@@ -23,7 +23,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Anime4K 超分辨率"
+            android:text="Anime4K 超分"
             android:textSize="15sp"
             android:textColor="#FFFFFF"
             android:textStyle="bold" />

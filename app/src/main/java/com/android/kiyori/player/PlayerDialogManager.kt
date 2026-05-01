@@ -499,7 +499,7 @@ class PlayerDialogManager(
         if (hasChapters) {
             items.add("章节")
         }
-        items.addAll(listOf("截图", "音轨", "解码", "片头片尾", assOverrideText, autoRotateText))
+        items.addAll(listOf("音轨", "解码", "片头片尾", assOverrideText, autoRotateText))
         
         val btnMore = activity.findViewById<ImageView>(R.id.btnMore)
 
@@ -513,19 +513,18 @@ class PlayerDialogManager(
         ) { position ->
             // 根据是否有章节项调整索引映射
             val actualAction = if (hasChapters) {
-                position  // 有章节时：0=章节, 1=截图, 2=音轨, 3=解码, 4=片头片尾, 5=样式覆盖
+                position  // 有章节时：0=章节, 1=音轨, 2=解码, 3=片头片尾, 4=样式覆盖, 5=自动旋转
             } else {
-                position + 1  // 无章节时：0=截图->1, 1=音轨->2, 2=解码->3, 3=片头片尾->4, 4=样式覆盖->5
+                position + 1  // 无章节时：0=音轨->1, 1=解码->2, 2=片头片尾->3, 3=样式覆盖->4, 4=自动旋转->5
             }
             
             when (actualAction) {
                 0 -> showChapterDialog()
-                1 -> (activity as? MoreOptionsCallback)?.onScreenshot()
-                2 -> showAudioTrackDialog()  // 音轨选择
-                3 -> showDecoderDialog()  // 解码方式
-                4 -> (activity as? MoreOptionsCallback)?.onShowSkipSettings()  // 片头片尾设置
-                5 -> toggleAssOverride()  // 点击切换样式覆盖
-                6 -> (activity as? MoreOptionsCallback)?.onToggleAutoRotate()
+                1 -> showAudioTrackDialog()  // 音轨选择
+                2 -> showDecoderDialog()  // 解码方式
+                3 -> (activity as? MoreOptionsCallback)?.onShowSkipSettings()  // 片头片尾设置
+                4 -> toggleAssOverride()  // 点击切换样式覆盖
+                5 -> (activity as? MoreOptionsCallback)?.onToggleAutoRotate()
             }
         }
     }
@@ -887,7 +886,6 @@ interface DanmakuDialogCallback {
 }
 
 interface MoreOptionsCallback {
-    fun onScreenshot()
     fun onShowSkipSettings()
     fun onTogglePortraitUi()
     fun onToggleAutoRotate()

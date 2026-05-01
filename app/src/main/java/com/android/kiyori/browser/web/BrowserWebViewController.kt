@@ -55,7 +55,7 @@ data class BrowserWebViewCallbacks(
         origin: String?,
         callback: GeolocationPermissionsCallback?
     ) -> Unit = { origin, callback ->
-        callback?.invoke(origin, true, false)
+        callback?.invoke(origin, false, false)
     },
     val onWebPermissionRequest: (
         request: PermissionRequest,

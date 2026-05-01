@@ -3,6 +3,7 @@ package com.android.kiyori.download
 import android.content.Context
 import android.util.Log
 import com.android.kiyori.utils.CookieManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*
@@ -238,6 +239,8 @@ class BilibiliDownloadManager(private val context: Context) {
                 }
 
                 Result.success(Unit)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "下载文件失败", e)
                 Result.failure(e)

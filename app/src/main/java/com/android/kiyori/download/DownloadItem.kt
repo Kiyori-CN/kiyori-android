@@ -11,7 +11,13 @@ data class DownloadItem(
     val mediaType: MediaType = MediaType.Video,
     val totalSize: Long = 0,
     val downloadedSize: Long = 0,
-    val fragments: List<DownloadFragmentState> = emptyList()
+    val fragments: List<DownloadFragmentState> = emptyList(),
+    val aid: String = "",
+    val cid: String = "",
+    val epId: String? = null,
+    val seasonId: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
 )
 
 data class DownloadFragmentState(

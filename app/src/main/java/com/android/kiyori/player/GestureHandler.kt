@@ -33,6 +33,8 @@ class GestureHandler(
         // 进度灵敏度配置 - 参考 mpvEx 使用固定灵敏度，保证所有视频都能精确跳转
         // 使用中等灵敏度值，平衡精确度和操作便利性
         private const val SEEK_SENSITIVITY = 0.05f  // 固定灵敏度：每滑动1像素 ≈ 0.05秒
+        private const val TOP_SYSTEM_GESTURE_EXCLUSION_DP = 72f
+        private const val INDICATOR_BAR_HEIGHT_DP = 96f
         
         // 音量配置 - 统一使用MPV音量控制
         private const val MIN_VOLUME = 0.1f       // 最小音量 0.1%
@@ -442,7 +444,7 @@ class GestureHandler(
         brightnessIndicator?.visibility = View.VISIBLE
         
         val context = contextRef.get() ?: return
-        val maxHeight = 120 * context.resources.displayMetrics.density
+        val maxHeight = INDICATOR_BAR_HEIGHT_DP * context.resources.displayMetrics.density
         
         // 直接使用百分比计算高度
         val barHeight = (maxHeight * currentBrightness).toInt()
@@ -459,7 +461,7 @@ class GestureHandler(
         volumeIndicator?.visibility = View.VISIBLE
         
         val context = contextRef.get() ?: return
-        val maxHeight = 120 * context.resources.displayMetrics.density
+        val maxHeight = INDICATOR_BAR_HEIGHT_DP * context.resources.displayMetrics.density
         
         // 根据音量增强设置调整显示逻辑
         val (displayPercent, barPercent) = if (volumeBoostEnabled) {
@@ -571,6 +573,12 @@ class GestureHandler(
         // 滑动seek的状态（参考 mpvEx）
         private var isSeekingActive = false
         private var seekInitialPosition = 0  // seek开始时的视频位置（秒）
+
+        private fun isTopSystemBarPullDown(deltaY: Float): Boolean {
+            val density = contextRef.get()?.resources?.displayMetrics?.density ?: 1f
+            val topExclusionHeight = TOP_SYSTEM_GESTURE_EXCLUSION_DP * density
+            return initialY <= topExclusionHeight && deltaY > 0f
+        }
 
         override fun onDown(e: MotionEvent): Boolean {
             initialX = e.x
@@ -692,6 +700,9 @@ class GestureHandler(
                         // 记录seek开始时的视频位置（只记录一次）
                         seekInitialPosition = callback.getCurrentPosition()
                     } else if (absY > absX * 1.2f) {  // 从1.5降低到1.2
+                        if (isTopSystemBarPullDown(deltaY)) {
+                            return false
+                        }
                         // 纵向滑动 - 调整音量/亮度（参考 mpvKt：屏幕左半边=亮度，右半边=音量）
                         if (initialX < screenWidth / 2) {
                             gestureType = GestureType.BRIGHTNESS

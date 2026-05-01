@@ -21,18 +21,24 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
@@ -110,6 +116,13 @@ class InternalDownloadManager private constructor(
 
     fun refreshAll() {
         scope.launch {
+            scheduleDownloads()
+        }
+    }
+
+    fun recoverInterruptedDownloads() {
+        scope.launch {
+            markInterruptedDownloads()
             scheduleDownloads()
         }
     }
@@ -194,8 +207,10 @@ class InternalDownloadManager private constructor(
                     Intent(appContext, VideoPlayerActivity::class.java).apply {
                         action = Intent.ACTION_VIEW
                         setDataAndType(uri, mimeType.ifBlank { "*/*" })
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        putExtra(VideoPlayerActivity.EXTRA_FORCE_LOCAL_PLAYBACK, true)
+                        putExtra("video_title", record.title.ifBlank { record.fileName })
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                 )
                 true
@@ -259,6 +274,9 @@ class InternalDownloadManager private constructor(
         treeUriString: String
     ): InternalDownloadEntity {
         require(treeUriString.isNotBlank()) { "目标目录不能为空" }
+        require(!hasLocalM3u8Package(record)) {
+            "M3U8离线包需要保留在应用下载目录"
+        }
         val mimeType = record.mimeType.ifBlank {
             resolveMimeType(record.mimeType, record.fileName, record.url)
         }
@@ -293,6 +311,9 @@ class InternalDownloadManager private constructor(
     }
 
     suspend fun transferRecordToPublicDirectory(record: InternalDownloadEntity): InternalDownloadEntity {
+        require(!hasLocalM3u8Package(record)) {
+            "M3U8离线包需要保留在应用下载目录"
+        }
         val mimeType = record.mimeType.ifBlank {
             resolveMimeType(record.mimeType, record.fileName, record.url)
         }
@@ -372,12 +393,36 @@ class InternalDownloadManager private constructor(
         }
     }
 
+    private suspend fun markInterruptedDownloads() {
+        schedulerMutex.withLock {
+            dao.getByStatuses(
+                listOf(
+                    InternalDownloadStatus.RUNNING,
+                    InternalDownloadStatus.UNKNOWN
+                )
+            ).forEach { record ->
+                if (runningJobs.containsKey(record.systemDownloadId)) {
+                    return@forEach
+                }
+                deleteTempFile(record.fileName)
+                dao.update(
+                    record.copy(
+                        description = "上次下载中断，可重试",
+                        status = InternalDownloadStatus.FAILED,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
+    }
+
     private suspend fun performDownload(downloadId: Long) {
         val existing = dao.getBySystemDownloadId(downloadId) ?: return
         val settings = preferencesRepository.getSettings()
         val headers = jsonToHeaders(existing.headersJson)
         val targetFile = resolveAvailableTargetFile(existing.fileName)
         val tempFile = File(targetFile.parentFile, "${targetFile.name}.part")
+        var isLocalM3u8Package = false
         tempFile.parentFile?.mkdirs()
         if (tempFile.exists()) {
             tempFile.delete()
@@ -403,7 +448,8 @@ class InternalDownloadManager private constructor(
                 }
             }
 
-            buildHttpClient(settings).newCall(requestBuilder.build()).execute().use { response ->
+            val client = buildHttpClient(settings)
+            client.newCall(requestBuilder.build()).execute().use { response ->
                 if (!response.isSuccessful) {
                     throw IOException("HTTP ${response.code}")
                 }
@@ -416,20 +462,50 @@ class InternalDownloadManager private constructor(
                     url = existing.url
                 )
                 val totalBytes = body.contentLength().coerceAtLeast(0L)
+                val canUseSegmentedDownload = !isM3u8Resource(existing.url, targetFile.name, resolvedMimeType) &&
+                    totalBytes > settings.chunkSizeKb.coerceIn(128, 12288) * 1024L &&
+                    settings.normalThreadCount > 1 &&
+                    (
+                        supportsRangeDownload(response) ||
+                            probeRangeDownload(
+                                client = client,
+                                url = response.request.url.toString(),
+                                headers = headers
+                            )
+                    )
                 val downloadedBytes = if (isM3u8Resource(existing.url, targetFile.name, resolvedMimeType)) {
                     val playlistContent = body.string()
                     val normalizedContent = if (settings.autoMergeM3u8) {
-                        normalizeM3u8Content(
+                        isLocalM3u8Package = true
+                        downloadM3u8Package(
                             content = playlistContent,
                             baseUrl = response.request.url.toString(),
                             headers = headers,
-                            client = buildHttpClient(settings)
+                            client = client,
+                            outputPlaylistFile = tempFile,
+                            settings = settings,
+                            runningRecord = runningRecord.copy(mimeType = resolvedMimeType),
+                            targetFile = targetFile
                         )
                     } else {
                         playlistContent
                     }
-                    tempFile.writeText(normalizedContent)
+                    if (!settings.autoMergeM3u8) {
+                        tempFile.writeText(normalizedContent)
+                    }
                     tempFile.length()
+                } else if (canUseSegmentedDownload) {
+                    body.close()
+                    downloadSegmentedFile(
+                        client = client,
+                        url = response.request.url.toString(),
+                        headers = headers,
+                        tempFile = tempFile,
+                        totalBytes = totalBytes,
+                        settings = settings,
+                        runningRecord = runningRecord.copy(mimeType = resolvedMimeType, totalBytes = totalBytes),
+                        targetFile = targetFile
+                    )
                 } else {
                     val buffer = ByteArray(settings.chunkSizeKb.coerceIn(128, 12288) * 1024)
                     var downloaded = 0L
@@ -466,12 +542,14 @@ class InternalDownloadManager private constructor(
                     downloaded
                 }
 
+                currentCoroutineContext().ensureActive()
                 if (targetFile.exists()) {
                     targetFile.delete()
                 }
                 require(tempFile.renameTo(targetFile)) { "保存文件失败" }
 
-                val finalLocation = if (settings.customDirectoryUri.isNotBlank()) {
+                currentCoroutineContext().ensureActive()
+                val finalLocation = if (settings.customDirectoryUri.isNotBlank() && !isLocalM3u8Package) {
                     copyToCustomDirectory(
                         sourceFile = targetFile,
                         displayName = targetFile.name,
@@ -487,7 +565,11 @@ class InternalDownloadManager private constructor(
                     )
                 }
 
-                val storedLocation = if (settings.autoTransferToPublicDir) {
+                val storedLocation = if (
+                    settings.autoTransferToPublicDir &&
+                    settings.customDirectoryUri.isBlank() &&
+                    !isLocalM3u8Package
+                ) {
                     copyToPublicDownloads(
                         sourceFile = targetFile,
                         displayName = finalLocation.displayName,
@@ -497,8 +579,24 @@ class InternalDownloadManager private constructor(
                     finalLocation
                 }
 
-                if ((settings.customDirectoryUri.isNotBlank() || settings.autoTransferToPublicDir) && targetFile.exists()) {
+                if (
+                    !isLocalM3u8Package &&
+                    (settings.customDirectoryUri.isNotBlank() || settings.autoTransferToPublicDir) &&
+                    targetFile.exists()
+                ) {
                     targetFile.delete()
+                }
+
+                currentCoroutineContext().ensureActive()
+                val storedBytes = if (isLocalM3u8Package) {
+                    targetFile.length() + directorySizeBytes(m3u8PackageDirectoryFor(targetFile))
+                } else {
+                    storedLocation.fileSizeBytes
+                }
+                val successTotalBytes = if (isLocalM3u8Package) {
+                    storedBytes
+                } else {
+                    maxOf(totalBytes, downloadedBytes, storedBytes)
                 }
 
                 val successRecord = runningRecord.copy(
@@ -506,13 +604,14 @@ class InternalDownloadManager private constructor(
                     status = InternalDownloadStatus.SUCCESS,
                     title = storedLocation.displayName,
                     fileName = storedLocation.displayName,
-                    totalBytes = if (totalBytes > 0L) totalBytes else maxOf(downloadedBytes, storedLocation.fileSizeBytes),
-                    downloadedBytes = storedLocation.fileSizeBytes,
+                    totalBytes = successTotalBytes,
+                    downloadedBytes = storedBytes,
                     localUri = storedLocation.uri.toString(),
                     localPath = storedLocation.absolutePath,
                     updatedAt = System.currentTimeMillis(),
                     completedAt = System.currentTimeMillis()
                 )
+                currentCoroutineContext().ensureActive()
                 dao.update(successRecord)
 
                 if (settings.showCompletionTip) {
@@ -521,6 +620,9 @@ class InternalDownloadManager private constructor(
             }
         } catch (_: CancellationException) {
             tempFile.delete()
+            if (isLocalM3u8Package) {
+                m3u8PackageDirectoryFor(targetFile).deleteRecursively()
+            }
             dao.update(
                 runningRecord.copy(
                     status = InternalDownloadStatus.CANCELLED,
@@ -529,6 +631,9 @@ class InternalDownloadManager private constructor(
             )
         } catch (error: Exception) {
             tempFile.delete()
+            if (isLocalM3u8Package) {
+                m3u8PackageDirectoryFor(targetFile).deleteRecursively()
+            }
             dao.update(
                 runningRecord.copy(
                     description = error.message?.take(160).orEmpty().ifBlank { "下载失败" },
@@ -540,6 +645,439 @@ class InternalDownloadManager private constructor(
                 postToast("下载失败：${runningRecord.fileName}")
             }
         }
+    }
+
+    private suspend fun downloadM3u8Package(
+        content: String,
+        baseUrl: String,
+        headers: Map<String, String>,
+        client: OkHttpClient,
+        outputPlaylistFile: File,
+        settings: DownloadSettingsState,
+        runningRecord: InternalDownloadEntity,
+        targetFile: File,
+        depth: Int = 0
+    ): String = coroutineScope {
+        if (depth >= 4) {
+            outputPlaylistFile.writeText(content)
+            return@coroutineScope content
+        }
+
+        val mediaPlaylist = selectM3u8MediaPlaylist(content, baseUrl, headers, client)
+        if (mediaPlaylist != null) {
+            return@coroutineScope downloadM3u8Package(
+                content = mediaPlaylist.content,
+                baseUrl = mediaPlaylist.url,
+                headers = headers,
+                client = client,
+                outputPlaylistFile = outputPlaylistFile,
+                settings = settings,
+                runningRecord = runningRecord,
+                targetFile = targetFile,
+                depth = depth + 1
+            )
+        }
+
+        val assetDirectory = m3u8PackageDirectoryFor(targetFile)
+        if (assetDirectory.exists()) {
+            assetDirectory.deleteRecursively()
+        }
+        assetDirectory.mkdirs()
+
+        val resources = mutableListOf<M3u8PackageResource>()
+        val rewrittenLines = mutableListOf<String>()
+        var mediaIndex = 0
+        var sidecarIndex = 0
+
+        content.lineSequence().forEach { rawLine ->
+            val line = rawLine.trim()
+            when {
+                line.isBlank() -> rewrittenLines += rawLine
+                line.startsWith("#EXT-X-KEY:", ignoreCase = true) ||
+                    line.startsWith("#EXT-X-MAP:", ignoreCase = true) -> {
+                    val uri = extractM3u8UriAttribute(line)
+                    if (uri.isNullOrBlank()) {
+                        rewrittenLines += rawLine
+                    } else {
+                        val file = File(assetDirectory, "resource_${sidecarIndex++}${guessM3u8ResourceExtension(uri)}")
+                        resources += M3u8PackageResource(
+                            url = resolveUrl(baseUrl, uri),
+                            file = file
+                        )
+                        rewrittenLines += replaceM3u8UriAttributeWithValue(line, file.toURI().toString())
+                    }
+                }
+
+                line.startsWith("#") -> rewrittenLines += rawLine
+                else -> {
+                    val file = File(assetDirectory, "segment_${mediaIndex++}${guessM3u8ResourceExtension(line)}")
+                    resources += M3u8PackageResource(
+                        url = resolveUrl(baseUrl, line),
+                        file = file
+                    )
+                    rewrittenLines += file.toURI().toString()
+                }
+            }
+        }
+
+        val downloadedBytes = AtomicLong(0L)
+        val lastStoredAt = AtomicLong(0L)
+        val limiter = Semaphore(settings.m3u8ThreadCount.coerceIn(1, 64))
+
+        var completed = false
+        try {
+            resources.map { resource ->
+                async(Dispatchers.IO) {
+                    limiter.withPermit {
+                        downloadM3u8ResourceWithRetry(
+                            client = client,
+                            headers = headers,
+                            resource = resource,
+                            onBytes = { bytes ->
+                                val current = downloadedBytes.addAndGet(bytes.toLong())
+                                val now = System.currentTimeMillis()
+                                val last = lastStoredAt.get()
+                                if (now - last >= 350L && lastStoredAt.compareAndSet(last, now)) {
+                                    dao.update(
+                                        runningRecord.copy(
+                                            totalBytes = 0L,
+                                            downloadedBytes = current,
+                                            localPath = targetFile.absolutePath,
+                                            updatedAt = now
+                                        )
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }.awaitAll()
+
+            currentCoroutineContext().ensureActive()
+            val rewrittenContent = rewrittenLines.joinToString("\n")
+            outputPlaylistFile.writeText(rewrittenContent)
+            completed = true
+            rewrittenContent
+        } finally {
+            if (!completed) {
+                assetDirectory.deleteRecursively()
+            }
+        }
+    }
+
+    private fun selectM3u8MediaPlaylist(
+        content: String,
+        baseUrl: String,
+        headers: Map<String, String>,
+        client: OkHttpClient
+    ): M3u8MediaPlaylist? {
+        var pendingStreamInf = false
+        var pendingBandwidth = -1L
+        var selectedUrl: String? = null
+        var selectedBandwidth = -1L
+        content.lineSequence().forEach { rawLine ->
+            val line = rawLine.trim()
+            when {
+                line.startsWith("#EXT-X-STREAM-INF", ignoreCase = true) -> {
+                    pendingStreamInf = true
+                    pendingBandwidth = extractM3u8LongAttribute(line, "BANDWIDTH") ?: -1L
+                }
+                pendingStreamInf && line.isNotBlank() && !line.startsWith("#") -> {
+                    if (selectedUrl == null || pendingBandwidth > selectedBandwidth) {
+                        selectedUrl = resolveUrl(baseUrl, line)
+                        selectedBandwidth = pendingBandwidth
+                    }
+                    pendingStreamInf = false
+                    pendingBandwidth = -1L
+                }
+                line.isNotBlank() && !line.startsWith("#") -> pendingStreamInf = false
+            }
+        }
+        val url = selectedUrl ?: return null
+        return M3u8MediaPlaylist(
+            url = url,
+            content = fetchTextContent(client, url, headers)
+        )
+    }
+
+    private suspend fun downloadM3u8ResourceWithRetry(
+        client: OkHttpClient,
+        headers: Map<String, String>,
+        resource: M3u8PackageResource,
+        onBytes: (Int) -> Unit
+    ) {
+        var lastError: Exception? = null
+        repeat(SEGMENT_DOWNLOAD_RETRY_COUNT) { attempt ->
+            var reportedBytes = 0L
+            try {
+                downloadM3u8Resource(
+                    client = client,
+                    headers = headers,
+                    resource = resource,
+                    onBytes = { bytes ->
+                        reportedBytes += bytes.toLong()
+                        onBytes(bytes)
+                    }
+                )
+                return
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                lastError = error
+                if (reportedBytes > 0L) {
+                    onBytes(-reportedBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                }
+                if (attempt < SEGMENT_DOWNLOAD_RETRY_COUNT - 1) {
+                    resource.file.delete()
+                    delay(250L * (attempt + 1))
+                }
+            }
+        }
+        throw lastError ?: IOException("M3U8分片下载失败")
+    }
+
+    private suspend fun downloadM3u8Resource(
+        client: OkHttpClient,
+        headers: Map<String, String>,
+        resource: M3u8PackageResource,
+        onBytes: (Int) -> Unit
+    ) {
+        currentCoroutineContext().ensureActive()
+        resource.file.parentFile?.mkdirs()
+        val requestBuilder = Request.Builder().url(resource.url)
+        headers.forEach { (key, value) ->
+            if (key.isNotBlank() && value.isNotBlank()) {
+                requestBuilder.header(key, value)
+            }
+        }
+
+        currentCoroutineContext().ensureActive()
+        client.newCall(requestBuilder.build()).execute().use { response ->
+            currentCoroutineContext().ensureActive()
+            if (!response.isSuccessful) {
+                throw IOException("HTTP ${response.code}")
+            }
+            val body = response.body ?: throw IOException("M3U8分片响应为空")
+            val buffer = ByteArray(DEFAULT_SEGMENT_BUFFER_BYTES)
+            body.byteStream().use { input ->
+                resource.file.outputStream().buffered().use { output ->
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val read = input.read(buffer)
+                        if (read < 0) {
+                            break
+                        }
+                        currentCoroutineContext().ensureActive()
+                        output.write(buffer, 0, read)
+                        onBytes(read)
+                    }
+                    currentCoroutineContext().ensureActive()
+                    output.flush()
+                }
+            }
+        }
+    }
+
+    private suspend fun downloadSegmentedFile(
+        client: OkHttpClient,
+        url: String,
+        headers: Map<String, String>,
+        tempFile: File,
+        totalBytes: Long,
+        settings: DownloadSettingsState,
+        runningRecord: InternalDownloadEntity,
+        targetFile: File
+    ): Long = coroutineScope {
+        val partDirectory = File(tempFile.parentFile, "${tempFile.name}.segments")
+        if (partDirectory.exists()) {
+            partDirectory.deleteRecursively()
+        }
+        partDirectory.mkdirs()
+
+        val splitSize = settings.chunkSizeKb.coerceIn(128, 12288) * 1024L
+        val segments = buildList {
+            var start = 0L
+            var index = 0
+            while (start < totalBytes) {
+                val end = minOf(start + splitSize - 1L, totalBytes - 1L)
+                add(
+                    DownloadSegment(
+                        index = index,
+                        start = start,
+                        end = end,
+                        file = File(partDirectory, "part_$index")
+                    )
+                )
+                start = end + 1L
+                index += 1
+            }
+        }
+
+        val downloadedBytes = AtomicLong(0L)
+        val lastStoredAt = AtomicLong(0L)
+        val limiter = Semaphore(settings.normalThreadCount.coerceIn(1, 64))
+
+        try {
+            segments.map { segment ->
+                async(Dispatchers.IO) {
+                    limiter.withPermit {
+                        downloadSegmentWithRetry(
+                            client = client,
+                            url = url,
+                            headers = headers,
+                            segment = segment,
+                            onBytes = { bytes ->
+                                val current = downloadedBytes.addAndGet(bytes.toLong())
+                                val now = System.currentTimeMillis()
+                                val last = lastStoredAt.get()
+                                if (now - last >= 350L && lastStoredAt.compareAndSet(last, now)) {
+                                    dao.update(
+                                        runningRecord.copy(
+                                            downloadedBytes = current,
+                                            localPath = targetFile.absolutePath,
+                                            updatedAt = now
+                                        )
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }.awaitAll()
+
+            currentCoroutineContext().ensureActive()
+            tempFile.outputStream().buffered().use { output ->
+                segments.sortedBy { it.index }.forEach { segment ->
+                    currentCoroutineContext().ensureActive()
+                    segment.file.inputStream().buffered().use { input ->
+                        input.copyTo(output)
+                    }
+                }
+                output.flush()
+            }
+            require(tempFile.length() == totalBytes) {
+                "分段合并大小异常"
+            }
+            totalBytes
+        } finally {
+            partDirectory.deleteRecursively()
+        }
+    }
+
+    private suspend fun downloadSegmentWithRetry(
+        client: OkHttpClient,
+        url: String,
+        headers: Map<String, String>,
+        segment: DownloadSegment,
+        onBytes: (Int) -> Unit
+    ) {
+        var lastError: Exception? = null
+        repeat(SEGMENT_DOWNLOAD_RETRY_COUNT) { attempt ->
+            var reportedBytes = 0L
+            try {
+                downloadSegment(
+                    client = client,
+                    url = url,
+                    headers = headers,
+                    segment = segment,
+                    onBytes = { bytes ->
+                        reportedBytes += bytes.toLong()
+                        onBytes(bytes)
+                    }
+                )
+                return
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                lastError = error
+                if (reportedBytes > 0L) {
+                    onBytes(-reportedBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                }
+                if (attempt < SEGMENT_DOWNLOAD_RETRY_COUNT - 1) {
+                    segment.file.delete()
+                    delay(250L * (attempt + 1))
+                }
+            }
+        }
+        throw lastError ?: IOException("分段下载失败")
+    }
+
+    private suspend fun downloadSegment(
+        client: OkHttpClient,
+        url: String,
+        headers: Map<String, String>,
+        segment: DownloadSegment,
+        onBytes: (Int) -> Unit
+    ) {
+        currentCoroutineContext().ensureActive()
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .header("Range", "bytes=${segment.start}-${segment.end}")
+        headers.forEach { (key, value) ->
+            if (key.isNotBlank() && value.isNotBlank() && !key.equals("Range", ignoreCase = true)) {
+                requestBuilder.header(key, value)
+            }
+        }
+
+        currentCoroutineContext().ensureActive()
+        client.newCall(requestBuilder.build()).execute().use { response ->
+            currentCoroutineContext().ensureActive()
+            if (response.code != 206) {
+                throw IOException("HTTP ${response.code}")
+            }
+            val body = response.body ?: throw IOException("分段响应体为空")
+            val expectedLength = segment.end - segment.start + 1L
+            var downloaded = 0L
+            val buffer = ByteArray(DEFAULT_SEGMENT_BUFFER_BYTES)
+
+            body.byteStream().use { input ->
+                segment.file.outputStream().buffered().use { output ->
+                    while (true) {
+                        currentCoroutineContext().ensureActive()
+                        val read = input.read(buffer)
+                        if (read < 0) {
+                            break
+                        }
+                        currentCoroutineContext().ensureActive()
+                        output.write(buffer, 0, read)
+                        downloaded += read
+                        onBytes(read)
+                    }
+                    currentCoroutineContext().ensureActive()
+                    output.flush()
+                }
+            }
+
+            currentCoroutineContext().ensureActive()
+            if (downloaded != expectedLength) {
+                throw IOException("分段大小异常")
+            }
+        }
+    }
+
+    private fun supportsRangeDownload(response: Response): Boolean {
+        return response.header("Accept-Ranges")?.equals("bytes", ignoreCase = true) == true
+    }
+
+    private fun probeRangeDownload(
+        client: OkHttpClient,
+        url: String,
+        headers: Map<String, String>
+    ): Boolean {
+        val requestBuilder = Request.Builder()
+            .url(url)
+            .header("Range", "bytes=0-0")
+        headers.forEach { (key, value) ->
+            if (key.isNotBlank() && value.isNotBlank() && !key.equals("Range", ignoreCase = true)) {
+                requestBuilder.header(key, value)
+            }
+        }
+        return runCatching {
+            client.newCall(requestBuilder.build()).execute().use { response ->
+                response.code == 206 &&
+                    response.header("Content-Range").orEmpty().startsWith("bytes ", ignoreCase = true)
+            }
+        }.getOrDefault(false)
     }
 
     private fun prepareHeaders(
@@ -566,6 +1104,7 @@ class InternalDownloadManager private constructor(
 
         headers.putIfAbsent("User-Agent", RemotePlaybackHeaders.DEFAULT_USER_AGENT)
         headers.putIfAbsent("Accept", "*/*")
+        headers.putIfAbsent("Accept-Encoding", "identity")
 
         if (RemotePlaybackHeaders.get(headers, "Cookie").isNullOrBlank()) {
             val cookie = runCatching {
@@ -609,7 +1148,6 @@ class InternalDownloadManager private constructor(
     private fun shouldSchedule(status: String): Boolean {
         return status == InternalDownloadStatus.PENDING ||
             status == InternalDownloadStatus.RUNNING ||
-            status == InternalDownloadStatus.PAUSED ||
             status == InternalDownloadStatus.UNKNOWN
     }
 
@@ -666,6 +1204,24 @@ class InternalDownloadManager private constructor(
         }
     }
 
+    private fun m3u8PackageDirectoryFor(playlistFile: File): File {
+        return File(playlistFile.parentFile, "${playlistFile.name}.files")
+    }
+
+    private fun directorySizeBytes(directory: File): Long {
+        if (!directory.exists()) {
+            return 0L
+        }
+        return directory.walkTopDown()
+            .filter { it.isFile }
+            .sumOf { it.length() }
+    }
+
+    private fun hasLocalM3u8Package(record: InternalDownloadEntity): Boolean {
+        val localFile = resolveLocalFile(record) ?: return false
+        return m3u8PackageDirectoryFor(localFile).exists()
+    }
+
     private fun buildLocalContentUri(file: File): Uri {
         return FileProvider.getUriForFile(
             appContext,
@@ -679,10 +1235,12 @@ class InternalDownloadManager private constructor(
         if (tempFile.exists()) {
             tempFile.delete()
         }
+        m3u8PackageDirectoryFor(File(getDownloadDirectory(), fileName)).deleteRecursively()
     }
 
     private fun deleteDownloadedFile(record: InternalDownloadEntity): Boolean {
         resolveLocalFile(record)?.let { file ->
+            m3u8PackageDirectoryFor(file).deleteRecursively()
             if (file.exists()) {
                 return file.delete()
             }
@@ -701,7 +1259,18 @@ class InternalDownloadManager private constructor(
         require(file.exists()) { "当前文件不存在" }
         val renamedFile = File(file.parentFile, targetFileName)
         require(renamedFile.absolutePath != file.absolutePath) { "文件名未发生变化" }
+        val oldPackageDirectory = m3u8PackageDirectoryFor(file)
+        val newPackageDirectory = m3u8PackageDirectoryFor(renamedFile)
+        require(!oldPackageDirectory.exists() || !newPackageDirectory.exists()) {
+            "目标文件名的M3U8离线包已存在"
+        }
         require(file.renameTo(renamedFile)) { "重命名失败" }
+        if (oldPackageDirectory.exists()) {
+            if (!oldPackageDirectory.renameTo(newPackageDirectory)) {
+                renamedFile.renameTo(file)
+                throw IOException("M3U8离线包重命名失败")
+            }
+        }
         return renamedFile
     }
 
@@ -860,6 +1429,33 @@ class InternalDownloadManager private constructor(
         val match = pattern.find(line) ?: return line
         val source = match.groupValues[1]
         return line.replace(source, resolveUrl(baseUrl, source))
+    }
+
+    private fun extractM3u8UriAttribute(line: String): String? {
+        return Regex("URI=\"([^\"]+)\"").find(line)?.groupValues?.getOrNull(1)
+    }
+
+    private fun extractM3u8LongAttribute(line: String, name: String): Long? {
+        val pattern = Regex("(?:^|,)${Regex.escape(name)}=(\\d+)", RegexOption.IGNORE_CASE)
+        return pattern.find(line)?.groupValues?.getOrNull(1)?.toLongOrNull()
+    }
+
+    private fun replaceM3u8UriAttributeWithValue(line: String, replacementUri: String): String {
+        val pattern = Regex("URI=\"([^\"]+)\"")
+        val match = pattern.find(line) ?: return line
+        return line.replace(match.groupValues[1], replacementUri)
+    }
+
+    private fun guessM3u8ResourceExtension(value: String): String {
+        val path = value.substringBefore('?').substringBefore('#')
+        val extension = path.substringAfterLast('.', "")
+            .takeIf { it.length in 1..8 && it.all { char -> char.isLetterOrDigit() } }
+            ?.lowercase()
+        return when {
+            extension.isNullOrBlank() -> ".bin"
+            extension == "jpeg" -> ".jpg"
+            else -> ".$extension"
+        }
     }
 
     private fun resolveUrl(baseUrl: String, value: String): String {
@@ -1039,12 +1635,32 @@ class InternalDownloadManager private constructor(
         val fileSizeBytes: Long
     )
 
+    private data class DownloadSegment(
+        val index: Int,
+        val start: Long,
+        val end: Long,
+        val file: File
+    )
+
+    private data class M3u8PackageResource(
+        val url: String,
+        val file: File
+    )
+
+    private data class M3u8MediaPlaylist(
+        val url: String,
+        val content: String
+    )
+
     companion object {
+        private const val SEGMENT_DOWNLOAD_RETRY_COUNT = 5
+        private const val DEFAULT_SEGMENT_BUFFER_BYTES = 64 * 1024
+
         @Volatile
         private var INSTANCE: InternalDownloadManager? = null
 
         fun initialize(context: Context) {
-            getInstance(context).refreshAll()
+            getInstance(context).recoverInterruptedDownloads()
         }
 
         fun getInstance(context: Context): InternalDownloadManager {

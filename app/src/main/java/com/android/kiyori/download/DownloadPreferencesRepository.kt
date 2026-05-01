@@ -37,16 +37,18 @@ class DownloadPreferencesRepository(context: Context) {
     private val preferencesManager = PreferencesManager.getInstance(context.applicationContext)
 
     fun getSettings(): DownloadSettingsState {
+        val normalThreadCount = preferencesManager.getDownloadNormalThreadCount()
+            .coerceIn(1, 64)
+        val m3u8ThreadCount = preferencesManager.getDownloadM3u8ThreadCount()
+            .coerceIn(1, 64)
         return DownloadSettingsState(
             defaultEngine = DownloadEngineMode.fromId(preferencesManager.getDownloadDefaultEngineId()),
             customDirectoryUri = preferencesManager.getDownloadCustomDirectoryUri().trim(),
             customDirectoryName = preferencesManager.getDownloadCustomDirectoryName().trim(),
             maxConcurrentTasks = preferencesManager.getDownloadMaxConcurrentTasks()
-                .coerceIn(1, 8),
-            normalThreadCount = preferencesManager.getDownloadNormalThreadCount()
-                .coerceIn(1, 64),
-            m3u8ThreadCount = preferencesManager.getDownloadM3u8ThreadCount()
-                .coerceIn(1, 64),
+                .coerceIn(1, maxConcurrentTasksFor(normalThreadCount, m3u8ThreadCount)),
+            normalThreadCount = normalThreadCount,
+            m3u8ThreadCount = m3u8ThreadCount,
             autoMergeM3u8 = preferencesManager.isDownloadM3u8AutoMergeEnabled(),
             autoTransferToPublicDir = preferencesManager.isDownloadAutoTransferPublicEnabled(),
             chunkSizeKb = preferencesManager.getDownloadChunkSizeKb()
@@ -65,6 +67,7 @@ class DownloadPreferencesRepository(context: Context) {
     fun setCustomDirectory(uri: String, displayName: String) {
         preferencesManager.setDownloadCustomDirectoryUri(uri.trim())
         preferencesManager.setDownloadCustomDirectoryName(displayName.trim())
+        preferencesManager.setDownloadAutoTransferPublicEnabled(false)
     }
 
     fun clearCustomDirectory() {
@@ -73,15 +76,28 @@ class DownloadPreferencesRepository(context: Context) {
     }
 
     fun setMaxConcurrentTasks(value: Int) {
-        preferencesManager.setDownloadMaxConcurrentTasks(value.coerceIn(1, 8))
+        val settings = getSettings()
+        preferencesManager.setDownloadMaxConcurrentTasks(
+            value.coerceIn(1, maxConcurrentTasksLimit(settings.normalThreadCount, settings.m3u8ThreadCount))
+        )
+    }
+
+    fun maxConcurrentTasksLimit(
+        normalThreadCount: Int = getSettings().normalThreadCount,
+        m3u8ThreadCount: Int = getSettings().m3u8ThreadCount
+    ): Int {
+        val heaviestThreadCount = maxOf(normalThreadCount, m3u8ThreadCount).coerceAtLeast(1)
+        return minOf(8, 128 / heaviestThreadCount).coerceAtLeast(1)
     }
 
     fun setNormalThreadCount(value: Int) {
         preferencesManager.setDownloadNormalThreadCount(value.coerceIn(1, 64))
+        normalizeMaxConcurrentTasks()
     }
 
     fun setM3u8ThreadCount(value: Int) {
         preferencesManager.setDownloadM3u8ThreadCount(value.coerceIn(1, 64))
+        normalizeMaxConcurrentTasks()
     }
 
     fun setAutoMergeM3u8(enabled: Boolean) {
@@ -90,6 +106,9 @@ class DownloadPreferencesRepository(context: Context) {
 
     fun setAutoTransferToPublicDir(enabled: Boolean) {
         preferencesManager.setDownloadAutoTransferPublicEnabled(enabled)
+        if (enabled) {
+            clearCustomDirectory()
+        }
     }
 
     fun setChunkSizeKb(value: Int) {
@@ -110,5 +129,14 @@ class DownloadPreferencesRepository(context: Context) {
 
     fun setEnableHttp2(enabled: Boolean) {
         preferencesManager.setDownloadHttp2Enabled(enabled)
+    }
+
+    private fun normalizeMaxConcurrentTasks() {
+        val settings = getSettings()
+        setMaxConcurrentTasks(settings.maxConcurrentTasks)
+    }
+
+    private fun maxConcurrentTasksFor(normalThreadCount: Int, m3u8ThreadCount: Int): Int {
+        return maxConcurrentTasksLimit(normalThreadCount, m3u8ThreadCount)
     }
 }

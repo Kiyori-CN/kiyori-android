@@ -451,9 +451,9 @@ WebDAV 能力也很直接：
 
 - mpv 关闭 TLS 校验
 - WebDAV 客户端信任所有证书并放过主机名校验
-- WebDAV 播放时把用户名密码直接嵌入 URL
+- WebDAV 播放已改为通过 `RemotePlaybackRequest.headers` 传递 `Authorization`，不再把用户名密码嵌入播放 URL
 - Manifest 开启 `usesCleartextTraffic=true`
-- 申请 `MANAGE_EXTERNAL_STORAGE`
+- 仍声明 `MANAGE_EXTERNAL_STORAGE`，但启动阶段不再批量请求；当前本地媒体入口优先使用媒体读取权限，后续应继续评估是否移除全文件访问声明
 
 这些做法在实用层面确实能减少“播不了”的情况，但在可审计性、安全性和上架合规上风险较高。
 
@@ -461,8 +461,8 @@ WebDAV 能力也很直接：
 
 当前源码中能直接看到未完成项：
 
-- 下载任务持久化仍是 TODO
-- 断点续传仍是 TODO
+- Bilibili 下载任务已进入 Room 持久化，应用重启后未完成任务会恢复为 paused
+- Bilibili 字节级断点续传仍是 TODO，当前恢复会重新拉取计划并重下片段
 - Paging 模式下搜索尚未在数据库层实现，只做了 UI 提示
 
 这说明某些能力已经有 UI 入口，但工程闭环尚未完全完成。

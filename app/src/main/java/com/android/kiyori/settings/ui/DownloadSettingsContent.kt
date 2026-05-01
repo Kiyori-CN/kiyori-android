@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,7 +60,6 @@ private val DownloadSheetSecondaryTextColor = Color(0xFF666666)
 private val DownloadSheetDividerColor = Color(0xFFEFEFEF)
 private val DownloadSheetScrimColor = Color(0x73000000)
 
-private val DownloadConcurrentTaskOptions = (1..8).toList()
 private val DownloadNormalThreadOptions = listOf(3, 6, 8, 12, 16, 20, 32, 48, 64)
 private val DownloadM3u8ThreadOptions = listOf(3, 8, 16, 20, 32, 48, 64)
 private val DownloadChunkSizeOptionsKb = listOf(12288, 8192, 4096, 2048, 1024, 512, 256)
@@ -180,9 +180,13 @@ fun DownloadSettingsContent() {
                     title = "同时下载任务数",
                     value = settings.maxConcurrentTasks.toString(),
                     onClick = {
+                        val maxConcurrentTaskLimit = repository.maxConcurrentTasksLimit(
+                            normalThreadCount = settings.normalThreadCount,
+                            m3u8ThreadCount = settings.m3u8ThreadCount
+                        )
                         selectionSheet = DownloadSettingSheetState(
                             title = "同时下载任务数，当前：${settings.maxConcurrentTasks}",
-                            items = DownloadConcurrentTaskOptions.map { value ->
+                            items = (1..maxConcurrentTaskLimit).map { value ->
                                 DownloadSettingSheetItem(
                                     label = value.toString(),
                                     selected = value == settings.maxConcurrentTasks,
@@ -540,7 +544,12 @@ private fun DownloadSettingsIndicator(enabled: Boolean) {
         modifier = Modifier
             .size(17.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(if (enabled) Color(0xFF111111) else Color.White),
+            .background(if (enabled) Color(0xFFCBBEFF) else Color.White)
+            .border(
+                width = if (enabled) 0.dp else 1.dp,
+                color = if (enabled) Color.Transparent else Color(0xFFBAB4AE),
+                shape = RoundedCornerShape(3.dp)
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (enabled) {

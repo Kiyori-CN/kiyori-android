@@ -97,6 +97,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         private val REMOTE_URI_SCHEMES = setOf("http", "https", "rtsp", "rtmp", "rtmps")
         private const val EXTRA_PORTRAIT_UI = "portrait_ui"
         private const val EXTRA_AUTO_ROTATE = "auto_rotate"
+        const val EXTRA_FORCE_LOCAL_PLAYBACK = "kiyori_force_local_playback"
     }
 
     private lateinit var playbackEngine: PlaybackEngine
@@ -120,6 +121,7 @@ class VideoPlayerActivity : AppCompatActivity(),
     private lateinit var pauseIndicator: android.widget.ImageView
     private val pauseIndicatorHandler = Handler(Looper.getMainLooper())
     private var pauseIndicatorHideRunnable: Runnable? = null
+    private var suppressNextPauseIndicator = false
     
     private lateinit var resumeProgressPrompt: LinearLayout
     private lateinit var btnResumePromptConfirm: TextView
@@ -223,7 +225,11 @@ class VideoPlayerActivity : AppCompatActivity(),
         historyManager = PlaybackHistoryManager(this)
         
         loadUserSettings()
-        remotePlaybackRequest = intent.parcelableExtraCompat(RemotePlaybackLauncher.EXTRA_REMOTE_REQUEST)
+        remotePlaybackRequest = if (isForceLocalPlaybackIntent(intent)) {
+            null
+        } else {
+            intent.parcelableExtraCompat(RemotePlaybackLauncher.EXTRA_REMOTE_REQUEST)
+        }
 
         // 处理视频URI - 支持本地文件和在线URL
         try {
@@ -298,10 +304,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         com.android.kiyori.utils.Logger.d(TAG, "URI scheme: ${videoUri?.scheme}")
         
         // 判断是否为在线视频
-        isOnlineVideo = remotePlaybackRequest != null ||
-            intent.getBooleanExtra("is_online", false) ||
-            intent.getBooleanExtra("is_online_video", false) ||
-            isRemotePlaybackUri(videoUri)
+        isOnlineVideo = shouldTreatAsOnlinePlayback(videoUri)
 
         if (isOnlineVideo && remotePlaybackRequest == null) {
             remotePlaybackRequest = buildLegacyRemotePlaybackRequest(videoUri!!)
@@ -407,6 +410,29 @@ class VideoPlayerActivity : AppCompatActivity(),
         
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+
+        val nextRemotePlaybackRequest: RemotePlaybackRequest? = if (isForceLocalPlaybackIntent(intent)) {
+            null
+        } else {
+            intent.parcelableExtraCompat(RemotePlaybackLauncher.EXTRA_REMOTE_REQUEST)
+        }
+        val nextVideoUri = resolveVideoUriFromIntent(intent, nextRemotePlaybackRequest)
+        if (nextVideoUri == null) {
+            DialogUtils.showToastShort(this, "无效的视频路径")
+            return
+        }
+
+        remoteResolveJob?.cancel()
+        remotePlaybackRequest = nextRemotePlaybackRequest
+        hasLoadedPlayableMedia = false
+        hasHandledStartupPlaybackFailure = false
+        savedPosition = preferencesManager.getPlaybackPosition(nextVideoUri.toString())
+        playVideo(nextVideoUri)
+    }
+
     /**
      * 初始化所有管理器
      */
@@ -455,9 +481,15 @@ class VideoPlayerActivity : AppCompatActivity(),
                     // 检测播放状态变化，显示/隐藏暂停指示器
                     if (isPlaying != previousIsPlaying) {
                         if (!isPlaying) {
-                            // 暂停，显示暂停指示器
-                            showPauseIndicator()
+                            if (suppressNextPauseIndicator) {
+                                suppressNextPauseIndicator = false
+                                hidePauseIndicator()
+                            } else {
+                                // 暂停，显示暂停指示器
+                                showPauseIndicator()
+                            }
                         } else {
+                            suppressNextPauseIndicator = false
                             // 播放，隐藏暂停指示器
                             hidePauseIndicator()
                         }
@@ -638,6 +670,7 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onDoubleTap() {
+                    suppressNextPauseIndicator = isPlaying
                     playbackEngine.togglePlayPause()
                 }
                 
@@ -991,6 +1024,11 @@ class VideoPlayerActivity : AppCompatActivity(),
             onTogglePortraitUi()
             controlsManager.resetAutoHideTimer()
         }
+
+        findViewById<ImageView>(R.id.btnScreenshotSide)?.setOnClickListener {
+            screenshotManager.takeScreenshot()
+            controlsManager.resetAutoHideTimer()
+        }
           
         // 弹幕显示/隐藏按钮
         val btnDanmakuToggle = findViewById<ImageView>(R.id.btnDanmakuToggle)
@@ -1182,9 +1220,15 @@ class VideoPlayerActivity : AppCompatActivity(),
         }
         findViewById<View>(R.id.topRightPanel)?.let { v ->
             val lp = v.layoutParams as? LinearLayout.LayoutParams ?: return@let
-            lp.width = 0
-            lp.weight = if (enabled) 2f else 1f
-            lp.marginEnd = (if (enabled) 8 else 60).dpToPx()
+            if (enabled) {
+                lp.width = 0
+                lp.weight = 2f
+                lp.marginEnd = 8.dpToPx()
+            } else {
+                lp.width = LinearLayout.LayoutParams.WRAP_CONTENT
+                lp.weight = 0f
+                lp.marginEnd = 12.dpToPx()
+            }
             v.layoutParams = lp
         }
         findViewById<TextView>(R.id.tvFileName)?.let { tv ->
@@ -1205,7 +1249,6 @@ class VideoPlayerActivity : AppCompatActivity(),
             R.id.btnSubtitle,
             R.id.btnDanmaku,
             R.id.btnAspectRatio,
-            R.id.btnLock,
             R.id.btnMore
         ).forEach { id ->
             findViewById<ImageView>(id)?.let { icon ->
@@ -1213,9 +1256,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                 lp.width = topIconSize.dpToPx()
                 lp.height = topIconSize.dpToPx()
                 lp.marginStart = when {
-                    enabled && (id == R.id.btnLock || id == R.id.btnMore) -> portraitWideIconMargin
+                    enabled && id == R.id.btnMore -> portraitWideIconMargin
                     enabled -> portraitIconMargin
-                    id == R.id.btnLock || id == R.id.btnMore -> landscapeWideIconMargin
+                    id == R.id.btnMore -> landscapeWideIconMargin
                     else -> landscapeIconMargin
                 }
                 icon.setPadding(
@@ -1228,11 +1271,12 @@ class VideoPlayerActivity : AppCompatActivity(),
             }
         }
 
-        // 2) Bottom main controls: reduce icon size/margins in portrait so they don't feel cramped.
-        val normalIconSize = if (enabled) 40 else 44
-        val playIconSize = if (enabled) 44 else 48
-        val normalPadding = if (enabled) 6 else 8
-        val compactMargin = if (enabled) 8 else 12
+        // 2) Bottom main controls: keep the visual icons compact in both orientations.
+        val normalIconSize = if (enabled) 32 else 38
+        val playIconSize = if (enabled) 36 else 42
+        val normalPadding = if (enabled) 5 else 6
+        val playPadding = if (enabled) 5 else 6
+        val compactMargin = if (enabled) 4 else 7
 
         fun adjustBottomIcon(
             id: Int,
@@ -1256,10 +1300,10 @@ class VideoPlayerActivity : AppCompatActivity(),
             icon.layoutParams = lp
         }
 
-        adjustBottomIcon(R.id.btnDanmakuToggle, normalIconSize, 6)
+        adjustBottomIcon(R.id.btnDanmakuToggle, normalIconSize, normalPadding)
         adjustBottomIcon(R.id.btnPrevious, normalIconSize, normalPadding, marginStartDp = compactMargin, marginEndDp = 0)
         adjustBottomIcon(R.id.btnRewind, normalIconSize, normalPadding, marginStartDp = compactMargin, marginEndDp = 0)
-        adjustBottomIcon(R.id.btnPlayPause, playIconSize, 6, marginStartDp = compactMargin, marginEndDp = compactMargin)
+        adjustBottomIcon(R.id.btnPlayPause, playIconSize, playPadding, marginStartDp = compactMargin, marginEndDp = compactMargin)
         adjustBottomIcon(R.id.btnForward, normalIconSize, normalPadding, marginStartDp = 0, marginEndDp = compactMargin)
         adjustBottomIcon(R.id.btnNext, normalIconSize, normalPadding, marginStartDp = 0, marginEndDp = compactMargin)
         adjustBottomIcon(R.id.btnSpeed, normalIconSize, normalPadding)
@@ -1274,12 +1318,47 @@ class VideoPlayerActivity : AppCompatActivity(),
         val shouldShowPortraitButtons = portraitEnabled && controlsVisible
         val shouldShowLandscapeRotate = !portraitEnabled && controlsVisible
 
-        findViewById<View>(R.id.btnAnime4KFloat)?.visibility =
-            if (shouldShowPortraitButtons) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.btnRotateFloat)?.visibility =
-            if (shouldShowPortraitButtons) View.VISIBLE else View.GONE
+        animateControlOverlayView(findViewById(R.id.rightSideActionsPanel), controlsVisible)
+        animateControlOverlayView(findViewById(R.id.btnAnime4KFloat), shouldShowPortraitButtons)
+        animateControlOverlayView(findViewById(R.id.btnRotateFloat), shouldShowPortraitButtons)
         findViewById<View>(R.id.btnRotateCorner)?.visibility =
             if (shouldShowLandscapeRotate) View.VISIBLE else View.GONE
+    }
+
+    private fun animateControlOverlayView(view: View?, visible: Boolean) {
+        view ?: return
+        view.animate().cancel()
+        if (visible) {
+            if (view.visibility == View.VISIBLE && view.alpha == 1f && view.translationY == 0f) {
+                return
+            }
+            view.visibility = View.VISIBLE
+            view.alpha = 0f
+            view.translationY = 100f
+            view.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(250)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        } else {
+            if (view.visibility != View.VISIBLE) {
+                view.alpha = 1f
+                view.translationY = 0f
+                return
+            }
+            view.animate()
+                .alpha(0f)
+                .translationY(0f)
+                .setDuration(200)
+                .setInterpolator(android.view.animation.AccelerateInterpolator())
+                .withEndAction {
+                    view.visibility = View.GONE
+                    view.alpha = 1f
+                    view.translationY = 0f
+                }
+                .start()
+        }
     }
 
     private fun refreshVideoLayoutAfterOrientationToggle() {
@@ -1925,16 +2004,17 @@ class VideoPlayerActivity : AppCompatActivity(),
         // 重置自动加载字幕标志（新视频开始播放）
         hasAutoLoadedSubtitle = false
         
-        // 更新在线视频标志
-        isOnlineVideo = isRemotePlaybackUri(uri)
-        remotePlaybackRequest = if (isOnlineVideo) {
-            RemotePlaybackRequest(
+        // 更新在线视频标志。下载中心和本地文件打开必须始终按本地播放处理，
+        // 避免复用上一次浏览器嗅探播放的远程返回状态。
+        isOnlineVideo = shouldTreatAsOnlinePlayback(uri)
+        remotePlaybackRequest = when {
+            !isOnlineVideo -> null
+            remotePlaybackRequest != null -> remotePlaybackRequest
+            else -> RemotePlaybackRequest(
                 url = uri.toString(),
                 title = resolveVideoTitle(uri),
                 source = RemotePlaybackRequest.Source.UNKNOWN
             )
-        } else {
-            null
         }
         
         // 显示加载动画（仅在线视频）
@@ -2296,6 +2376,43 @@ class VideoPlayerActivity : AppCompatActivity(),
         return scheme in REMOTE_URI_SCHEMES
     }
 
+    private fun shouldTreatAsOnlinePlayback(uri: Uri?): Boolean {
+        if (isForceLocalPlaybackIntent(intent)) {
+            return false
+        }
+        return remotePlaybackRequest != null ||
+            intent.getBooleanExtra("is_online", false) ||
+            intent.getBooleanExtra("is_online_video", false) ||
+            isRemotePlaybackUri(uri)
+    }
+
+    private fun isForceLocalPlaybackIntent(intent: Intent): Boolean {
+        return intent.getBooleanExtra(EXTRA_FORCE_LOCAL_PLAYBACK, false)
+    }
+
+    private fun resolveVideoUriFromIntent(
+        sourceIntent: Intent,
+        remoteRequest: RemotePlaybackRequest?
+    ): Uri? {
+        return when {
+            remoteRequest != null -> Uri.parse(remoteRequest.url)
+            sourceIntent.action == Intent.ACTION_VIEW -> sourceIntent.data
+            sourceIntent.action == Intent.ACTION_SEND -> {
+                if (sourceIntent.type?.startsWith("video/") == true ||
+                    sourceIntent.type?.startsWith("audio/") == true
+                ) {
+                    sourceIntent.parcelableExtraCompat(Intent.EXTRA_STREAM)
+                } else {
+                    sourceIntent.data
+                }
+            }
+            sourceIntent.hasExtra("uri") -> {
+                sourceIntent.getStringExtra("uri")?.let(Uri::parse) ?: sourceIntent.data
+            }
+            else -> sourceIntent.data
+        }
+    }
+
     private fun resolveVideoTitle(uri: Uri): String {
         remotePlaybackRequest?.title
             ?.takeIf { it.isNotBlank() }
@@ -2631,10 +2748,6 @@ class VideoPlayerActivity : AppCompatActivity(),
                 pauseIndicator.scaleY = 0.8f
             }
             .start()
-    }
-    
-    override fun onScreenshot() {
-        screenshotManager.takeScreenshot()
     }
     
     override fun onShowSkipSettings() {

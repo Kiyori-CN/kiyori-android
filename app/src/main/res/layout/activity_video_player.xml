@@ -59,33 +59,31 @@
     <!-- 解锁按钮（锁定模式下显示在屏幕左侧） -->
     <ImageView
         android:id="@+id/btnUnlock"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:src="@drawable/ic_unlock"
-        app:tint="#FFFFFF"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:src="@drawable/ic_kiyori_player_lock_outline"
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:layout_centerVertical="true"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="60dp"
+        android:layout_marginStart="12dp"
         android:visibility="gone" />
 
     <!-- 解锁按钮（右侧对称位置） -->
     <ImageView
         android:id="@+id/btnUnlockRight"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:src="@drawable/ic_unlock"
-        app:tint="#FFFFFF"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:src="@drawable/ic_kiyori_player_lock_outline"
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:layout_centerVertical="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="60dp"
+        android:layout_marginEnd="12dp"
         android:visibility="gone" />
 
     <!-- 顶部渐变阴影背景层 -->
@@ -160,12 +158,12 @@
             <!-- 右侧区域:状态+按钮(占1/2宽度,预留导航栏空间) -->
             <LinearLayout
                 android:id="@+id/topRightPanel"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_weight="0"
                 android:orientation="horizontal"
                 android:gravity="end|center_vertical"
-                android:layout_marginEnd="60dp">
+                android:layout_marginEnd="12dp">
 
                 <!-- 电量和时间显示（向左移动，给字幕按钮留空间） -->
                 <LinearLayout
@@ -237,19 +235,6 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:layout_marginStart="4dp" />
 
-                <!-- 锁定按钮 -->
-                <ImageView
-                    android:id="@+id/btnLock"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:src="@drawable/ic_lock"
-                    app:tint="#FFFFFF"
-                    android:padding="6dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:layout_marginStart="6dp" />
-
                 <!-- 更多选项按钮 -->
                 <ImageView
                     android:id="@+id/btnMore"
@@ -295,7 +280,10 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@android:color/transparent"
-            android:padding="12dp">
+            android:paddingStart="12dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp">
 
             <!-- 进度条区域 -->
             <LinearLayout
@@ -351,7 +339,7 @@
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp">
+                android:layout_marginTop="2dp">
 
                 <!-- 主控制按钮组 - 相对于整个屏幕居中 -->
                 <LinearLayout
@@ -365,8 +353,8 @@
                     <!-- 弹幕显示/隐藏按钮 -->
                     <ImageView
                         android:id="@+id/btnDanmakuToggle"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:src="@drawable/ic_danmaku_visible"
                         app:tint="#FFFFFF"
                         android:padding="6dp"
@@ -377,121 +365,121 @@
                     <!-- 上一集按钮 -->
                     <ImageView
                         android:id="@+id/btnPrevious"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:src="@drawable/previous_square"
                         app:tint="#FFFFFF"
-                        android:padding="8dp"
+                        android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:layout_marginStart="12dp"
+                        android:layout_marginStart="7dp"
                         android:enabled="false"
                         android:alpha="0.5" />
 
                     <!-- 后退按钮 -->
                     <ImageView
                         android:id="@+id/btnRewind"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:src="@drawable/ic_rewind_new"
                         app:tint="#FFFFFF"
-                        android:padding="8dp"
+                        android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:layout_marginStart="12dp" />
+                        android:layout_marginStart="7dp" />
 
                     <!-- 播放按钮（屏幕正中间的参考点） -->
                     <ImageView
                         android:id="@+id/btnPlayPause"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
+                        android:layout_width="42dp"
+                        android:layout_height="42dp"
                         android:src="@drawable/pause"
                         app:tint="#FFFFFF"
                         android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:layout_marginStart="12dp"
-                        android:layout_marginEnd="12dp" />
+                        android:layout_marginStart="7dp"
+                        android:layout_marginEnd="7dp" />
 
                     <!-- 前进按钮 -->
                     <ImageView
                         android:id="@+id/btnForward"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:src="@drawable/ic_forward_new"
                         app:tint="#FFFFFF"
-                        android:padding="8dp"
+                        android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:layout_marginEnd="12dp" />
+                        android:layout_marginEnd="7dp" />
 
                     <!-- 下一集按钮 -->
                     <ImageView
                         android:id="@+id/btnNext"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:src="@drawable/next_square"
                         app:tint="#FFFFFF"
-                        android:padding="8dp"
+                        android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:layout_marginEnd="12dp"
+                        android:layout_marginEnd="7dp"
                         android:enabled="false"
                         android:alpha="0.5" />
 
                     <!-- 倍速按钮 -->
                     <ImageView
                         android:id="@+id/btnSpeed"
-                        android:layout_width="44dp"
-                        android:layout_height="44dp"
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
                         android:src="@drawable/tachometer_alt_fastest"
                         app:tint="#FFFFFF"
-                        android:padding="8dp"
+                        android:padding="6dp"
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless" />
 
                 </LinearLayout>
 
-                <!-- Anime4K按钮（超分辨率）- 独立定位在左侧 -->
+                <!-- Anime4K按钮（超分）- 独立定位在左侧 -->
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnAnime4K"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:minWidth="80dp"
-                    android:text="超分辨率"
-                    android:textSize="12sp"
+                    android:layout_height="34dp"
+                    android:minWidth="56dp"
+                    android:text="超分"
+                    android:textSize="11sp"
                     android:textColor="#FFFFFF"
                     android:textAllCaps="false"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
                     android:background="@android:color/transparent"
                     android:layout_gravity="start|bottom"
-                    android:layout_marginStart="18dp"
-                    android:layout_marginBottom="4dp" />
+                    android:layout_marginStart="12dp"
+                    android:layout_marginBottom="3dp" />
 
                 <!-- 横屏旋转按钮 - 右下角（随控制栏显示隐藏） -->
                 <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnRotateCorner"
                     android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:minWidth="80dp"
+                    android:layout_height="34dp"
+                    android:minWidth="56dp"
                     android:text="旋转"
-                    android:textSize="12sp"
+                    android:textSize="11sp"
                     android:textAllCaps="false"
                     android:textColor="#FFFFFF"
                     android:gravity="center"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
                     android:background="@android:color/transparent"
                     android:layout_gravity="end|bottom"
-                    android:layout_marginEnd="18dp"
-                    android:layout_marginBottom="4dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginBottom="3dp"
                     android:visibility="gone" />
 
             </FrameLayout>
@@ -541,38 +529,38 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="40dp"
+        android:layout_marginEnd="32dp"
         android:orientation="vertical"
         android:visibility="gone"
         android:gravity="center_horizontal"
         android:background="@drawable/indicator_card_background"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="16dp">
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="12dp">
 
         <!-- 亮度图标 -->
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:src="@drawable/ic_brightness"
             app:tint="#FFFFFF"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <!-- 亮度数值（1-10） -->
         <TextView
             android:id="@+id/brightnessText"
-            android:layout_width="44dp"
+            android:layout_width="38dp"
             android:layout_height="wrap_content"
             android:text="5"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <!-- 背景容器 -->
         <FrameLayout
-            android:layout_width="5dp"
-            android:layout_height="120dp"
+            android:layout_width="4dp"
+            android:layout_height="96dp"
             android:background="@drawable/progress_track_background">
 
             <!-- 亮度条 -->
@@ -594,38 +582,38 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_alignParentStart="true"
-        android:layout_marginStart="40dp"
+        android:layout_marginStart="32dp"
         android:orientation="vertical"
         android:visibility="gone"
         android:gravity="center_horizontal"
         android:background="@drawable/indicator_card_background"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="16dp">
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="12dp">
 
         <!-- 音量图标 -->
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:src="@drawable/ic_volume"
             app:tint="#FFFFFF"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <!-- 音量数值（1-10） -->
         <TextView
             android:id="@+id/volumeText"
-            android:layout_width="44dp"
+            android:layout_width="38dp"
             android:layout_height="wrap_content"
             android:text="5"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <!-- 背景容器 -->
         <FrameLayout
-            android:layout_width="5dp"
-            android:layout_height="120dp"
+            android:layout_width="4dp"
+            android:layout_height="96dp"
             android:background="@drawable/progress_track_background">
 
             <!-- 音量条 -->
@@ -640,44 +628,79 @@
 
     </LinearLayout>
 
-    <!-- 竖屏悬浮按钮：超分辨率（左侧中间） -->
+    <!-- 右侧快捷操作：截图 / 锁定 -->
+    <LinearLayout
+        android:id="@+id/rightSideActionsPanel"
+        android:layout_width="52dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="8dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/btnScreenshotSide"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:src="@drawable/ic_kiyori_player_camera_outline"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+        <ImageView
+            android:id="@+id/btnLock"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="28dp"
+            android:src="@drawable/ic_kiyori_player_unlock_outline"
+            android:padding="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackgroundBorderless" />
+
+    </LinearLayout>
+
+    <!-- 竖屏悬浮按钮：超分（底部左侧） -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnAnime4KFloat"
         android:layout_width="wrap_content"
-        android:layout_height="38dp"
-        android:minWidth="80dp"
-        android:text="超分辨率"
-        android:textSize="12sp"
+        android:layout_height="32dp"
+        android:minWidth="48dp"
+        android:text="超分"
+        android:textSize="11sp"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:gravity="center"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
         android:background="@android:color/transparent"
         android:layout_alignParentStart="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="14dp"
-        android:layout_marginBottom="122dp"
+        android:layout_marginStart="6dp"
+        android:layout_marginBottom="10dp"
         android:visibility="gone" />
 
-    <!-- 竖屏悬浮按钮：旋转/切换布局（右侧中间） -->
+    <!-- 竖屏悬浮按钮：旋转/切换布局（底部右侧） -->
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btnRotateFloat"
         android:layout_width="wrap_content"
-        android:layout_height="38dp"
-        android:minWidth="80dp"
+        android:layout_height="32dp"
+        android:minWidth="48dp"
         android:text="旋转"
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textAllCaps="false"
         android:textColor="#FFFFFF"
         android:gravity="center"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
         android:background="@android:color/transparent"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="122dp"
+        android:layout_marginEnd="6dp"
+        android:layout_marginBottom="10dp"
         android:visibility="gone" />
 
     <!-- 进度调整提示（屏幕中央）- 优化为圆角背景 -->
@@ -687,11 +710,11 @@
         android:layout_height="wrap_content"
         android:layout_centerInParent="true"
         android:background="@drawable/speed_hint_background"
-        android:paddingHorizontal="28dp"
-        android:paddingVertical="18dp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp"
         android:text="08:17\n[+00:12]"
         android:textColor="#FFFFFF"
-        android:textSize="30sp"
+        android:textSize="24sp"
         android:textStyle="bold"
         android:gravity="center"
         android:visibility="gone"

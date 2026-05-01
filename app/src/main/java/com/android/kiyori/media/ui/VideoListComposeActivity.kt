@@ -160,12 +160,17 @@ class VideoListComposeActivity : ComponentActivity() {
     ) {
         Log.d(TAG, "播放视频: ${video.name}, 索引: $currentIndex")
 
-        val intent = Intent(this, VideoPlayerActivity::class.java)
-        intent.data = Uri.parse(video.uri)
-        intent.putExtra("video_name", video.name)
-        intent.putExtra("current_index", currentIndex)
-        intent.putExtra("folderName", folderName)
-        intent.putParcelableArrayListExtra("video_list", ArrayList(allVideos))
+        val videoUri = Uri.parse(video.uri)
+        val intent = Intent(this, VideoPlayerActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            setDataAndType(videoUri, "video/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            putExtra(VideoPlayerActivity.EXTRA_FORCE_LOCAL_PLAYBACK, true)
+            putExtra("video_name", video.name)
+            putExtra("current_index", currentIndex)
+            putExtra("folderName", folderName)
+            putParcelableArrayListExtra("video_list", ArrayList(allVideos))
+        }
         startActivity(intent)
         applyOpenActivityTransitionCompat(R.anim.slide_in_right, R.anim.slide_out_left)
     }

@@ -51,7 +51,6 @@ class MainActivity : BaseActivity() {
     private var requestedInitialTab: String? = null
     private var requestedInitialSettingsPage: String? = null
     private var requestedNavRequestId: Long = 0L
-    private lateinit var permissionCoordinator: AppPermissionCoordinator
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.applyTheme(this)
@@ -64,8 +63,6 @@ class MainActivity : BaseActivity() {
             finish()
             return
         }
-
-        permissionCoordinator = AppPermissionCoordinator(this)
 
         android.os.Looper.myQueue().addIdleHandler {
             historyManager = PlaybackHistoryManager(this)
@@ -81,7 +78,6 @@ class MainActivity : BaseActivity() {
         requestedInitialSettingsPage = intent.getStringExtra(EXTRA_INITIAL_SETTINGS_PAGE)
         requestedNavRequestId = intent.getLongExtra(EXTRA_NAV_REQUEST_ID, 0L)
         setupContent()
-        permissionCoordinator.requestAllPermissionsIfNeeded()
     }
 
     override fun onNewIntent(intent: Intent) {

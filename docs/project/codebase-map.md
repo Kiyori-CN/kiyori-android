@@ -23,14 +23,14 @@
 - `settings/`：设置页 Activity 与设置相关 Compose 页面。
 - `ui/`：真正跨功能复用的 Compose UI 基础组件与主题色。
 
-`MainActivity` 负责首启协议门禁、主题初始化、权限协调和挂载 `HomeScreen`。主页路由中需要特别注意 `TAB_AI = "ai"`：它不是底部独立 tab，而是映射到 `HomeTab.Home` 的 pager 第 2 页，也就是正一屏 AI 对话页。
+`MainActivity` 负责首启协议门禁、主题初始化和挂载 `HomeScreen`。主入口不再批量请求运行时权限；浏览器网页权限由 `browser/ui/BrowserPermissionCoordinator.kt` 按需处理，本地媒体读取权限由 `LocalMediaBrowserActivity` 按需处理。主页路由中需要特别注意 `TAB_AI = "ai"`：它不是底部独立 tab，而是映射到 `HomeTab.Home` 的 pager 第 2 页，也就是正一屏 AI 对话页。
 
 ### 3.2 浏览器主线
 
-- `browser/`：内置浏览器主体，内部已拆出 `data`、`domain`、`playback`、`security`、`ui`、`web`、`x5`。
+- `browser/`：内置浏览器主体，内部已拆出 `data`、`domain`、`playback`、`security`、`ui`、`web`、`x5`；其中网页权限映射策略在 `browser/security/BrowserWebPermissionPolicy.kt`，Activity Result 请求编排在 `browser/ui/BrowserPermissionCoordinator.kt`。
 - `remote/`：远程 URL 播放输入、历史与请求解析。
 - `sniffer/`：网页视频嗅探、URL 探测与媒体识别。
-- `webdav/`：WebDAV 账户管理、客户端、文件浏览与 Compose 页面。
+- `webdav/`：WebDAV 账户管理、客户端、文件浏览与 Compose 页面。WebDAV 播放通过 `RemotePlaybackRequest.headers` 传递认证头，不应把账号密码嵌入 URL。
 
 这四块共同组成当前项目的“浏览器优先”主业务。
 
@@ -48,7 +48,7 @@
 ### 3.4 集成能力
 
 - `bilibili/`：Bilibili 登录、模型与播放入口。
-- `download/`：内置下载器、下载设置、下载状态与 Bilibili 下载能力。
+- `download/`：内置下载器、下载设置、下载状态与 Bilibili 下载能力。通用下载记录使用 `internal_downloads`，Bilibili 下载记录使用 `bilibili_downloads`，数据库入口统一在 `VideoDatabase`。
 
 ### 3.5 Operit 正一屏复刻
 

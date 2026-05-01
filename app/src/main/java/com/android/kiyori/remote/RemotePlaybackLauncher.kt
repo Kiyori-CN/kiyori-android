@@ -40,6 +40,9 @@ object RemotePlaybackLauncher {
             data = Uri.parse(normalizedUrl)
             putExtra(EXTRA_REMOTE_REQUEST, normalizedRequest)
             putExtra("is_online", true)
+            if (normalizedRequest.source == RemotePlaybackRequest.Source.WEBDAV) {
+                putExtra("is_webdav", true)
+            }
             resolveReturnDestination(context)?.let { destination ->
                 putExtra(EXTRA_RETURN_DESTINATION, destination)
             }
