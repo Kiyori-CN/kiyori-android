@@ -9,18 +9,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,7 +43,8 @@ data class BrowserBookmarkDraft(
     val title: String,
     val url: String,
     val iconUrl: String,
-    val folderId: Long?
+    val folderId: Long?,
+    val newFolderTitle: String = ""
 )
 
 @Composable
@@ -57,7 +59,11 @@ fun BrowserAddBookmarkDialog(
     var bookmarkUrl by remember(initialDraft) { mutableStateOf(initialDraft.url) }
     var bookmarkIconUrl by remember(initialDraft) { mutableStateOf(initialDraft.iconUrl) }
     var selectedFolderId by remember(initialDraft) { mutableStateOf(initialDraft.folderId) }
-    var folderMenuExpanded by remember { mutableStateOf(false) }
+    var folderTitle by remember(initialDraft, folderOptions) {
+        mutableStateOf(folderOptions.firstOrNull { it.id == initialDraft.folderId }?.title ?: "/")
+    }
+    var folderTitleEdited by remember(initialDraft) { mutableStateOf(false) }
+    var showFolderPickerDialog by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -100,46 +106,15 @@ fun BrowserAddBookmarkDialog(
                 )
                 Spacer(modifier = Modifier.height(18.dp))
                 Box(modifier = Modifier.padding(horizontal = 18.dp)) {
-                    BrowserDialogDropdownField(
-                        value = folderOptions.firstOrNull { it.id == selectedFolderId }?.title ?: "/",
-                        onClick = { folderMenuExpanded = true }
+                    BrowserDialogFolderInputField(
+                        value = folderTitle,
+                        onValueChange = {
+                            folderTitle = it
+                            folderTitleEdited = true
+                            selectedFolderId = null
+                        },
+                        onDropdownClick = { showFolderPickerDialog = true }
                     )
-                    DropdownMenu(
-                        expanded = folderMenuExpanded,
-                        onDismissRequest = { folderMenuExpanded = false },
-                        modifier = Modifier
-                            .widthIn(min = 272.dp, max = 272.dp)
-                            .background(Color.White, RoundedCornerShape(16.dp))
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    text = "/",
-                                    color = Color(0xFF111827),
-                                    fontSize = 14.sp
-                                )
-                            },
-                            onClick = {
-                                selectedFolderId = null
-                                folderMenuExpanded = false
-                            }
-                        )
-                        folderOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = option.title,
-                                        color = Color(0xFF111827),
-                                        fontSize = 14.sp
-                                    )
-                                },
-                                onClick = {
-                                    selectedFolderId = option.id
-                                    folderMenuExpanded = false
-                                }
-                            )
-                        }
-                    }
                 }
                 Spacer(modifier = Modifier.height(18.dp))
                 Row(
@@ -164,12 +139,23 @@ fun BrowserAddBookmarkDialog(
                         text = "确认",
                         modifier = Modifier.weight(1f),
                         onClick = {
+                            val normalizedFolderTitle = folderTitle.trim()
+                            val newFolderTitle = if (
+                                folderTitleEdited &&
+                                normalizedFolderTitle.isNotBlank() &&
+                                normalizedFolderTitle != "/"
+                            ) {
+                                normalizedFolderTitle
+                            } else {
+                                ""
+                            }
                             onConfirm(
                                 BrowserBookmarkDraft(
                                     title = bookmarkTitle.trim(),
                                     url = bookmarkUrl.trim(),
                                     iconUrl = bookmarkIconUrl.trim(),
-                                    folderId = selectedFolderId
+                                    folderId = if (newFolderTitle.isBlank()) selectedFolderId else null,
+                                    newFolderTitle = newFolderTitle
                                 )
                             )
                         }
@@ -177,6 +163,116 @@ fun BrowserAddBookmarkDialog(
                 }
             }
         }
+    }
+
+    if (showFolderPickerDialog) {
+        BrowserBookmarkFolderPickerDialog(
+            folderOptions = folderOptions,
+            onDismiss = { showFolderPickerDialog = false },
+            onSelectFolder = { option ->
+                selectedFolderId = option?.id
+                folderTitle = option?.title ?: "/"
+                folderTitleEdited = false
+                showFolderPickerDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun BrowserBookmarkFolderPickerDialog(
+    folderOptions: List<BrowserBookmarkFolderOption>,
+    onDismiss: () -> Unit,
+    onSelectFolder: (BrowserBookmarkFolderOption?) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .widthIn(min = 308.dp, max = 308.dp)
+                .heightIn(min = 360.dp, max = 460.dp),
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "选择文件夹",
+                        color = Color(0xFF111827),
+                        fontSize = 19.sp,
+                        lineHeight = 24.sp
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color(0xFFE9E9E9))
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(start = 18.dp, end = 18.dp, bottom = 18.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    BrowserBookmarkFolderPickerRow(
+                        title = "/",
+                        onClick = { onSelectFolder(null) }
+                    )
+                    folderOptions.forEach { option ->
+                        BrowserBookmarkFolderPickerRow(
+                            title = option.title,
+                            onClick = { onSelectFolder(option) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrowserBookmarkFolderPickerRow(
+    title: String,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 6.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = title,
+                color = Color(0xFF222222),
+                fontSize = 15.sp,
+                lineHeight = 19.sp
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFEDEDED))
+        )
     }
 }
 
@@ -257,7 +353,7 @@ private fun BrowserDialogTextField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 32.dp),
+                .height(34.dp),
             singleLine = true,
             textStyle = TextStyle(
                 color = Color(0xFF111827),
@@ -266,9 +362,9 @@ private fun BrowserDialogTextField(
             decorationBox = { innerTextField ->
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    contentAlignment = Alignment.CenterStart
+                        .fillMaxSize()
+                        .padding(top = 8.dp, bottom = 3.dp),
+                    contentAlignment = Alignment.BottomStart
                 ) {
                     if (value.isBlank() && placeholder.isNotEmpty()) {
                         Text(
@@ -278,6 +374,67 @@ private fun BrowserDialogTextField(
                         )
                     }
                     innerTextField()
+                }
+            }
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFBDBDBD))
+        )
+    }
+}
+
+@Composable
+private fun BrowserDialogFolderInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onDropdownClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp),
+            singleLine = true,
+            textStyle = TextStyle(
+                color = Color(0xFF111827),
+                fontSize = 14.sp
+            ),
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 8.dp, bottom = 3.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.BottomStart
+                    ) {
+                        innerTextField()
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                                onClick = onDropdownClick
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = Color(0xFF9CA3AF),
+                            modifier = Modifier.size(34.dp)
+                        )
+                    }
                 }
             }
         )

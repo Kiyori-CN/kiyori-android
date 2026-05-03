@@ -271,10 +271,13 @@ class PlaybackEngine(
         applyStreamingOptions()
 
         Log.d(TAG, "MPV loading URL: $actualUrl")
-        MPVLib.command("loadfile", actualUrl)
+        if (startPosition > 0.1) {
+            MPVLib.command("loadfile", actualUrl, "replace", "start=$startPosition")
+        } else {
+            MPVLib.command("loadfile", actualUrl, "replace")
+        }
 
         scheduleAutoPlay()
-        scheduleSeekRestore(startPosition)
         scheduleMediaInfoLog()
 
         // 延迟开始进度更新,避免在视频未就绪时查询属性
@@ -284,9 +287,9 @@ class PlaybackEngine(
     }
 
     private fun resetRemotePlaybackOptions() {
-        MPVLib.setOptionString("user-agent", RemotePlaybackHeaders.DEFAULT_USER_AGENT)
-        MPVLib.setOptionString("referrer", "")
-        MPVLib.setOptionString("http-header-fields", "Accept: */*")
+        setMpvOptionString("user-agent", RemotePlaybackHeaders.DEFAULT_USER_AGENT)
+        setMpvOptionString("referrer", "")
+        setMpvOptionString("http-header-fields", "Accept: */*")
     }
 
     private fun resetLocalPlaybackOptions() {
@@ -306,26 +309,41 @@ class PlaybackEngine(
             .ifBlank { RemotePlaybackHeaders.DEFAULT_USER_AGENT }
         val referer = RemotePlaybackHeaders.get(normalizedHeaders, "Referer").orEmpty().trim()
 
-        MPVLib.setOptionString("user-agent", userAgent)
-        MPVLib.setOptionString("referrer", referer)
+        setMpvOptionString("user-agent", userAgent)
+        setMpvOptionString("referrer", referer)
 
         val headerString = RemotePlaybackHeaders.toMpvHeaderFields(
             headers = normalizedHeaders,
             excludeNames = setOf("User-Agent", "Referer")
         )
-        MPVLib.setOptionString("http-header-fields", headerString)
+        setMpvOptionString("http-header-fields", headerString)
         Log.d(TAG, "Set HTTP headers: ${RemotePlaybackHeaders.describeForLog(normalizedHeaders)}")
     }
 
     private fun applyStreamingOptions() {
         // 这些都是内存缓存，不占用持久化存储
-        MPVLib.setOptionString("cache", "yes")
-        MPVLib.setOptionString("cache-secs", "120")
-        MPVLib.setOptionString("demuxer-max-bytes", "150M")
-        MPVLib.setOptionString("demuxer-seekable-cache", "yes")
-        MPVLib.setOptionString("stream-buffer-size", "5M")
-        MPVLib.setOptionString("http-allow-redirect", "yes")
-        MPVLib.setOptionString("hls-bitrate", "max")
+        setMpvOptionString("cache", "yes")
+        setMpvOptionString("cache-secs", "120")
+        setMpvOptionString("cache-pause", "no")
+        setMpvOptionString("cache-pause-initial", "no")
+        setMpvOptionString("demuxer-max-bytes", "150M")
+        setMpvOptionString("demuxer-max-back-bytes", "50M")
+        setMpvOptionString("demuxer-readahead-secs", "10")
+        setMpvOptionString("demuxer-seekable-cache", "yes")
+        setMpvOptionString("stream-buffer-size", "5M")
+        setMpvOptionString("http-allow-redirect", "yes")
+        setMpvOptionString("http-reconnect", "yes")
+        setMpvOptionString("network-timeout", "10")
+        setMpvOptionString("force-seekable", "no")
+        setMpvOptionString("hls-bitrate", "max")
+    }
+
+    private fun setMpvOptionString(name: String, value: String) {
+        runCatching {
+            MPVLib.setOptionString(name, value)
+        }.onFailure {
+            Log.w(TAG, "MPV option $name=$value is not available: ${it.message}")
+        }
     }
 
     private fun scheduleAutoPlay() {

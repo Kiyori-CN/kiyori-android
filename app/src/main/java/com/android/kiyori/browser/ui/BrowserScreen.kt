@@ -150,6 +150,8 @@ fun BrowserScreen(
     onClearSearchRecords: () -> Unit,
     onToggleIncognitoMode: () -> Unit,
     onOpenHistoryItem: (String) -> Unit,
+    onOpenBookmarkInBackground: (BrowserBookmarkItem) -> Unit,
+    onOpenBookmarkInNewWindow: (BrowserBookmarkItem) -> Unit,
     onDeleteHistoryItem: (Long) -> Unit,
     onClearHistory: () -> Unit,
     onSelectUserAgentMode: (BrowserUserAgentMode) -> Unit,
@@ -161,7 +163,7 @@ fun BrowserScreen(
     onDownloadDetectedVideo: (BrowserVideoCandidate) -> Unit,
     onRequestPageSource: ((String) -> Unit) -> Unit,
     bookmarkFolders: List<BrowserBookmarkFolderOption>,
-    onSaveBookmark: (BrowserBookmarkDraft) -> Unit
+    onSaveBookmark: (BrowserBookmarkDraft, Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -714,8 +716,8 @@ fun BrowserScreen(
                 showBookmarkDrawer = false
                 refreshBookmarkDrawerState()
             },
-            onCreateFolder = { title, parentId ->
-                bookmarkRepository.addFolder(title, parentId)
+            onCreateFolder = { title, parentId, secret ->
+                bookmarkRepository.addFolder(title, parentId, secret)
                 refreshBookmarkDrawerState()
             },
             onRenameFolder = { folderId, title ->
@@ -727,17 +729,83 @@ fun BrowserScreen(
                     refreshBookmarkDrawerState()
                 }
             },
-            onDeleteFolder = { folderId ->
-                bookmarkRepository.deleteFolder(folderId)
+            onDeleteFolder = { folderId, secret ->
+                bookmarkRepository.deleteFolder(folderId, secret)
                 refreshBookmarkDrawerState()
             },
-            onSaveBookmark = { draft ->
-                onSaveBookmark(draft)
+            onSaveBookmark = { draft, secret ->
+                onSaveBookmark(draft, secret)
+                refreshBookmarkDrawerState()
+            },
+            onUpdateBookmark = { bookmarkId, draft ->
+                val currentSecret = bookmarkRepository.getBookmarks()
+                    .firstOrNull { it.id == bookmarkId }
+                    ?.secret
+                    ?: false
+                val targetFolderId = draft.newFolderTitle
+                    .trim()
+                    .takeIf { it.isNotBlank() }
+                    ?.let { bookmarkRepository.addFolder(it, parentId = null, secret = currentSecret).id }
+                    ?: draft.folderId
+                bookmarkRepository.updateBookmark(bookmarkId, draft.title, draft.url, draft.iconUrl, targetFolderId)
+                refreshBookmarkDrawerState()
+            },
+            onMoveBookmark = { bookmarkId, folderId ->
+                bookmarkRepository.moveBookmark(bookmarkId, folderId).also {
+                    refreshBookmarkDrawerState()
+                }
+            },
+            onSetBookmarkSecret = { bookmarkId, secret ->
+                bookmarkRepository.setBookmarkSecret(bookmarkId, secret)
                 refreshBookmarkDrawerState()
             },
             onDeleteBookmark = { bookmarkId ->
                 bookmarkRepository.deleteBookmark(bookmarkId)
                 refreshBookmarkDrawerState()
+            },
+            onDeleteAllBookmarks = { secret ->
+                bookmarkRepository.deleteAllInSecretSpace(secret)
+                refreshBookmarkDrawerState()
+            },
+            onDeleteBookmarksInFolder = { folderId, secret ->
+                bookmarkRepository.deleteBookmarksInFolder(folderId, secret)
+                refreshBookmarkDrawerState()
+            },
+            onReorderFolder = { folderId, direction ->
+                bookmarkRepository.reorderFolder(folderId, direction).also {
+                    refreshBookmarkDrawerState()
+                }
+            },
+            onReorderBookmark = { bookmarkId, direction ->
+                bookmarkRepository.reorderBookmark(bookmarkId, direction).also {
+                    refreshBookmarkDrawerState()
+                }
+            },
+            onExportBookmarks = { folderId, secret -> bookmarkRepository.exportJson(folderId, secret) },
+            onShareBookmarks = { folderId, secret -> bookmarkRepository.exportHikerShareCommand(folderId, secret) },
+            onImportBookmarks = { raw, replace, secret ->
+                bookmarkRepository.importJson(raw, replace, secret).also {
+                    refreshBookmarkDrawerState()
+                }
+            },
+            onOpenBookmarkInBackground = { bookmark ->
+                onOpenBookmarkInBackground(bookmark)
+                true
+            },
+            onOpenBookmarkInNewWindow = { bookmark ->
+                onOpenBookmarkInNewWindow(bookmark)
+                showBookmarkDrawer = false
+                true
+            },
+            onAddBookmarkToHomeNavigation = { bookmark ->
+                bookmarkRepository.addBookmarkToHomeNavigation(bookmark.id).also {
+                    refreshBookmarkDrawerState()
+                }
+            },
+            onAddFolderToHomeNavigation = { folderId ->
+                bookmarkRepository.addFolderBookmarksToHomeNavigation(folderId).also {
+                    refreshBookmarkDrawerState()
+                }
             },
             onOpenBookmark = { url ->
                 showBookmarkDrawer = false
@@ -759,7 +827,7 @@ fun BrowserScreen(
                     Toast.makeText(context, "书签链接不能为空", Toast.LENGTH_SHORT).show()
                     return@BrowserAddBookmarkDialog
                 }
-                onSaveBookmark(draft)
+                onSaveBookmark(draft, false)
                 refreshBookmarkDrawerState()
                 addBookmarkDraft = null
                 Toast.makeText(context, "书签已保存", Toast.LENGTH_SHORT).show()
@@ -916,12 +984,26 @@ private fun BrowserBookmarksDrawer(
     folders: List<BrowserBookmarkFolder>,
     bookmarks: List<BrowserBookmarkItem>,
     onDismissRequest: () -> Unit,
-    onCreateFolder: (String, Long?) -> Unit,
+    onCreateFolder: (String, Long?, Boolean) -> Unit,
     onRenameFolder: (Long, String) -> Unit,
     onMoveFolder: (Long, Long?) -> Boolean,
-    onDeleteFolder: (Long) -> Unit,
-    onSaveBookmark: (BrowserBookmarkDraft) -> Unit,
+    onDeleteFolder: (Long, Boolean) -> Unit,
+    onSaveBookmark: (BrowserBookmarkDraft, Boolean) -> Unit,
+    onUpdateBookmark: (Long, BrowserBookmarkDraft) -> Unit,
+    onMoveBookmark: (Long, Long?) -> Boolean,
+    onSetBookmarkSecret: (Long, Boolean) -> Unit,
     onDeleteBookmark: (Long) -> Unit,
+    onDeleteAllBookmarks: (Boolean) -> Unit,
+    onDeleteBookmarksInFolder: (Long?, Boolean) -> Unit,
+    onReorderFolder: (Long, Int) -> Boolean,
+    onReorderBookmark: (Long, Int) -> Boolean,
+    onExportBookmarks: (Long?, Boolean) -> String,
+    onShareBookmarks: (Long?, Boolean) -> String,
+    onImportBookmarks: (String, Boolean, Boolean) -> BrowserBookmarkRepository.ImportResult,
+    onOpenBookmarkInBackground: (BrowserBookmarkItem) -> Boolean,
+    onOpenBookmarkInNewWindow: (BrowserBookmarkItem) -> Boolean,
+    onAddBookmarkToHomeNavigation: (BrowserBookmarkItem) -> Boolean,
+    onAddFolderToHomeNavigation: (Long) -> Int,
     onOpenBookmark: (String) -> Unit
 ) {
     KiyoriBottomDrawer(
@@ -941,7 +1023,21 @@ private fun BrowserBookmarksDrawer(
                 onMoveFolder = onMoveFolder,
                 onDeleteFolder = onDeleteFolder,
                 onSaveBookmark = onSaveBookmark,
+                onUpdateBookmark = onUpdateBookmark,
+                onMoveBookmark = onMoveBookmark,
+                onSetBookmarkSecret = onSetBookmarkSecret,
                 onDeleteBookmark = onDeleteBookmark,
+                onDeleteAllBookmarks = onDeleteAllBookmarks,
+                onDeleteBookmarksInFolder = onDeleteBookmarksInFolder,
+                onReorderFolder = onReorderFolder,
+                onReorderBookmark = onReorderBookmark,
+                onExportBookmarks = onExportBookmarks,
+                onShareBookmarks = onShareBookmarks,
+                onImportBookmarks = onImportBookmarks,
+                onOpenBookmarkInBackground = onOpenBookmarkInBackground,
+                onOpenBookmarkInNewWindow = onOpenBookmarkInNewWindow,
+                onAddBookmarkToHomeNavigation = onAddBookmarkToHomeNavigation,
+                onAddFolderToHomeNavigation = onAddFolderToHomeNavigation,
                 onOpenBookmark = onOpenBookmark
             )
         }

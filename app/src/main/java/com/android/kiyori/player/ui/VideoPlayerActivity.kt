@@ -98,6 +98,14 @@ class VideoPlayerActivity : AppCompatActivity(),
         private const val EXTRA_PORTRAIT_UI = "portrait_ui"
         private const val EXTRA_AUTO_ROTATE = "auto_rotate"
         const val EXTRA_FORCE_LOCAL_PLAYBACK = "kiyori_force_local_playback"
+        private const val ONLINE_DOUBLE_TAP_SEEK_DEBOUNCE_MS = 160L
+        private const val ONLINE_SEEK_STALL_GRACE_MS = 1200L
+        private const val ONLINE_SEEK_WATCHDOG_MS = 6500L
+        private const val ONLINE_SEEK_RECOVERY_THRESHOLD_SEC = 8.0
+        private const val ONLINE_SEEK_MAX_RECOVERY_ATTEMPTS = 1
+        private const val ONLINE_STALL_BUFFERING_THRESHOLD_MS = 1800L
+        private const val LOCAL_STALL_BUFFERING_THRESHOLD_MS = 1200L
+        private const val ONLINE_DANMAKU_SEEK_DELAY_MS = 1000L
     }
 
     private lateinit var playbackEngine: PlaybackEngine
@@ -122,6 +130,10 @@ class VideoPlayerActivity : AppCompatActivity(),
     private val pauseIndicatorHandler = Handler(Looper.getMainLooper())
     private var pauseIndicatorHideRunnable: Runnable? = null
     private var suppressNextPauseIndicator = false
+    private val userSeekHandler = Handler(Looper.getMainLooper())
+    private var pendingOnlineSeekRunnable: Runnable? = null
+    private var onlineSeekWatchdogRunnable: Runnable? = null
+    private var pendingOnlineDanmakuSeekRunnable: Runnable? = null
     
     private lateinit var resumeProgressPrompt: LinearLayout
     private lateinit var btnResumePromptConfirm: TextView
@@ -148,6 +160,7 @@ class VideoPlayerActivity : AppCompatActivity(),
     private var isHardwareDecoding = true
     private var pendingSeekPosition: Int? = null  // 待处理的seek位置，用于解决连续双击问题
     private var gestureStartPosition = 0  // 手势开始时的视频位置（用于滑动跳转）
+    private var pendingOnlineGestureSeekPosition: Int? = null
     
     private var currentVideoAspect = VideoAspect.FIT  // 当前画面比例模式
     
@@ -155,6 +168,11 @@ class VideoPlayerActivity : AppCompatActivity(),
     private var lastPositionForBuffering = 0.0
     private var lastPositionUpdateTime = 0L
     private var isStalledBuffering = false
+    private var suppressStalledBufferingUntilMs = 0L
+    private var onlineSeekGeneration = 0
+    private var onlineSeekTargetPosition: Int? = null
+    private var onlineSeekStartPosition = 0.0
+    private var onlineSeekRecoveryAttempts = 0
     
     // 播放状态跟踪
     private var previousIsPlaying = false
@@ -460,6 +478,9 @@ class VideoPlayerActivity : AppCompatActivity(),
                 override fun onProgressUpdate(position: Double, duration: Double) {
                     this@VideoPlayerActivity.currentPosition = position
                     this@VideoPlayerActivity.duration = duration
+                    if (isOnlineVideo) {
+                        maybeCompleteOnlineSeek(position)
+                    }
                     
                     // 清除pending seek位置(当位置更新后，说明seek已完成)
                     pendingSeekPosition = null
@@ -498,7 +519,11 @@ class VideoPlayerActivity : AppCompatActivity(),
                     
                     // 检测播放停顿缓冲
                     val currentTime = System.currentTimeMillis()
-                    if (position != lastPositionForBuffering) {
+                    if (lastPositionUpdateTime == 0L) {
+                        lastPositionForBuffering = position
+                        lastPositionUpdateTime = currentTime
+                    }
+                    if (kotlin.math.abs(position - lastPositionForBuffering) > 0.05) {
                         // 位置在前进，隐藏停顿缓冲
                         if (isStalledBuffering) {
                             isStalledBuffering = false
@@ -507,7 +532,12 @@ class VideoPlayerActivity : AppCompatActivity(),
                         }
                         lastPositionForBuffering = position
                         lastPositionUpdateTime = currentTime
-                    } else if (isPlaying && currentTime - lastPositionUpdateTime > 200 && !isStalledBuffering) {
+                    } else if (
+                        isPlaying &&
+                        currentTime - lastPositionUpdateTime > stalledBufferingThresholdMs() &&
+                        currentTime >= suppressStalledBufferingUntilMs &&
+                        !isStalledBuffering
+                    ) {
                         // 位置停顿超过0.2秒，且正在播放，显示停顿缓冲（仅在线视频）
                         isStalledBuffering = true
                         if (isOnlineVideo) {
@@ -701,10 +731,12 @@ class VideoPlayerActivity : AppCompatActivity(),
                         val basePosition = pendingSeekPosition ?: currentPosition.toInt()
                         val newPos = (basePosition + seekSeconds).coerceIn(0, duration.toInt())
                         pendingSeekPosition = newPos
-                        
-                        val usePrecise = gestureHandler.isPreciseSeekingEnabled()
-                        playbackEngine.seekTo(newPos, usePrecise)
-                        danmakuManager.seekTo((newPos * 1000).toLong())
+
+                        requestUserSeek(
+                            position = newPos,
+                            precise = gestureHandler.isPreciseSeekingEnabled(),
+                            debounceMs = if (isOnlineVideo) ONLINE_DOUBLE_TAP_SEEK_DEBOUNCE_MS else 0L
+                        )
                         
                         val currentTime = FormatUtils.formatProgressTime(newPos.toDouble())
                         val sign = if (seekSeconds >= 0) "+" else ""
@@ -733,11 +765,15 @@ class VideoPlayerActivity : AppCompatActivity(),
                     // 滑动中，实时seek到目标位置（参考 mpvEx）
                     if (duration > 0) {
                         val clampedPosition = targetPosition.coerceIn(0, duration.toInt())
-                        
-                        // 实时调用 seekTo，让视频跟着手指移动
-                        val usePrecise = gestureHandler.isPreciseSeekingEnabled()
-                        playbackEngine.seekTo(clampedPosition, usePrecise)
-                        danmakuManager.seekTo((clampedPosition * 1000).toLong())
+
+                        if (isOnlineVideo) {
+                            pendingOnlineGestureSeekPosition = clampedPosition
+                        } else {
+                            requestUserSeek(
+                                position = clampedPosition,
+                                precise = gestureHandler.isPreciseSeekingEnabled()
+                            )
+                        }
                         
                         // 更新提示文字
                         val currentTime = FormatUtils.formatProgressTime(clampedPosition.toDouble())
@@ -755,6 +791,12 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onSeekEnd() {
+                    if (isOnlineVideo) {
+                        pendingOnlineGestureSeekPosition?.let { targetPosition ->
+                            requestUserSeek(position = targetPosition, precise = false)
+                        }
+                        pendingOnlineGestureSeekPosition = null
+                    }
                     // 滑动seek结束，延迟隐藏提示
                     seekHint.postDelayed({
                         seekHint.animate()
@@ -788,16 +830,12 @@ class VideoPlayerActivity : AppCompatActivity(),
                 
                 override fun onRewindClick() {
                     Log.d(SEEK_DEBUG, "onRewindClick: seekTimeSeconds = $seekTimeSeconds, currentPosition = $currentPosition, seekBy = -$seekTimeSeconds")
-                    playbackEngine.seekBy(-seekTimeSeconds)
-                    val newPos = (currentPosition - seekTimeSeconds).coerceAtLeast(0.0)
-                    danmakuManager.seekTo((newPos * 1000).toLong())
+                    requestRelativeUserSeek(-seekTimeSeconds)
                 }
                 
                 override fun onForwardClick() {
                     Log.d(SEEK_DEBUG, "onForwardClick: seekTimeSeconds = $seekTimeSeconds, currentPosition = $currentPosition, seekBy = $seekTimeSeconds")
-                    playbackEngine.seekBy(seekTimeSeconds)
-                    val newPos = (currentPosition + seekTimeSeconds).coerceAtMost(duration)
-                    danmakuManager.seekTo((newPos * 1000).toLong())
+                    requestRelativeUserSeek(seekTimeSeconds)
                 }
                 
                 override fun onSubtitleClick() {
@@ -833,9 +871,10 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 
                 override fun onSeekBarChange(position: Double) {
-                    val usePrecise = gestureHandler.isPreciseSeekingEnabled()
-                    playbackEngine.seekTo(position.toInt(), usePrecise)
-                    danmakuManager.seekTo((position * 1000).toLong())
+                    requestUserSeek(
+                        position = position.toInt(),
+                        precise = gestureHandler.isPreciseSeekingEnabled()
+                    )
                 }
                 
                 override fun onBackClick() {
@@ -1359,6 +1398,187 @@ class VideoPlayerActivity : AppCompatActivity(),
                 }
                 .start()
         }
+    }
+
+    private fun stalledBufferingThresholdMs(): Long {
+        return if (isOnlineVideo) {
+            ONLINE_STALL_BUFFERING_THRESHOLD_MS
+        } else {
+            LOCAL_STALL_BUFFERING_THRESHOLD_MS
+        }
+    }
+
+    private fun requestRelativeUserSeek(deltaSeconds: Int) {
+        if (duration <= 0) {
+            return
+        }
+        val basePosition = pendingSeekPosition ?: currentPosition.toInt()
+        val targetPosition = clampSeekPosition(basePosition + deltaSeconds)
+        pendingSeekPosition = targetPosition
+        requestUserSeek(
+            position = targetPosition,
+            precise = gestureHandler.isPreciseSeekingEnabled(),
+            debounceMs = if (isOnlineVideo) ONLINE_DOUBLE_TAP_SEEK_DEBOUNCE_MS else 0L
+        )
+    }
+
+    private fun requestUserSeek(
+        position: Int,
+        precise: Boolean,
+        debounceMs: Long = 0L
+    ) {
+        val safePosition = clampSeekPosition(position)
+        if (!isOnlineVideo) {
+            cancelPendingOnlineSeek()
+            dispatchUserSeek(safePosition, precise)
+            return
+        }
+
+        cancelPendingOnlineSeek()
+        if (debounceMs > 0L) {
+            val seekRunnable = Runnable {
+                pendingOnlineSeekRunnable = null
+                dispatchUserSeek(safePosition, precise = false)
+            }
+            pendingOnlineSeekRunnable = seekRunnable
+            userSeekHandler.postDelayed(seekRunnable, debounceMs)
+        } else {
+            dispatchUserSeek(safePosition, precise = false)
+        }
+    }
+
+    private fun dispatchUserSeek(position: Int, precise: Boolean) {
+        val safePosition = clampSeekPosition(position)
+        if (isOnlineVideo) {
+            suppressStalledBufferingUntilMs = System.currentTimeMillis() + ONLINE_SEEK_STALL_GRACE_MS
+            onlineSeekRecoveryAttempts = 0
+            startOnlineSeekWatchdog(safePosition)
+            if (isStalledBuffering) {
+                isStalledBuffering = false
+                loadingIndicator.visibility = View.GONE
+            }
+        }
+        currentPosition = safePosition.toDouble()
+        playbackEngine.seekTo(safePosition, precise && !isOnlineVideo)
+        if (isOnlineVideo && isPlaying) {
+            userSeekHandler.postDelayed({
+                if (!isFinishing && !isDestroyed && isOnlineVideo && isPlaying) {
+                    playbackEngine.play()
+                }
+            }, 120)
+        }
+        syncDanmakuAfterUserSeek(safePosition)
+    }
+
+    private fun clampSeekPosition(position: Int): Int {
+        val maxPosition = duration.toInt().takeIf { it > 0 } ?: Int.MAX_VALUE
+        return position.coerceIn(0, maxPosition)
+    }
+
+    private fun startOnlineSeekWatchdog(targetPosition: Int) {
+        cancelOnlineSeekWatchdog()
+        onlineSeekGeneration += 1
+        val generation = onlineSeekGeneration
+        onlineSeekTargetPosition = targetPosition
+        onlineSeekStartPosition = currentPosition
+
+        val watchdog = Runnable {
+            onlineSeekWatchdogRunnable = null
+            recoverOnlineSeekIfStalled(generation, targetPosition)
+        }
+        onlineSeekWatchdogRunnable = watchdog
+        userSeekHandler.postDelayed(watchdog, ONLINE_SEEK_WATCHDOG_MS)
+    }
+
+    private fun maybeCompleteOnlineSeek(position: Double) {
+        val target = onlineSeekTargetPosition ?: return
+        val reachedTarget = kotlin.math.abs(position - target) <= ONLINE_SEEK_RECOVERY_THRESHOLD_SEC
+        if (reachedTarget) {
+            cancelOnlineSeekWatchdog()
+            syncDanmakuToPosition(position)
+            onlineSeekTargetPosition = null
+            suppressStalledBufferingUntilMs = 0L
+        }
+    }
+
+    private fun recoverOnlineSeekIfStalled(generation: Int, targetPosition: Int) {
+        if (
+            generation != onlineSeekGeneration ||
+            !isOnlineVideo ||
+            isFinishing ||
+            isDestroyed
+        ) {
+            return
+        }
+
+        val observedPosition = playbackEngine.currentPosition
+        val currentDistance = kotlin.math.abs(observedPosition - targetPosition)
+        if (currentDistance <= ONLINE_SEEK_RECOVERY_THRESHOLD_SEC) {
+            onlineSeekTargetPosition = null
+            return
+        }
+
+        val request = remotePlaybackRequest
+        if (request == null) {
+            Logger.w(TAG, "Online seek stalled but no remote request is available for recovery")
+            return
+        }
+        if (onlineSeekRecoveryAttempts >= ONLINE_SEEK_MAX_RECOVERY_ATTEMPTS) {
+            Logger.w(TAG, "Online seek recovery already attempted for target=$targetPosition")
+            onlineSeekTargetPosition = null
+            return
+        }
+        onlineSeekRecoveryAttempts += 1
+
+        Logger.w(TAG, "Online seek stalled at $observedPosition, reloading remote media at $targetPosition")
+        suppressStalledBufferingUntilMs = System.currentTimeMillis() + ONLINE_SEEK_STALL_GRACE_MS
+        isStalledBuffering = false
+        loadingIndicator.visibility = View.VISIBLE
+        playbackEngine.loadRemote(request, targetPosition.toDouble())
+        startOnlineSeekWatchdog(targetPosition)
+    }
+
+    private fun cancelOnlineSeekWatchdog() {
+        onlineSeekWatchdogRunnable?.let { userSeekHandler.removeCallbacks(it) }
+        onlineSeekWatchdogRunnable = null
+    }
+
+    private fun cancelPendingOnlineSeek() {
+        pendingOnlineSeekRunnable?.let { userSeekHandler.removeCallbacks(it) }
+        pendingOnlineSeekRunnable = null
+        cancelPendingOnlineDanmakuSeek()
+        cancelOnlineSeekWatchdog()
+        onlineSeekTargetPosition = null
+    }
+
+    private fun syncDanmakuAfterUserSeek(position: Int) {
+        if (!isOnlineVideo) {
+            syncDanmakuToPosition(position.toDouble())
+            return
+        }
+
+        cancelPendingOnlineDanmakuSeek()
+        val generation = onlineSeekGeneration
+        val fallbackPosition = position.toDouble()
+        val runnable = Runnable {
+            pendingOnlineDanmakuSeekRunnable = null
+            if (!isFinishing && !isDestroyed && isOnlineVideo && generation == onlineSeekGeneration) {
+                val playerPosition = playbackEngine.currentPosition.takeIf { it > 0.0 } ?: fallbackPosition
+                syncDanmakuToPosition(playerPosition)
+            }
+        }
+        pendingOnlineDanmakuSeekRunnable = runnable
+        userSeekHandler.postDelayed(runnable, ONLINE_DANMAKU_SEEK_DELAY_MS)
+    }
+
+    private fun syncDanmakuToPosition(position: Double) {
+        cancelPendingOnlineDanmakuSeek()
+        danmakuManager.seekTo((position * 1000).toLong())
+    }
+
+    private fun cancelPendingOnlineDanmakuSeek() {
+        pendingOnlineDanmakuSeekRunnable?.let { userSeekHandler.removeCallbacks(it) }
+        pendingOnlineDanmakuSeekRunnable = null
     }
 
     private fun refreshVideoLayoutAfterOrientationToggle() {
@@ -1999,6 +2219,12 @@ class VideoPlayerActivity : AppCompatActivity(),
      * 播放指定视频
      */
     private fun playVideo(uri: Uri) {
+        cancelPendingOnlineSeek()
+        pendingOnlineGestureSeekPosition = null
+        suppressStalledBufferingUntilMs = 0L
+        lastPositionForBuffering = 0.0
+        lastPositionUpdateTime = 0L
+        isStalledBuffering = false
         videoUri = uri
         
         // 重置自动加载字幕标志（新视频开始播放）
@@ -2246,6 +2472,7 @@ class VideoPlayerActivity : AppCompatActivity(),
         Logger.d(TAG, "Activity destroyed")
 
         remoteResolveJob?.cancel()
+        cancelPendingOnlineSeek()
         
         savePlaybackState()
         

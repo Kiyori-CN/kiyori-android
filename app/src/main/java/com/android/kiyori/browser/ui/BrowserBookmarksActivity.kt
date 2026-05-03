@@ -62,8 +62,8 @@ class BrowserBookmarksActivity : ComponentActivity() {
                         finish()
                         applyCloseActivityTransitionCompat(R.anim.no_anim, R.anim.no_anim)
                     },
-                    onCreateFolder = { title, parentId ->
-                        repository.addFolder(title, parentId)
+                    onCreateFolder = { title, parentId, secret ->
+                        repository.addFolder(title, parentId, secret)
                         refreshState()
                     },
                     onRenameFolder = { folderId, title ->
@@ -75,22 +75,73 @@ class BrowserBookmarksActivity : ComponentActivity() {
                             refreshState()
                         }
                     },
-                    onDeleteFolder = { folderId ->
-                        repository.deleteFolder(folderId)
+                    onDeleteFolder = { folderId, secret ->
+                        repository.deleteFolder(folderId, secret)
                         refreshState()
                     },
-                    onSaveBookmark = { draft ->
+                    onSaveBookmark = { draft, secret ->
+                        val targetFolderId = draft.newFolderTitle
+                            .trim()
+                            .takeIf { it.isNotBlank() }
+                            ?.let { repository.addFolder(it, parentId = null, secret = secret).id }
+                            ?: draft.folderId
                         repository.upsertBookmark(
                             title = draft.title,
                             url = draft.url,
                             iconUrl = draft.iconUrl,
-                            folderId = draft.folderId
+                            folderId = targetFolderId,
+                            secret = secret
                         )
+                        refreshState()
+                    },
+                    onUpdateBookmark = { bookmarkId, draft ->
+                        val currentSecret = repository.getBookmarks()
+                            .firstOrNull { it.id == bookmarkId }
+                            ?.secret
+                            ?: false
+                        val targetFolderId = draft.newFolderTitle
+                            .trim()
+                            .takeIf { it.isNotBlank() }
+                            ?.let { repository.addFolder(it, parentId = null, secret = currentSecret).id }
+                            ?: draft.folderId
+                        repository.updateBookmark(bookmarkId, draft.title, draft.url, draft.iconUrl, targetFolderId)
+                        refreshState()
+                    },
+                    onMoveBookmark = { bookmarkId, folderId ->
+                        repository.moveBookmark(bookmarkId, folderId).also { refreshState() }
+                    },
+                    onSetBookmarkSecret = { bookmarkId, secret ->
+                        repository.setBookmarkSecret(bookmarkId, secret)
                         refreshState()
                     },
                     onDeleteBookmark = { bookmarkId ->
                         repository.deleteBookmark(bookmarkId)
                         refreshState()
+                    },
+                    onDeleteAllBookmarks = { secret ->
+                        repository.deleteAllInSecretSpace(secret)
+                        refreshState()
+                    },
+                    onDeleteBookmarksInFolder = { folderId, secret ->
+                        repository.deleteBookmarksInFolder(folderId, secret)
+                        refreshState()
+                    },
+                    onReorderFolder = { folderId, direction ->
+                        repository.reorderFolder(folderId, direction).also { refreshState() }
+                    },
+                    onReorderBookmark = { bookmarkId, direction ->
+                        repository.reorderBookmark(bookmarkId, direction).also { refreshState() }
+                    },
+                    onExportBookmarks = { folderId, secret -> repository.exportJson(folderId, secret) },
+                    onShareBookmarks = { folderId, secret -> repository.exportHikerShareCommand(folderId, secret) },
+                    onImportBookmarks = { raw, replace, secret ->
+                        repository.importJson(raw, replace, secret).also { refreshState() }
+                    },
+                    onAddBookmarkToHomeNavigation = { bookmark ->
+                        repository.addBookmarkToHomeNavigation(bookmark.id).also { refreshState() }
+                    },
+                    onAddFolderToHomeNavigation = { folderId ->
+                        repository.addFolderBookmarksToHomeNavigation(folderId).also { refreshState() }
                     },
                     onOpenBookmark = { url ->
                         BrowserActivity.start(this, url = url)

@@ -189,6 +189,21 @@ class BrowserActivity : BaseActivity() {
                     onClearSearchRecords = browserWebViewController::clearSearchHistory,
                     onToggleIncognitoMode = browserWebViewController::toggleIncognitoMode,
                     onOpenHistoryItem = browserWebViewController::loadUrl,
+                    onOpenBookmarkInBackground = { bookmark ->
+                        historyRepository.upsertHistory(
+                            title = bookmark.title,
+                            url = bookmark.url,
+                            previewBitmap = null
+                        )
+                    },
+                    onOpenBookmarkInNewWindow = { bookmark ->
+                        historyRepository.upsertHistory(
+                            title = bookmark.title,
+                            url = bookmark.url,
+                            previewBitmap = null
+                        )
+                        browserWebViewController.loadUrl(bookmark.url)
+                    },
                     onDeleteHistoryItem = browserWebViewController::deleteHistoryItem,
                     onClearHistory = browserWebViewController::clearHistory,
                     onSelectUserAgentMode = browserWebViewController::setUserAgentMode,
@@ -200,12 +215,18 @@ class BrowserActivity : BaseActivity() {
                     onDownloadDetectedVideo = ::downloadDetectedVideo,
                     onRequestPageSource = browserWebViewController::requestPageSource,
                     bookmarkFolders = bookmarkFolders,
-                    onSaveBookmark = { draft ->
+                    onSaveBookmark = { draft, secret ->
+                        val targetFolderId = draft.newFolderTitle
+                            .trim()
+                            .takeIf { it.isNotBlank() }
+                            ?.let { bookmarkRepository.addFolder(it, parentId = null, secret = secret).id }
+                            ?: draft.folderId
                         bookmarkRepository.upsertBookmark(
                             title = draft.title,
                             url = draft.url,
                             iconUrl = draft.iconUrl,
-                            folderId = draft.folderId
+                            folderId = targetFolderId,
+                            secret = secret
                         )
                         bookmarkFolders = bookmarkRepository.getFolders().map {
                             BrowserBookmarkFolderOption(id = it.id, title = it.title)
